@@ -245,6 +245,7 @@
       "timeLimit": "Лимит времени (сек)",
       "photoUrl": "URL фото",
       "photoUrlPlaceholder": "Введите URL фото (опционально)",
+      "image": "Изображение",
       "aiExplanation": "AI объяснение",
       "aiExplanationPlaceholder": "Введите AI объяснение (опционально)",
       "answerVariants": "Варианты ответов",
@@ -259,7 +260,28 @@
       "edit": "Редактировать",
       "details": "Детали",
       "problematic": "Проблемный"
-    }
+    },
+    "withImage": "С изображением",
+    "createdAt": "Дата создания",
+    "details": {
+      "title": "Детали вопроса",
+      "basicInfo": "Основная информация",
+      "settings": "Настройки",
+      "aiExplanation": "Объяснение (AI)",
+      "noExplanation": "Объяснение отсутствует",
+      "statistics": "Статистика ответов",
+      "noStatistics": "Нет статистики",
+      "totalAnswers": "Всего ответов",
+      "correctAnswers": "Правильных",
+      "wrongAnswers": "Неправильных",
+      "correctRate": "Процент правильных",
+      "delete": "Удалить",
+      "close": "Закрыть",
+      "deleteConfirmTitle": "Удалить вопрос?",
+      "deleteConfirmMessage": "Вы уверены, что хотите удалить этот вопрос? Это действие нельзя отменить.",
+      "deleting": "Удаление..."
+    },
+    "emptyAnswer": "Пустой ответ"
   },
   "referrals": {
     "title": "Реферальная система",

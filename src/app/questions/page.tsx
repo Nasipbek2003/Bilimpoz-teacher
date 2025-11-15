@@ -4,11 +4,24 @@ import React, { useState, useEffect } from 'react'
 import TeacherLayout from '@/components/teacher/TeacherLayout'
 import StatCard from '@/components/teacher/StatCard'
 import QuestionsFilter from '@/components/teacher/QuestionsFilter'
-import QuestionCard from '@/components/teacher/QuestionCard'
+import QuestionsTable from '@/components/teacher/QuestionsTable'
 import CreateQuestionModal, { QuestionFormData } from '@/components/teacher/CreateQuestionModal'
+import QuestionDetailsModal from '@/components/teacher/QuestionDetailsModal'
 import Button from '@/components/ui/Button'
 import { Icons } from '@/components/ui/Icons'
 import { useTranslation } from '@/hooks/useTranslation'
+
+interface Question {
+  id: string
+  question: string
+  type_question: 'math1' | 'math2' | 'analogy' | 'rac' | 'grammar' | 'standard'
+  type_from: 'from_lesson' | 'from_teacher' | 'from_trial' | 'from_student' | 'from_mentor'
+  language: 'ru' | 'kg'
+  created_at: string
+  hasComplaint?: boolean
+  averageCorrect?: number
+  photo_url?: string
+}
 
 // Моковые данные вопросов (из базы данных Questions)
 const mockQuestions = [
@@ -68,9 +81,11 @@ export default function QuestionsPage() {
   const [dateTo, setDateTo] = useState('')
   const [timeTo, setTimeTo] = useState('')
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false)
   const [isCreating, setIsCreating] = useState(false)
   const [editingQuestionId, setEditingQuestionId] = useState<string | null>(null)
   const [editingQuestionData, setEditingQuestionData] = useState<QuestionFormData | null>(null)
+  const [viewingQuestion, setViewingQuestion] = useState<Question | null>(null)
 
   useEffect(() => {
     setMounted(true)
@@ -168,24 +183,41 @@ export default function QuestionsPage() {
     console.log('Пометить как некорректный:', questionId)
   }
 
-  const handleViewDetails = (questionId: string) => {
-    console.log('Просмотр деталей вопроса:', questionId)
+  const handleViewDetails = (question: Question) => {
+    // В реальном приложении здесь будет запрос к API для получения полных данных вопроса
+    // Пока используем моковые данные
+    const fullQuestionData = {
+      ...question,
+      photo_url: question.photo_url || '',
+      explanation_ai: '', // Нужно получить из API
+      points: 1, // Нужно получить из API
+      time_limit: 60, // Нужно получить из API
+      answer_variants: [
+        { value: 'Вариант ответа 1' }, // Нужно получить из API
+        { value: 'Вариант ответа 2' },
+        { value: 'Вариант ответа 3' },
+        { value: 'Вариант ответа 4' }
+      ],
+      correct_variant_index: 0 // Нужно получить из API
+    }
+    setViewingQuestion(fullQuestionData as any)
+    setIsDetailsModalOpen(true)
   }
 
-  const handleEdit = (questionId: string) => {
-    const question = mockQuestions.find(q => q.id === questionId)
-    if (question) {
+  const handleEdit = (question: Question) => {
+    const foundQuestion = mockQuestions.find(q => q.id === question.id)
+    if (foundQuestion) {
       // Преобразуем данные вопроса в формат формы
       // В реальном приложении здесь будет запрос к API для получения полных данных вопроса
       const questionData: QuestionFormData = {
-        question: question.question,
-        type_question: question.type_question,
-        type_from: question.type_from,
-        language: question.language,
+        question: foundQuestion.question,
+        type_question: foundQuestion.type_question,
+        type_from: foundQuestion.type_from,
+        language: foundQuestion.language,
         source_id: '', // Нужно получить из API
         points: 1, // Нужно получить из API
         time_limit: 60, // Нужно получить из API
-        photo_url: '', // Нужно получить из API
+        photo_url: foundQuestion.photo_url || '', // Нужно получить из API
         explanation_ai: '', // Нужно получить из API
         answer_variants: [
           { value: '' }, // Нужно получить из API
@@ -195,9 +227,16 @@ export default function QuestionsPage() {
         ],
         correct_variant_index: 0 // Нужно получить из API
       }
-      setEditingQuestionId(questionId)
+      setEditingQuestionId(foundQuestion.id)
       setEditingQuestionData(questionData)
       setIsCreateModalOpen(true)
+      setIsDetailsModalOpen(false) // Закрываем окно просмотра при редактировании
+    }
+  }
+
+  const handleEditFromDetails = () => {
+    if (viewingQuestion) {
+      handleEdit(viewingQuestion)
     }
   }
 
@@ -338,37 +377,23 @@ export default function QuestionsPage() {
           onClearFilters={handleClearFilters}
         />
 
-        {/* Счетчик найденных вопросов */}
-        <div className="text-sm text-gray-400">
-          {t('questions.foundQuestions')}: {sortedQuestions.length}
-        </div>
+        {/* Таблица вопросов */}
+        <QuestionsTable
+          questions={sortedQuestions}
+          onQuestionClick={handleViewDetails}
+          onQuestionEdit={handleEdit}
+        />
 
-        {/* Список вопросов */}
-        <div className="space-y-4">
-          {sortedQuestions.length === 0 ? (
-            <div className="bg-[#151515] rounded-2xl p-12 text-center">
-              <Icons.HelpCircle className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-              <h3 className="text-lg font-medium text-white mb-2">
-                {t('questions.noQuestions')}
-              </h3>
-              <p className="text-gray-400">
-                {t('questions.noQuestionsDescription')}
-              </p>
-            </div>
-          ) : (
-            sortedQuestions.map((question) => (
-              <QuestionCard
-                key={question.id}
-                question={question}
-                onAnswer={handleAnswer}
-                onMarkSolved={handleMarkSolved}
-                onMarkIncorrect={handleMarkIncorrect}
-                onViewDetails={handleViewDetails}
-                onEdit={handleEdit}
-              />
-            ))
-          )}
-        </div>
+        {/* Модальное окно просмотра деталей вопроса */}
+        <QuestionDetailsModal
+          isOpen={isDetailsModalOpen}
+          onClose={() => {
+            setIsDetailsModalOpen(false)
+            setViewingQuestion(null)
+          }}
+          question={viewingQuestion}
+          onEdit={handleEditFromDetails}
+        />
 
         {/* Модальное окно создания/редактирования вопроса */}
         <CreateQuestionModal

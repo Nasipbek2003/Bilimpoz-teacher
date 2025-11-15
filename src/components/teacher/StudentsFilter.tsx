@@ -39,7 +39,7 @@ const StudentsFilter: React.FC<StudentsFilterProps> = ({
       { value: 'active', label: t('students.filters.statusOptions.active') },
       { value: 'inactive', label: t('students.filters.statusOptions.inactive') },
       { value: 'banned', label: t('students.filters.statusOptions.banned') },
-    ]
+  ]
   }, [t, mounted, ready])
 
   const sortOptions: SelectOption[] = useMemo(() => {

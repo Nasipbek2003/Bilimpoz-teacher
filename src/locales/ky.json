@@ -245,6 +245,7 @@
       "timeLimit": "Убакыт чеги (сек)",
       "photoUrl": "Сүрөттүн URL",
       "photoUrlPlaceholder": "Сүрөттүн URL киргизиңиз (милдеттүү эмес)",
+      "image": "Сүрөт",
       "aiExplanation": "AI түшүндүрмө",
       "aiExplanationPlaceholder": "AI түшүндүрмө киргизиңиз (милдеттүү эмес)",
       "answerVariants": "Жооп варианттары",
@@ -259,7 +260,28 @@
       "edit": "Өзгөртүү",
       "details": "Чоо-жайы",
       "problematic": "Көйгөйлүү"
-    }
+    },
+    "withImage": "Сүрөт менен",
+    "createdAt": "Түзүлгөн күнү",
+    "details": {
+      "title": "Суроонун деталдары",
+      "basicInfo": "Негизги маалымат",
+      "settings": "Жөндөөлөр",
+      "aiExplanation": "Түшүндүрүү (AI)",
+      "noExplanation": "Түшүндүрүү жок",
+      "statistics": "Жооптордун статистикасы",
+      "noStatistics": "Статистика жок",
+      "totalAnswers": "Жалпы жооптор",
+      "correctAnswers": "Туура",
+      "wrongAnswers": "Туура эмес",
+      "correctRate": "Туура жооптордун пайызы",
+      "delete": "Жок кылуу",
+      "close": "Жабуу",
+      "deleteConfirmTitle": "Суроону жок кылуу керекпи?",
+      "deleteConfirmMessage": "Сиз бул суроону жок кылгыңыз келеби? Бул аракетти кайтарып алуу мүмкүн эмес.",
+      "deleting": "Жок кылуу..."
+    },
+    "emptyAnswer": "Бош жооп"
   },
   "referrals": {
     "title": "Реферал системасы",

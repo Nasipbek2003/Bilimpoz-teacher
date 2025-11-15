@@ -715,11 +715,12 @@ const CreateQuestionModal: React.FC<CreateQuestionModalProps> = ({
           </div>
 
           {/* Варианты ответов */}
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <label className="block text-sm font-medium text-gray-300">
+          <div className="bg-[#1a1a1a] rounded-xl p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                <Icons.List className="h-5 w-5" />
                 {getText('questions.form.answerVariants', 'Варианты ответов')} <span className="text-red-400">*</span>
-              </label>
+              </h3>
               <button
                 type="button"
                 onClick={handleAddVariant}
@@ -729,49 +730,61 @@ const CreateQuestionModal: React.FC<CreateQuestionModalProps> = ({
                 {getText('questions.form.addVariant', 'Добавить вариант')}
               </button>
             </div>
+
             <div className="space-y-3">
-              {formData.answer_variants.map((variant, index) => (
-                <div key={index} className="flex items-center gap-3">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      <input
-                        type="radio"
-                        name="correct_variant"
-                        checked={formData.correct_variant_index === index}
-                        onChange={() => {
-                          setFormData({ ...formData, correct_variant_index: index })
-                          if (errors.correct_variant) {
-                            setErrors({ ...errors, correct_variant: '' })
-                          }
-                        }}
-                        className="w-4 h-4 text-blue-600 bg-[#242424] border-gray-600 focus:ring-blue-500"
-                      />
-                      <span className="text-sm text-gray-400">
-                        {formData.correct_variant_index === index 
-                          ? getText('questions.form.correctAnswer', 'Правильный ответ')
-                          : getText('questions.form.answerVariantPlaceholder', 'Вариант') + ' ' + (index + 1)
+              {formData.answer_variants.map((variant, index) => {
+                const isSelected = formData.correct_variant_index === index
+                return (
+                  <div key={index} className="flex items-start gap-3">
+                    {/* Индикатор правильности */}
+                    <div
+                      onClick={() => {
+                        setFormData({ ...formData, correct_variant_index: index })
+                        if (errors.correct_variant) {
+                          setErrors({ ...errors, correct_variant: '' })
                         }
-                      </span>
-                    </div>
-                    <Input
-                      type="text"
-                      value={variant.value}
-                      onChange={(e) => handleAnswerVariantChange(index, e.target.value)}
-                      placeholder={getText('questions.form.answerVariantPlaceholder', 'Вариант ответа') + ' ' + (index + 1)}
-                    />
-                  </div>
-                  {formData.answer_variants.length > 2 && (
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveVariant(index)}
-                      className="p-2 text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                      }}
+                      className={`mt-1 w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 cursor-pointer ${
+                        isSelected
+                          ? 'border-green-500 bg-green-500'
+                          : 'border-gray-600'
+                      }`}
                     >
-                      <Icons.Trash2 className="h-5 w-5" />
-                    </button>
-                  )}
-                </div>
-              ))}
+                      {isSelected && <Icons.Check className="h-3 w-3 text-white" />}
+                    </div>
+                    
+                    {/* Блок с текстом ответа */}
+                    <div className={`flex-1 px-4 py-2 rounded-lg ${
+                      isSelected
+                        ? 'bg-green-500/10 border border-green-500/20'
+                        : 'bg-[#242424]'
+                    }`}>
+                      <input
+                        type="text"
+                        value={variant.value}
+                        onChange={(e) => handleAnswerVariantChange(index, e.target.value)}
+                        placeholder={getText('questions.form.answerVariantPlaceholder', 'Вариант ответа') + ' ' + (index + 1)}
+                        className={`w-full bg-transparent border-none outline-none placeholder-gray-500 ${
+                          isSelected ? 'text-green-400' : 'text-white'
+                        }`}
+                      />
+                    </div>
+                    
+                    {/* Remove button */}
+                    {formData.answer_variants.length > 2 && (
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveVariant(index)}
+                        className="flex-shrink-0 mt-1 p-2 text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                      >
+                        <Icons.Trash2 className="h-5 w-5" />
+                      </button>
+                    )}
+                  </div>
+                )
+              })}
             </div>
+            
             {errors.answer_variants && (
               <p className="text-sm text-red-400 mt-1">{errors.answer_variants}</p>
             )}

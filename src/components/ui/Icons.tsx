@@ -113,6 +113,8 @@ import {
   UserCheck,
   UserX,
   UserMinus,
+  Check,
+  List,
 } from 'lucide-react'
 
 export const Icons = {
@@ -164,6 +166,7 @@ export const Icons = {
   // Статусы
   CheckCircle,
   CheckCircle2,
+  Check,
   AlertCircle,
   AlertTriangle,
   XCircle,
@@ -255,4 +258,5 @@ export const Icons = {
   UserCheck,
   UserX,
   UserMinus,
+  List,
 }
