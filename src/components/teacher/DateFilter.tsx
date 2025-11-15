@@ -126,12 +126,12 @@ const DateFilter: React.FC<DateFilterProps> = ({
   }
 
   return (
-    <div className="bg-[#151515] rounded-2xl p-6">
+    <div className="bg-[var(--bg-card)] rounded-2xl p-6 border border-[var(--border-secondary)]">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-white">{getText('dashboard.period', 'Период')}</h3>
+        <h3 className="text-lg font-semibold text-[var(--text-primary)]">{getText('dashboard.period', 'Период')}</h3>
         <button
           onClick={() => setShowCustomRange(!showCustomRange)}
-          className="text-sm text-gray-400 hover:text-white transition-colors"
+          className="text-sm text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors"
         >
           {getText('dashboard.configure', 'Настроить')}
         </button>
@@ -145,8 +145,8 @@ const DateFilter: React.FC<DateFilterProps> = ({
             onClick={() => handleQuickFilter(filter.value)}
             className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
               selectedPeriod === filter.value
-                ? 'bg-[#363636] text-white border border-white'
-                : 'bg-[#242424] text-gray-400 border border-gray-700/50 hover:text-white hover:bg-[#363636]'
+                ? 'bg-[var(--bg-active-button)] text-[var(--text-active-button)]'
+                : 'bg-[var(--bg-tertiary)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)]'
             }`}
           >
             {filter.label}
@@ -156,10 +156,10 @@ const DateFilter: React.FC<DateFilterProps> = ({
 
       {/* Кастомный диапазон */}
       {showCustomRange && (
-        <div className="space-y-4 pt-4 border-t border-gray-700">
+        <div className="space-y-4 pt-4 border-t border-[var(--border-primary)]">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
                 {getText('dashboard.fromDate', 'От даты')}
               </label>
               <CustomDatePicker
@@ -168,7 +168,7 @@ const DateFilter: React.FC<DateFilterProps> = ({
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
                 {getText('dashboard.toDate', 'До даты')}
               </label>
               <CustomDatePicker
@@ -180,7 +180,7 @@ const DateFilter: React.FC<DateFilterProps> = ({
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
                 {getText('dashboard.timeFrom', 'Время от')}
               </label>
               <CustomTimePicker
@@ -189,7 +189,7 @@ const DateFilter: React.FC<DateFilterProps> = ({
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
                 {getText('dashboard.timeTo', 'Время до')}
               </label>
               <CustomTimePicker

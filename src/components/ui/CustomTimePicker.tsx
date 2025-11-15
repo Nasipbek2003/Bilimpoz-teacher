@@ -115,19 +115,19 @@ export default function CustomTimePicker({ value, onChange, className = '', plac
       {/* Input field */}
       <div
         onClick={() => setIsOpen(!isOpen)}
-        className="px-3 py-2 bg-[#242424] border-0 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-white/20 transition-all cursor-pointer flex items-center justify-between w-full"
+        className="px-3 py-2 bg-[var(--bg-tertiary)] border-0 rounded-xl text-[var(--text-primary)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/20 transition-all cursor-pointer flex items-center justify-between w-full"
       >
-        <span className={value ? 'text-white' : 'text-gray-400'}>
+        <span className={value ? 'text-[var(--text-primary)]' : 'text-[var(--text-tertiary)]'}>
           {value ? formatTime(value) : (placeholder || t('timePicker.time'))}
         </span>
-        <Icons.Clock className="h-4 w-4 text-gray-400" />
+        <Icons.Clock className="h-4 w-4 text-[var(--text-tertiary)]" />
       </div>
 
       {/* Time picker dropdown */}
       {isOpen && (
-        <div className="absolute top-full left-0 right-0 mt-2 bg-[#151515] border border-gray-700/50 rounded-xl shadow-2xl z-[100] p-4 min-w-[200px]">
+        <div className="absolute top-full left-0 right-0 mt-2 bg-[var(--bg-card)] border border-[var(--border-primary)] rounded-xl shadow-2xl z-[100] p-4 min-w-[200px]">
           {/* Header */}
-          <div className="text-white font-medium mb-4 text-center">
+          <div className="text-[var(--text-primary)] font-medium mb-4 text-center">
             {t('timePicker.selectTime')}
           </div>
 
@@ -135,14 +135,14 @@ export default function CustomTimePicker({ value, onChange, className = '', plac
           <div className="flex items-center gap-2 mb-4">
             {/* Hours */}
             <div className="flex-1">
-              <label className="block text-xs text-gray-400 mb-2">{t('timePicker.hours')}</label>
-              <div ref={hoursContainerRef} className="bg-[#242424] rounded-lg max-h-32 overflow-y-auto border border-gray-700/50">
+              <label className="block text-xs text-[var(--text-tertiary)] mb-2">{t('timePicker.hours')}</label>
+              <div ref={hoursContainerRef} className="bg-[var(--bg-tertiary)] rounded-lg max-h-32 overflow-y-auto border border-[var(--border-primary)]">
                 {hourOptions.map(hour => (
                   <button
                     key={hour}
                     onClick={() => handleHourChange(hour)}
-                    className={`w-full px-2 py-1 text-sm text-left hover:bg-[#363636] transition-all ${
-                      hours === hour ? 'bg-blue-500 text-white' : 'text-gray-300'
+                    className={`w-full px-2 py-1 text-sm text-left hover:bg-[var(--bg-hover)] transition-all ${
+                      hours === hour ? 'bg-[var(--accent-primary)] text-white' : 'text-[var(--text-secondary)]'
                     }`}
                   >
                     {hour}
@@ -150,17 +150,17 @@ export default function CustomTimePicker({ value, onChange, className = '', plac
                 ))}
               </div>
             </div>
-            <div className="text-white text-lg font-bold mt-6">:</div>
+            <div className="text-[var(--text-primary)] text-lg font-bold mt-6">:</div>
             {/* Minutes */}
             <div className="flex-1">
-              <label className="block text-xs text-gray-400 mb-2">{t('timePicker.minutes')}</label>
-              <div ref={minutesContainerRef} className="bg-[#242424] rounded-lg max-h-32 overflow-y-auto border border-gray-700/50">
+              <label className="block text-xs text-[var(--text-tertiary)] mb-2">{t('timePicker.minutes')}</label>
+              <div ref={minutesContainerRef} className="bg-[var(--bg-tertiary)] rounded-lg max-h-32 overflow-y-auto border border-[var(--border-primary)]">
                 {minuteOptions.map(minute => (
                   <button
                     key={minute}
                     onClick={() => handleMinuteChange(minute)}
-                    className={`w-full px-2 py-1 text-sm text-left hover:bg-[#363636] transition-all ${
-                      minutes === minute ? 'bg-blue-500 text-white' : 'text-gray-300'
+                    className={`w-full px-2 py-1 text-sm text-left hover:bg-[var(--bg-hover)] transition-all ${
+                      minutes === minute ? 'bg-[var(--accent-primary)] text-white' : 'text-[var(--text-secondary)]'
                     }`}
                   >
                     {minute}
@@ -179,7 +179,7 @@ export default function CustomTimePicker({ value, onChange, className = '', plac
                 handleTimeChange('00', '00');
                 setTimeout(() => setIsOpen(false), 200);
               }}
-              className="px-3 py-2 text-sm text-gray-400 hover:text-white hover:bg-[#242424] rounded-lg transition-all"
+              className="px-3 py-2 text-sm text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] rounded-lg transition-all"
             >
               00:00
             </button>
@@ -190,23 +190,23 @@ export default function CustomTimePicker({ value, onChange, className = '', plac
                 handleTimeChange('23', '59');
                 setTimeout(() => setIsOpen(false), 200);
               }}
-              className="px-3 py-2 text-sm text-gray-400 hover:text-white hover:bg-[#242424] rounded-lg transition-all"
+              className="px-3 py-2 text-sm text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] rounded-lg transition-all"
             >
               23:59
             </button>
           </div>
 
           {/* Footer buttons */}
-          <div className="flex gap-2 pt-2 border-t border-gray-700/50">
+          <div className="flex gap-2 pt-2 border-t border-[var(--border-primary)]">
             <button
               onClick={setCurrentTime}
-              className="flex-1 px-3 py-2 text-sm text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 rounded-xl transition-all"
+              className="flex-1 px-3 py-2 text-sm text-[var(--accent-primary)] hover:text-[var(--accent-primary)]/80 hover:bg-[var(--accent-primary)]/10 rounded-xl transition-all"
             >
               {t('timePicker.now')}
             </button>
             <button
               onClick={clearTime}
-              className="flex-1 px-3 py-2 text-sm text-gray-400 hover:text-gray-300 hover:bg-gray-500/10 rounded-xl transition-all"
+              className="flex-1 px-3 py-2 text-sm text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] rounded-xl transition-all"
             >
               {t('timePicker.clear')}
             </button>

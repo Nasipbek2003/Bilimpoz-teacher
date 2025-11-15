@@ -174,19 +174,19 @@ export default function CustomDatePicker({ value, onChange, className = '', plac
       {/* Input field */}
       <div
         onClick={() => setIsOpen(!isOpen)}
-        className="px-3 py-2 bg-[#242424] border-0 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-white/20 transition-all cursor-pointer flex items-center justify-between w-full"
+        className="px-3 py-2 bg-[var(--bg-tertiary)] border-0 rounded-xl text-[var(--text-primary)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/20 transition-all cursor-pointer flex items-center justify-between w-full"
       >
-        <span className={value ? 'text-white' : 'text-gray-400'}>
+        <span className={value ? 'text-[var(--text-primary)]' : 'text-[var(--text-tertiary)]'}>
           {value ? formatDate(value) : (placeholder || t('datePicker.date'))}
         </span>
-        <Icons.Calendar className="h-4 w-4 text-gray-400" />
+        <Icons.Calendar className="h-4 w-4 text-[var(--text-tertiary)]" />
       </div>
 
       {/* Date picker dropdown */}
       {isOpen && (
-        <div className="absolute top-full left-0 right-0 mt-2 bg-[#151515] border border-gray-700/50 rounded-xl shadow-2xl z-[100] p-4 min-w-[300px]">
+        <div className="absolute top-full left-0 right-0 mt-2 bg-[var(--bg-card)] border border-[var(--border-primary)] rounded-xl shadow-2xl z-[100] p-4 min-w-[300px]">
           {/* Header */}
-          <div className="text-white font-medium mb-4 text-center">
+          <div className="text-[var(--text-primary)] font-medium mb-4 text-center">
             {t('datePicker.selectDate')}
           </div>
 
@@ -194,14 +194,14 @@ export default function CustomDatePicker({ value, onChange, className = '', plac
           <div className="flex items-center gap-2 mb-4">
             {/* Day */}
             <div className="flex-1">
-              <label className="block text-xs text-gray-400 mb-2">{t('datePicker.day')}</label>
-              <div ref={dayContainerRef} className="bg-[#242424] rounded-lg max-h-32 overflow-y-auto border border-gray-700/50">
+              <label className="block text-xs text-[var(--text-tertiary)] mb-2">{t('datePicker.day')}</label>
+              <div ref={dayContainerRef} className="bg-[var(--bg-tertiary)] rounded-lg max-h-32 overflow-y-auto border border-[var(--border-primary)]">
                 {dayOptions.map(d => (
                   <button
                     key={d}
                     onClick={() => handleDayChange(d)}
-                    className={`w-full px-2 py-1 text-sm text-left hover:bg-[#363636] transition-all ${
-                      day === d ? 'bg-blue-500 text-white' : 'text-gray-300'
+                    className={`w-full px-2 py-1 text-sm text-left hover:bg-[var(--bg-hover)] transition-all ${
+                      day === d ? 'bg-[var(--accent-primary)] text-white' : 'text-[var(--text-secondary)]'
                     }`}
                   >
                     {d}
@@ -212,14 +212,14 @@ export default function CustomDatePicker({ value, onChange, className = '', plac
 
             {/* Month */}
             <div className="flex-1">
-              <label className="block text-xs text-gray-400 mb-2">{t('datePicker.month')}</label>
-              <div ref={monthContainerRef} className="bg-[#242424] rounded-lg max-h-32 overflow-y-auto border border-gray-700/50">
+              <label className="block text-xs text-[var(--text-tertiary)] mb-2">{t('datePicker.month')}</label>
+              <div ref={monthContainerRef} className="bg-[var(--bg-tertiary)] rounded-lg max-h-32 overflow-y-auto border border-[var(--border-primary)]">
                 {monthOptions.map(m => (
                   <button
                     key={m.value}
                     onClick={() => handleMonthChange(m.value)}
-                    className={`w-full px-2 py-1 text-sm text-left hover:bg-[#363636] transition-all ${
-                      month === m.value ? 'bg-blue-500 text-white' : 'text-gray-300'
+                    className={`w-full px-2 py-1 text-sm text-left hover:bg-[var(--bg-hover)] transition-all ${
+                      month === m.value ? 'bg-[var(--accent-primary)] text-white' : 'text-[var(--text-secondary)]'
                     }`}
                   >
                     {m.label}
@@ -230,14 +230,14 @@ export default function CustomDatePicker({ value, onChange, className = '', plac
 
             {/* Year */}
             <div className="flex-1">
-              <label className="block text-xs text-gray-400 mb-2">{t('datePicker.year')}</label>
-              <div ref={yearContainerRef} className="bg-[#242424] rounded-lg max-h-32 overflow-y-auto border border-gray-700/50">
+              <label className="block text-xs text-[var(--text-tertiary)] mb-2">{t('datePicker.year')}</label>
+              <div ref={yearContainerRef} className="bg-[var(--bg-tertiary)] rounded-lg max-h-32 overflow-y-auto border border-[var(--border-primary)]">
                 {yearOptions.map(y => (
                   <button
                     key={y}
                     onClick={() => handleYearChange(y)}
-                    className={`w-full px-2 py-1 text-sm text-left hover:bg-[#363636] transition-all ${
-                      year === y ? 'bg-blue-500 text-white' : 'text-gray-300'
+                    className={`w-full px-2 py-1 text-sm text-left hover:bg-[var(--bg-hover)] transition-all ${
+                      year === y ? 'bg-[var(--accent-primary)] text-white' : 'text-[var(--text-secondary)]'
                     }`}
                   >
                     {y}
@@ -261,7 +261,7 @@ export default function CustomDatePicker({ value, onChange, className = '', plac
                 handleDateChange(todayDay, todayMonth, todayYear);
                 setTimeout(() => setIsOpen(false), 200);
               }}
-              className="px-3 py-2 text-sm text-gray-400 hover:text-white hover:bg-[#242424] rounded-lg transition-all"
+              className="px-3 py-2 text-sm text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] rounded-lg transition-all"
             >
               {t('datePicker.today')}
             </button>
@@ -278,23 +278,23 @@ export default function CustomDatePicker({ value, onChange, className = '', plac
                 handleDateChange(yesterdayDay, yesterdayMonth, yesterdayYear);
                 setTimeout(() => setIsOpen(false), 200);
               }}
-              className="px-3 py-2 text-sm text-gray-400 hover:text-white hover:bg-[#242424] rounded-lg transition-all"
+              className="px-3 py-2 text-sm text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] rounded-lg transition-all"
             >
               {t('datePicker.yesterday')}
             </button>
           </div>
 
           {/* Footer buttons */}
-          <div className="flex gap-2 pt-2 border-t border-gray-700/50">
+          <div className="flex gap-2 pt-2 border-t border-[var(--border-primary)]">
             <button
               onClick={setCurrentDate}
-              className="flex-1 px-3 py-2 text-sm text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 rounded-xl transition-all"
+              className="flex-1 px-3 py-2 text-sm text-[var(--accent-primary)] hover:text-[var(--accent-primary)]/80 hover:bg-[var(--accent-primary)]/10 rounded-xl transition-all"
             >
               {t('datePicker.now')}
             </button>
             <button
               onClick={clearDate}
-              className="flex-1 px-3 py-2 text-sm text-gray-400 hover:text-gray-300 hover:bg-gray-500/10 rounded-xl transition-all"
+              className="flex-1 px-3 py-2 text-sm text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] rounded-xl transition-all"
             >
               {t('datePicker.clear')}
             </button>

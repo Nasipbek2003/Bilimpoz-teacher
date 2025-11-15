@@ -485,10 +485,10 @@ const CreateQuestionModal: React.FC<CreateQuestionModalProps> = ({
         }
       }}
     >
-      <div className="bg-[#151515] rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto border border-gray-800">
+      <div className="bg-[var(--bg-card)] rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto border border-[var(--border-primary)]">
         {/* Заголовок */}
-        <div className="flex items-center justify-between p-6 pb-4 border-b border-gray-800">
-          <h3 className="text-lg font-semibold text-white">
+        <div className="flex items-center justify-between p-6 pb-4 border-b border-[var(--border-primary)]">
+          <h3 className="text-lg font-semibold text-[var(--text-primary)]">
             {mode === 'edit' 
               ? getText('questions.editQuestion', 'Редактировать вопрос')
               : getText('questions.createQuestion', 'Создать вопрос')
@@ -496,9 +496,9 @@ const CreateQuestionModal: React.FC<CreateQuestionModalProps> = ({
           </h3>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-[#242424] rounded-lg transition-colors"
+            className="p-2 hover:bg-[var(--bg-hover)] rounded-lg transition-colors"
           >
-            <Icons.X className="h-5 w-5 text-gray-400" />
+            <Icons.X className="h-5 w-5 text-[var(--text-tertiary)]" />
           </button>
         </div>
 
@@ -506,7 +506,7 @@ const CreateQuestionModal: React.FC<CreateQuestionModalProps> = ({
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           {/* Текст вопроса */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
               {getText('questions.form.questionText', 'Текст вопроса')} <span className="text-red-400">*</span>
             </label>
             
@@ -522,25 +522,25 @@ const CreateQuestionModal: React.FC<CreateQuestionModalProps> = ({
             
             {/* Поле ввода или превью */}
             {isPreviewMode ? (
-              <div className="mt-4 p-5 rounded-xl border border-gray-600 bg-[#0b0b0b] min-h-[120px] text-white">
-                <div className="prose prose-invert max-w-none [&>*]:text-white [&>p]:text-white [&>strong]:text-white [&>em]:text-white [&>u]:text-white [&>s]:text-white">
+              <div className="mt-4 p-5 rounded-xl border border-[var(--border-primary)] bg-[var(--bg-tertiary)] min-h-[120px] text-[var(--text-primary)]">
+                <div className="prose prose-invert max-w-none [&>*]:text-[var(--text-primary)] [&>p]:text-[var(--text-primary)] [&>strong]:text-[var(--text-primary)] [&>em]:text-[var(--text-primary)] [&>u]:text-[var(--text-primary)] [&>s]:text-[var(--text-primary)]">
                   <ReactMarkdown
                     remarkPlugins={[remarkMath, remarkGfm]}
                     rehypePlugins={[rehypeRaw, rehypeKatex]}
                     components={{
-                      // Кастомизация стилей для темной темы
-                      p: ({ children }) => <p className="text-white mb-2">{children}</p>,
-                      strong: ({ children }) => <strong className="text-white font-bold">{children}</strong>,
-                      em: ({ children }) => <em className="text-white italic">{children}</em>,
-                      u: ({ children }) => <u className="text-white underline">{children}</u>,
-                      del: ({ children }) => <del className="text-white line-through">{children}</del>,
-                      s: ({ children }) => <s className="text-white line-through">{children}</s>,
+                      // Кастомизация стилей
+                      p: ({ children }) => <p className="text-[var(--text-primary)] mb-2">{children}</p>,
+                      strong: ({ children }) => <strong className="text-[var(--text-primary)] font-bold">{children}</strong>,
+                      em: ({ children }) => <em className="text-[var(--text-primary)] italic">{children}</em>,
+                      u: ({ children }) => <u className="text-[var(--text-primary)] underline">{children}</u>,
+                      del: ({ children }) => <del className="text-[var(--text-primary)] line-through">{children}</del>,
+                      s: ({ children }) => <s className="text-[var(--text-primary)] line-through">{children}</s>,
                       // Стили для LaTeX формул
                       code: ({ inline, children, ...props }) => {
                         if (inline) {
-                          return <code className="text-white bg-[#242424] px-1 py-0.5 rounded" {...props}>{children}</code>
+                          return <code className="text-[var(--text-primary)] bg-[var(--bg-card)] px-1 py-0.5 rounded" {...props}>{children}</code>
                         }
-                        return <code className="text-white bg-[#242424] block p-2 rounded my-2" {...props}>{children}</code>
+                        return <code className="text-[var(--text-primary)] bg-[var(--bg-card)] block p-2 rounded my-2" {...props}>{children}</code>
                       }
                     }}
                   >
@@ -572,7 +572,7 @@ const CreateQuestionModal: React.FC<CreateQuestionModalProps> = ({
                 }}
                 placeholder={getText('questions.form.questionTextPlaceholder', 'Введите текст вопроса')}
                 rows={6}
-                className="mt-4 w-full px-5 py-4 rounded-xl border border-gray-600 bg-[#0b0b0b] text-white placeholder-gray-400 focus:outline-none focus:border-white transition-all duration-300 ease-in-out resize-none"
+                className="mt-4 w-full px-5 py-4 rounded-xl border border-[var(--border-primary)] bg-[var(--bg-tertiary)] text-[var(--text-primary)] placeholder-[var(--text-tertiary)] focus:outline-none focus:border-[var(--accent-primary)] transition-all duration-300 ease-in-out resize-none"
               />
             )}
             {errors.question && (
@@ -583,7 +583,7 @@ const CreateQuestionModal: React.FC<CreateQuestionModalProps> = ({
           {/* Тип вопроса, Источник, Язык */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
                 {getText('questions.form.questionType', 'Тип вопроса')} <span className="text-red-400">*</span>
               </label>
               <Select
@@ -595,7 +595,7 @@ const CreateQuestionModal: React.FC<CreateQuestionModalProps> = ({
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
                 {getText('questions.form.source', 'Источник')} <span className="text-red-400">*</span>
               </label>
               <Select
@@ -607,7 +607,7 @@ const CreateQuestionModal: React.FC<CreateQuestionModalProps> = ({
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
                 {getText('questions.form.language', 'Язык')} <span className="text-red-400">*</span>
               </label>
               <Select
@@ -622,7 +622,7 @@ const CreateQuestionModal: React.FC<CreateQuestionModalProps> = ({
           {/* ID источника, Баллы, Лимит времени */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
                 {getText('questions.form.sourceId', 'ID источника')} <span className="text-red-400">*</span>
               </label>
               <Input
@@ -643,7 +643,7 @@ const CreateQuestionModal: React.FC<CreateQuestionModalProps> = ({
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
                 {getText('questions.form.points', 'Баллы')} <span className="text-red-400">*</span>
               </label>
               <Input
@@ -665,7 +665,7 @@ const CreateQuestionModal: React.FC<CreateQuestionModalProps> = ({
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
                 {getText('questions.form.timeLimit', 'Лимит времени (сек)')} <span className="text-red-400">*</span>
               </label>
               <Input
@@ -689,7 +689,7 @@ const CreateQuestionModal: React.FC<CreateQuestionModalProps> = ({
 
           {/* URL фото */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
               {getText('questions.form.photoUrl', 'URL фото (опционально)')}
             </label>
             <Input
@@ -702,7 +702,7 @@ const CreateQuestionModal: React.FC<CreateQuestionModalProps> = ({
 
           {/* Объяснение AI */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
               {getText('questions.form.aiExplanation', 'Объяснение от AI (опционально)')}
             </label>
             <textarea
@@ -710,14 +710,14 @@ const CreateQuestionModal: React.FC<CreateQuestionModalProps> = ({
               onChange={(e) => setFormData({ ...formData, explanation_ai: e.target.value })}
               placeholder={getText('questions.form.aiExplanationPlaceholder', 'Введите объяснение')}
               rows={3}
-              className="w-full px-5 py-4 rounded-xl border border-gray-600 bg-[#0b0b0b] text-white placeholder-gray-400 focus:outline-none focus:border-white transition-all duration-300 ease-in-out resize-none"
+              className="w-full px-5 py-4 rounded-xl border border-[var(--border-primary)] bg-[var(--bg-tertiary)] text-[var(--text-primary)] placeholder-[var(--text-tertiary)] focus:outline-none focus:border-[var(--accent-primary)] transition-all duration-300 ease-in-out resize-none"
             />
           </div>
 
           {/* Варианты ответов */}
-          <div className="bg-[#1a1a1a] rounded-xl p-6 space-y-4">
+          <div className="bg-[var(--bg-tertiary)] rounded-xl p-6 space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+              <h3 className="text-lg font-semibold text-[var(--text-primary)] flex items-center gap-2">
                 <Icons.List className="h-5 w-5" />
                 {getText('questions.form.answerVariants', 'Варианты ответов')} <span className="text-red-400">*</span>
               </h3>
@@ -747,7 +747,7 @@ const CreateQuestionModal: React.FC<CreateQuestionModalProps> = ({
                       className={`mt-1 w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 cursor-pointer ${
                         isSelected
                           ? 'border-green-500 bg-green-500'
-                          : 'border-gray-600'
+                          : 'border-[var(--border-primary)]'
                       }`}
                     >
                       {isSelected && <Icons.Check className="h-3 w-3 text-white" />}
@@ -757,15 +757,15 @@ const CreateQuestionModal: React.FC<CreateQuestionModalProps> = ({
                     <div className={`flex-1 px-4 py-2 rounded-lg ${
                       isSelected
                         ? 'bg-green-500/10 border border-green-500/20'
-                        : 'bg-[#242424]'
+                        : 'bg-[var(--bg-card)]'
                     }`}>
                       <input
                       type="text"
                       value={variant.value}
                       onChange={(e) => handleAnswerVariantChange(index, e.target.value)}
                         placeholder={getText('questions.form.answerVariantPlaceholder', 'Вариант ответа') + ' ' + (index + 1)}
-                        className={`w-full bg-transparent border-none outline-none placeholder-gray-500 ${
-                          isSelected ? 'text-green-400' : 'text-white'
+                        className={`w-full bg-transparent border-none outline-none placeholder-[var(--text-tertiary)] ${
+                          isSelected ? 'text-green-400' : 'text-[var(--text-primary)]'
                         }`}
                     />
                   </div>
@@ -794,7 +794,7 @@ const CreateQuestionModal: React.FC<CreateQuestionModalProps> = ({
           </div>
 
           {/* Кнопки */}
-          <div className="flex justify-end gap-3 pt-4 border-t border-gray-800">
+          <div className="flex justify-end gap-3 pt-4 border-t border-[var(--border-primary)]">
             <Button
               type="button"
               variant="outline"

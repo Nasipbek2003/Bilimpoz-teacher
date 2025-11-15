@@ -15,16 +15,15 @@ const Input: React.FC<InputProps> = ({
     <input
       className={`
         w-full px-5 py-4 rounded-xl border
-        text-white placeholder-gray-400
+        bg-[var(--bg-card)] text-[var(--text-primary)] placeholder-[var(--text-tertiary)]
         focus:outline-none
         transition-all duration-300 ease-in-out
         ${error 
           ? 'border-red-400 focus:border-red-400' 
-          : 'border-gray-600 hover:border-gray-500 focus:border-white'
+          : 'border-[var(--border-primary)] hover:border-[var(--border-secondary)] focus:border-[var(--accent-primary)]'
         }
         ${className}
       `}
-      style={{ backgroundColor: '#0b0b0b' }}
       {...props}
     />
   )

@@ -303,8 +303,8 @@ export default function QuestionsPage() {
       <TeacherLayout>
         <div className="space-y-6">
           <div>
-            <h1 className="text-2xl font-bold text-white mb-2">Вопросы</h1>
-            <p className="text-gray-400">Загрузка...</p>
+            <h1 className="text-2xl font-bold text-[var(--text-primary)] mb-2">Вопросы</h1>
+            <p className="text-[var(--text-tertiary)]">Загрузка...</p>
           </div>
         </div>
       </TeacherLayout>
@@ -316,7 +316,7 @@ export default function QuestionsPage() {
       <div className="space-y-6">
         {/* Заголовок страницы */}
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-white mb-2">
+          <h1 className="text-2xl font-bold text-[var(--text-primary)] mb-2">
             {t('questions.title')}
           </h1>
           <Button

@@ -11,11 +11,13 @@
   --bg-card: #ffffff;
   --bg-hover: #e5e7eb;
   --bg-active: #d1d5db;
+  --bg-active-button: #f3f4f6;
   
   --text-primary: #111827;
   --text-secondary: #374151;
   --text-tertiary: #6b7280;
   --text-muted: #9ca3af;
+  --text-active-button: #111827;
   
   --border-primary: #d1d5db;
   --border-secondary: #e5e7eb;
@@ -34,11 +36,13 @@
   --bg-card: #151515;
   --bg-hover: #242424;
   --bg-active: #363636;
+  --bg-active-button: #ffffff;
   
   --text-primary: #ffffff;
   --text-secondary: #d1d5db;
   --text-tertiary: #9ca3af;
   --text-muted: #6b7280;
+  --text-active-button: #000000;
   
   --border-primary: #4a5565;
   --border-secondary: #374151;

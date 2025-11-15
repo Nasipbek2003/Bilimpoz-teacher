@@ -71,20 +71,20 @@ const Select: React.FC<SelectProps> = ({
       <button
         type="button"
         onClick={handleToggle}
-        className="w-full px-3 py-2 bg-[#242424] text-white border-0 rounded-lg focus:outline-none focus:ring-2 focus:ring-white/20 flex items-center justify-between transition-all"
+        className="w-full px-3 py-2 bg-[var(--bg-tertiary)] text-[var(--text-primary)] border-0 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/20 flex items-center justify-between transition-all"
       >
-        <span className={selectedOption ? 'text-white' : 'text-gray-400'}>
+        <span className={selectedOption ? 'text-[var(--text-primary)]' : 'text-[var(--text-tertiary)]'}>
           {selectedOption ? selectedOption.label : placeholder}
         </span>
         <Icons.ChevronDown 
-          className={`h-4 w-4 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} 
+          className={`h-4 w-4 text-[var(--text-tertiary)] transition-transform ${isOpen ? 'rotate-180' : ''}`} 
         />
       </button>
 
       {isOpen && (
         <div
           ref={dropdownRef}
-          className={`absolute left-0 right-0 z-50 bg-[#1a1a1a] border border-gray-700/50 rounded-lg shadow-xl max-h-[300px] overflow-y-auto transition-all ${
+          className={`absolute left-0 right-0 z-50 bg-[var(--bg-card)] border border-[var(--border-primary)] rounded-lg shadow-xl max-h-[300px] overflow-y-auto transition-all ${
             position === 'top' ? 'bottom-full mb-1' : 'top-full mt-1'
           }`}
         >
@@ -93,10 +93,10 @@ const Select: React.FC<SelectProps> = ({
               key={option.value}
               type="button"
               onClick={() => handleSelect(option.value)}
-              className={`w-full px-3 py-2 text-left text-sm hover:bg-[#242424] transition-colors first:rounded-t-lg last:rounded-b-lg ${
+              className={`w-full px-3 py-2 text-left text-sm hover:bg-[var(--bg-hover)] transition-colors first:rounded-t-lg last:rounded-b-lg ${
                 option.value === value 
-                  ? 'bg-[#242424] text-white' 
-                  : 'text-gray-300 hover:text-white'
+                  ? 'bg-[var(--bg-hover)] text-[var(--text-primary)]' 
+                  : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
               }`}
             >
               {option.label}

@@ -45,11 +45,11 @@ export default function LanguageSwitcher() {
     return (
       <div className="relative">
         <button
-          className="flex items-center gap-2 px-3 py-2 bg-[#242424] rounded-lg hover:bg-[#363636] transition-colors"
+          className="flex items-center gap-2 px-3 py-2 bg-[var(--bg-tertiary)] rounded-lg hover:bg-[var(--bg-hover)] transition-colors"
           disabled
         >
-          <span className="text-sm text-white font-medium">RU</span>
-          <Icons.ChevronDown className="h-4 w-4 text-gray-400" />
+          <span className="text-sm text-[var(--text-primary)] font-medium">RU</span>
+          <Icons.ChevronDown className="h-4 w-4 text-[var(--text-tertiary)]" />
         </button>
       </div>
     );
@@ -82,13 +82,13 @@ export default function LanguageSwitcher() {
           e.stopPropagation();
           setIsOpen(!isOpen);
         }}
-        className="flex items-center gap-2 px-3 py-2 bg-[#242424] rounded-lg hover:bg-[#363636] transition-colors"
+        className="flex items-center gap-2 px-3 py-2 bg-[var(--bg-tertiary)] rounded-lg hover:bg-[var(--bg-hover)] transition-colors"
         data-tooltip={t('common.language') || 'Switch language'}
       >
-        <span className="text-sm text-white font-medium">
+        <span className="text-sm text-[var(--text-primary)] font-medium">
           {currentLanguage.name}
         </span>
-        <Icons.ChevronDown className={`h-4 w-4 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+        <Icons.ChevronDown className={`h-4 w-4 text-[var(--text-tertiary)] transition-transform ${isOpen ? 'rotate-180' : ''}`} />
       </button>
       
       {isOpen && (
@@ -101,7 +101,7 @@ export default function LanguageSwitcher() {
           
           {/* Выпадающее меню */}
           <div 
-            className="absolute right-0 mt-1 w-16 bg-[#151515] rounded-xl shadow-2xl py-1 z-[60] border border-gray-700/50"
+            className="absolute right-0 mt-1 w-16 bg-[var(--bg-card)] rounded-xl shadow-2xl py-1 z-[60] border border-[var(--border-primary)]"
             onClick={(e) => e.stopPropagation()}
           >
             {languages.map((lang) => (
@@ -115,8 +115,8 @@ export default function LanguageSwitcher() {
                 className={`
                   flex items-center justify-center w-full py-1 text-sm transition-colors rounded-lg m-1 cursor-pointer
                   ${currentLang === lang.code 
-                    ? 'bg-white text-black' 
-                    : 'text-gray-300 hover:bg-gray-700 hover:text-white'
+                    ? 'bg-[var(--bg-active-button)] text-[var(--text-active-button)]' 
+                    : 'text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]'
                   }
                 `}
                 style={{ width: 'calc(100% - 8px)' }}

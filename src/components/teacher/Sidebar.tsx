@@ -84,7 +84,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                 onClick={handleLinkClick}
                 className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
                   isActive
-                    ? 'bg-[var(--text-primary)] text-[var(--bg-primary)] font-semibold'
+                    ? 'bg-[var(--bg-active-button)] text-[var(--text-active-button)] font-semibold'
                     : 'text-[var(--text-tertiary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]'
                 }`}
               >

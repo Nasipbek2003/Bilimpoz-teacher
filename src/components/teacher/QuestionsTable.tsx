@@ -99,14 +99,14 @@ const QuestionsTable: React.FC<QuestionsTableProps> = ({
 
   if (isLoading) {
     return (
-      <div className="bg-[#151515] rounded-2xl overflow-hidden">
-        <div className="p-6 border-b border-gray-800">
-          <div className="h-6 bg-gray-700 rounded w-1/4 animate-pulse"></div>
+      <div className="bg-[var(--bg-card)] rounded-2xl overflow-hidden border border-[var(--border-secondary)]">
+        <div className="p-6 border-b border-[var(--border-primary)]">
+          <div className="h-6 bg-[var(--bg-hover)] rounded w-1/4 animate-pulse"></div>
         </div>
         <div className="p-6">
           <div className="space-y-3">
             {[...Array(5)].map((_, i) => (
-              <div key={i} className="h-12 bg-gray-700 rounded animate-pulse"></div>
+              <div key={i} className="h-12 bg-[var(--bg-hover)] rounded animate-pulse"></div>
             ))}
           </div>
         </div>
@@ -115,10 +115,10 @@ const QuestionsTable: React.FC<QuestionsTableProps> = ({
   }
 
   return (
-    <div className="bg-[#151515] rounded-2xl overflow-hidden">
+    <div className="bg-[var(--bg-card)] rounded-2xl overflow-hidden border border-[var(--border-secondary)]">
       {/* Заголовок таблицы */}
-      <div className="p-6 border-b border-gray-800">
-        <h2 className="text-lg font-semibold text-white">
+      <div className="p-6 border-b border-[var(--border-primary)]">
+        <h2 className="text-lg font-semibold text-[var(--text-primary)]">
           {getText('questions.foundQuestions', 'Найдено вопросов')}: {questions.length}
         </h2>
       </div>
@@ -126,24 +126,24 @@ const QuestionsTable: React.FC<QuestionsTableProps> = ({
       {/* Таблица */}
       <div className="overflow-x-auto">
         <table className="w-full">
-          <thead className="bg-[#242424]">
+          <thead className="bg-[var(--bg-tertiary)]">
             <tr>
-              <th className="text-left py-3 px-6 text-sm font-medium text-gray-400">
+              <th className="text-left py-3 px-6 text-sm font-medium text-[var(--text-tertiary)]">
                 Вопрос
               </th>
-              <th className="text-left py-3 px-6 text-sm font-medium text-gray-400">
+              <th className="text-left py-3 px-6 text-sm font-medium text-[var(--text-tertiary)]">
                 Тип вопроса
               </th>
-              <th className="text-left py-3 px-6 text-sm font-medium text-gray-400">
+              <th className="text-left py-3 px-6 text-sm font-medium text-[var(--text-tertiary)]">
                 Источник
               </th>
-              <th className="text-left py-3 px-6 text-sm font-medium text-gray-400">
+              <th className="text-left py-3 px-6 text-sm font-medium text-[var(--text-tertiary)]">
                 Язык
               </th>
-              <th className="text-left py-3 px-6 text-sm font-medium text-gray-400">
+              <th className="text-left py-3 px-6 text-sm font-medium text-[var(--text-tertiary)]">
                 {getText('questions.createdAt', 'Дата создания')}
               </th>
-              <th className="text-left py-3 px-6 text-sm font-medium text-gray-400">
+              <th className="text-left py-3 px-6 text-sm font-medium text-[var(--text-tertiary)]">
                 Действия
               </th>
             </tr>
@@ -151,7 +151,7 @@ const QuestionsTable: React.FC<QuestionsTableProps> = ({
           <tbody>
             {questions.length === 0 ? (
               <tr>
-                <td colSpan={6} className="p-8 text-center text-gray-400">
+                <td colSpan={6} className="p-8 text-center text-[var(--text-tertiary)]">
                   {getText('questions.noQuestions', 'Вопросы не найдены')}
                 </td>
               </tr>
@@ -159,7 +159,7 @@ const QuestionsTable: React.FC<QuestionsTableProps> = ({
               questions.map((question) => (
                 <tr
                   key={question.id}
-                  className="border-b border-gray-800/50 hover:bg-[#242424] cursor-pointer transition-colors"
+                  className="border-b border-[var(--border-primary)]/50 hover:bg-[var(--bg-hover)] cursor-pointer transition-colors"
                   onClick={(e) => {
                     // Открываем детали только если клик не по кнопке действия
                     if ((e.target as HTMLElement).closest('button') === null) {
@@ -170,7 +170,7 @@ const QuestionsTable: React.FC<QuestionsTableProps> = ({
                   {/* Ячейка "Вопрос" */}
                   <td className="py-4 px-6 max-w-md">
                     <div className="flex flex-col gap-1 w-full">
-                      <div className="text-white font-medium w-full overflow-hidden break-words">
+                      <div className="text-[var(--text-primary)] font-medium w-full overflow-hidden break-words">
                         <div className="overflow-hidden w-full max-w-full">
                           <div className="prose prose-invert prose-sm max-w-none dark:prose-invert">
                             <ReactMarkdown
@@ -183,7 +183,7 @@ const QuestionsTable: React.FC<QuestionsTableProps> = ({
                         </div>
                       </div>
                       {question.photo_url && (
-                        <div className="flex items-center gap-1 text-xs text-gray-400">
+                        <div className="flex items-center gap-1 text-xs text-[var(--text-tertiary)]">
                           <Icons.Image className="h-3 w-3" />
                           <span>{getText('questions.withImage', 'С изображением')}</span>
                         </div>
@@ -193,27 +193,27 @@ const QuestionsTable: React.FC<QuestionsTableProps> = ({
 
                   {/* Ячейка "Тип вопроса" */}
                   <td className="py-4 px-6">
-                    <span className="inline-block px-8 py-1.5 bg-[#242424] hover:bg-[#2a2a2a] text-white rounded-full text-xs font-medium transition-colors cursor-default min-w-[120px] text-center whitespace-nowrap">
+                    <span className="inline-block px-8 py-1.5 bg-[var(--bg-tertiary)] hover:bg-[var(--bg-hover)] text-[var(--text-primary)] rounded-full text-xs font-medium transition-colors cursor-default min-w-[120px] text-center whitespace-nowrap">
                       {getTypeQuestionLabel(question.type_question)}
                     </span>
                   </td>
 
                   {/* Ячейка "Источник" */}
                   <td className="py-4 px-6">
-                    <span className="inline-block px-8 py-1.5 bg-[#242424] hover:bg-[#2a2a2a] text-white rounded-full text-xs font-medium transition-colors cursor-default min-w-[120px] text-center whitespace-nowrap">
+                    <span className="inline-block px-8 py-1.5 bg-[var(--bg-tertiary)] hover:bg-[var(--bg-hover)] text-[var(--text-primary)] rounded-full text-xs font-medium transition-colors cursor-default min-w-[120px] text-center whitespace-nowrap">
                       {getTypeFromLabel(question.type_from)}
                     </span>
                   </td>
 
                   {/* Ячейка "Язык" */}
                   <td className="py-4 px-6">
-                    <span className="px-3 py-1.5 bg-[#242424] text-white rounded-xl text-xs font-medium border border-gray-700/50">
+                    <span className="px-3 py-1.5 bg-[var(--bg-tertiary)] text-[var(--text-primary)] rounded-xl text-xs font-medium border border-[var(--border-primary)]">
                       {getLanguageLabel(question.language)}
                     </span>
                   </td>
 
                   {/* Ячейка "Дата создания" */}
-                  <td className="py-4 px-6 text-gray-400">
+                  <td className="py-4 px-6 text-[var(--text-tertiary)]">
                     {formatDate(question.created_at)}
                   </td>
 
@@ -225,10 +225,10 @@ const QuestionsTable: React.FC<QuestionsTableProps> = ({
                           e.stopPropagation()
                           onQuestionClick?.(question)
                         }}
-                        className="relative p-2 hover:bg-[#242424] rounded-lg transition-colors"
+                        className="relative p-2 hover:bg-[var(--bg-hover)] rounded-lg transition-colors"
                         title={getText('questions.tooltips.details', 'Просмотр')}
                       >
-                        <Icons.Eye className="h-4 w-4 text-white" />
+                        <Icons.Eye className="h-4 w-4 text-[var(--text-primary)]" />
                       </button>
                       {onQuestionEdit && (
                         <button
@@ -236,10 +236,10 @@ const QuestionsTable: React.FC<QuestionsTableProps> = ({
                             e.stopPropagation()
                             onQuestionEdit(question)
                           }}
-                          className="relative p-2 hover:bg-[#242424] rounded-lg transition-colors"
+                          className="relative p-2 hover:bg-[var(--bg-hover)] rounded-lg transition-colors"
                           title={getText('questions.tooltips.edit', 'Редактировать')}
                         >
-                          <Icons.Edit className="h-4 w-4 text-white" />
+                          <Icons.Edit className="h-4 w-4 text-[var(--text-primary)]" />
                         </button>
                       )}
                     </div>

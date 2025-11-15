@@ -190,7 +190,7 @@ const QuestionsFilter: React.FC<QuestionsFilterProps> = ({
 
 
   return (
-    <div className="bg-[#151515] rounded-2xl p-6 space-y-6">
+    <div className="bg-[var(--bg-card)] rounded-2xl p-6 space-y-6 border border-[var(--border-secondary)]">
       {/* Выпадающие фильтры */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Select
@@ -221,19 +221,19 @@ const QuestionsFilter: React.FC<QuestionsFilterProps> = ({
 
       {/* Поиск по тексту вопроса */}
       <div className="relative">
-        <Icons.Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+        <Icons.Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-4 w-4 text-[var(--text-tertiary)]" />
         <input
           type="text"
           placeholder={getText('common.search', 'Поиск...')}
           value={search}
           onChange={(e) => onSearchChange(e.target.value)}
-          className="w-full pl-12 pr-4 py-3 bg-[#0b0b0b] border border-gray-600 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:border-white transition-all duration-300 ease-in-out"
+          className="w-full pl-12 pr-4 py-3 bg-[var(--bg-primary)] border border-[var(--border-primary)] rounded-xl text-[var(--text-primary)] placeholder-[var(--text-tertiary)] focus:outline-none focus:border-[var(--accent-primary)] transition-all duration-300 ease-in-out"
         />
       </div>
 
       {/* Период */}
       <div>
-        <label className="block text-sm font-medium text-gray-300 mb-3">
+        <label className="block text-sm font-medium text-[var(--text-secondary)] mb-3">
           {getText('questions.period', 'Период')}:
         </label>
         <div className="flex flex-wrap gap-2">
@@ -243,8 +243,8 @@ const QuestionsFilter: React.FC<QuestionsFilterProps> = ({
               onClick={() => handlePeriodChange(option.value)}
               className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
                 period === option.value
-                  ? 'bg-white text-black'
-                  : 'bg-[#242424] text-gray-400 hover:text-white hover:bg-[#363636]'
+                  ? 'bg-[var(--bg-active-button)] text-[var(--text-active-button)]'
+                  : 'bg-[var(--bg-tertiary)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)]'
               }`}
             >
               {option.label}
@@ -257,7 +257,7 @@ const QuestionsFilter: React.FC<QuestionsFilterProps> = ({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* От даты */}
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-3">
+          <label className="block text-sm font-medium text-[var(--text-secondary)] mb-3">
             {getText('questions.fromDate', 'От даты')}:
           </label>
           <div className="space-y-3">
@@ -274,7 +274,7 @@ const QuestionsFilter: React.FC<QuestionsFilterProps> = ({
 
         {/* До даты */}
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-3">
+          <label className="block text-sm font-medium text-[var(--text-secondary)] mb-3">
             {getText('questions.toDate', 'До даты')}:
           </label>
           <div className="space-y-3">
@@ -294,7 +294,7 @@ const QuestionsFilter: React.FC<QuestionsFilterProps> = ({
       <div className="flex justify-end">
         <button
           onClick={onClearFilters}
-          className="px-4 py-2 text-sm text-gray-400 hover:text-white transition-colors"
+          className="px-4 py-2 text-sm text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors"
         >
           {getText('questions.clearFilters', 'Очистить фильтры')}
         </button>

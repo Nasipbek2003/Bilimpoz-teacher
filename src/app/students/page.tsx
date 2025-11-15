@@ -236,12 +236,12 @@ export default function StudentsPage() {
         {/* Список учеников */}
         <div className="space-y-4">
           {filteredAndSortedStudents.length === 0 ? (
-            <div className="bg-[#151515] rounded-2xl p-12 text-center">
-              <Icons.Users className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-              <h3 className="text-lg font-medium text-white mb-2">
+            <div className="bg-[var(--bg-card)] rounded-2xl p-12 text-center border border-[var(--border-secondary)]">
+              <Icons.Users className="mx-auto h-12 w-12 text-[var(--text-tertiary)] mb-4" />
+              <h3 className="text-lg font-medium text-[var(--text-primary)] mb-2">
                 {t('students.empty.title')}
               </h3>
-              <p className="text-gray-400 mb-4">
+              <p className="text-[var(--text-tertiary)] mb-4">
                 {search || status !== 'all' 
                   ? t('students.empty.noResults')
                   : t('students.empty.noStudents')
@@ -250,7 +250,7 @@ export default function StudentsPage() {
               {!search && status === 'all' && (
                 <button
                   onClick={handleInviteStudent}
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-white text-black rounded-lg font-medium hover:bg-gray-100 transition-colors"
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-[var(--bg-active-button)] text-[var(--text-active-button)] rounded-lg font-medium hover:bg-[var(--bg-hover)] transition-colors"
                 >
                   <Icons.Plus className="h-4 w-4" />
                   {t('students.empty.inviteButton')}
@@ -272,23 +272,23 @@ export default function StudentsPage() {
 
         {/* Пагинация (заглушка) */}
         {filteredAndSortedStudents.length > 0 && (
-          <div className="flex items-center justify-between p-4 bg-[#151515] rounded-2xl">
-            <span className="text-sm text-gray-400">
+          <div className="flex items-center justify-between p-4 bg-[var(--bg-card)] rounded-2xl border border-[var(--border-secondary)]">
+            <span className="text-sm text-[var(--text-tertiary)]">
               {t('students.pagination.showing')} 1-{filteredAndSortedStudents.length} {t('students.pagination.of')} {filteredAndSortedStudents.length}
             </span>
             <div className="flex items-center gap-2">
               <button 
                 disabled 
-                className="px-3 py-2 bg-[#242424] rounded-lg text-gray-400 opacity-50 cursor-not-allowed"
+                className="px-3 py-2 bg-[var(--bg-tertiary)] rounded-lg text-[var(--text-tertiary)] opacity-50 cursor-not-allowed"
               >
                 {t('students.pagination.previous')}
               </button>
-              <button className="px-3 py-2 bg-white text-black rounded-lg font-medium">
+              <button className="px-3 py-2 bg-[var(--bg-active-button)] text-[var(--text-active-button)] rounded-lg font-medium">
                 1
               </button>
               <button 
                 disabled 
-                className="px-3 py-2 bg-[#242424] rounded-lg text-gray-400 opacity-50 cursor-not-allowed"
+                className="px-3 py-2 bg-[var(--bg-tertiary)] rounded-lg text-[var(--text-tertiary)] opacity-50 cursor-not-allowed"
               >
                 {t('students.pagination.next')}
               </button>

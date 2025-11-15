@@ -218,22 +218,22 @@ export default function DiscussionsPage() {
         </div>
 
         {/* Фильтры */}
-        <div className="bg-[#151515] rounded-2xl p-6">
+        <div className="bg-[var(--bg-card)] rounded-2xl p-6 border border-[var(--border-secondary)]">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-white">{t('discussions.filters.title')}</h3>
+            <h3 className="text-lg font-semibold text-[var(--text-primary)]">{t('discussions.filters.title')}</h3>
           </div>
           
           <div className="flex flex-wrap gap-2">
-            <button className="px-4 py-2 rounded-xl text-sm font-medium bg-[#363636] text-white border border-white">
+            <button className="px-4 py-2 rounded-xl text-sm font-medium bg-[var(--bg-active-button)] text-[var(--text-active-button)]">
               {t('discussions.filters.all')}
             </button>
-            <button className="px-4 py-2 rounded-xl text-sm font-medium bg-[#242424] text-gray-400 border border-gray-700/50 hover:text-white hover:bg-[#363636] transition-all">
+            <button className="px-4 py-2 rounded-xl text-sm font-medium bg-[var(--bg-tertiary)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-all">
               {t('discussions.filters.active')}
             </button>
-            <button className="px-4 py-2 rounded-xl text-sm font-medium bg-[#242424] text-gray-400 border border-gray-700/50 hover:text-white hover:bg-[#363636] transition-all">
+            <button className="px-4 py-2 rounded-xl text-sm font-medium bg-[var(--bg-tertiary)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-all">
               {t('discussions.filters.closed')}
             </button>
-            <button className="px-4 py-2 rounded-xl text-sm font-medium bg-[#242424] text-gray-400 border border-gray-700/50 hover:text-white hover:bg-[#363636] transition-all">
+            <button className="px-4 py-2 rounded-xl text-sm font-medium bg-[var(--bg-tertiary)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-all">
               {t('discussions.filters.withUnread')}
             </button>
           </div>
@@ -242,12 +242,12 @@ export default function DiscussionsPage() {
         {/* Список обсуждений */}
         <div className="space-y-4">
           {discussions.length === 0 ? (
-            <div className="bg-[#151515] rounded-2xl p-12 text-center">
-              <Icons.MessageCircle className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-              <h3 className="text-lg font-medium text-white mb-2">
+            <div className="bg-[var(--bg-card)] rounded-2xl p-12 text-center border border-[var(--border-secondary)]">
+              <Icons.MessageCircle className="mx-auto h-12 w-12 text-[var(--text-tertiary)] mb-4" />
+              <h3 className="text-lg font-medium text-[var(--text-primary)] mb-2">
                 {t('discussions.empty.title')}
               </h3>
-              <p className="text-gray-400">
+              <p className="text-[var(--text-tertiary)]">
                 {t('discussions.empty.description')}
               </p>
             </div>
