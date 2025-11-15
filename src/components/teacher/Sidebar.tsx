@@ -63,7 +63,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
       {/* Sidebar */}
       <aside
         className={`
-          w-64 bg-[#151515] rounded-2xl z-40
+          w-64 bg-[var(--bg-card)] rounded-2xl z-40 border border-[var(--border-secondary)]
           transform transition-transform duration-300
           flex-shrink-0
           ${isOpen ? 'translate-x-0' : '-translate-x-full'}
@@ -84,8 +84,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                 onClick={handleLinkClick}
                 className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
                   isActive
-                    ? 'bg-white text-black font-semibold'
-                    : 'text-gray-400 hover:bg-[#242424] hover:text-white'
+                    ? 'bg-[var(--text-primary)] text-[var(--bg-primary)] font-semibold'
+                    : 'text-[var(--text-tertiary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]'
                 }`}
               >
                 <Icon className="h-5 w-5" />

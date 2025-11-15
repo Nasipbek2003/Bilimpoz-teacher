@@ -393,7 +393,7 @@ export default function QuestionsPage() {
           }}
           question={viewingQuestion}
           onEdit={handleEditFromDetails}
-        />
+              />
 
         {/* Модальное окно создания/редактирования вопроса */}
         <CreateQuestionModal

@@ -48,7 +48,7 @@ const DateFilter: React.FC<DateFilterProps> = ({
       { value: 'yesterday', label: t('dashboard.yesterday') },
       { value: 'week', label: t('dashboard.week') },
       { value: 'month', label: t('dashboard.month') },
-    ]
+  ]
   }, [t, mounted, ready])
 
   // Функция для вычисления дат периода

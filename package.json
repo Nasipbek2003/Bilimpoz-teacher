@@ -14,6 +14,7 @@
   "dependencies": {
     "@prisma/client": "^5.7.0",
     "bcryptjs": "^3.0.3",
+    "daynitejs": "^1.0.0",
     "geist": "^1.2.0",
     "i18next": "^25.6.2",
     "i18next-browser-languagedetector": "^8.2.0",
@@ -46,4 +47,3 @@
     "typescript": "^5"
   }
 }
-

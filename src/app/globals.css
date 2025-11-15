@@ -2,14 +2,83 @@
 @tailwind components;
 @tailwind utilities;
 
+/* DayniteJS Theme Variables */
+:root {
+  /* Light theme (default) */
+  --bg-primary: #ffffff;
+  --bg-secondary: #f9fafb;
+  --bg-tertiary: #f3f4f6;
+  --bg-card: #ffffff;
+  --bg-hover: #e5e7eb;
+  --bg-active: #d1d5db;
+  
+  --text-primary: #111827;
+  --text-secondary: #374151;
+  --text-tertiary: #6b7280;
+  --text-muted: #9ca3af;
+  
+  --border-primary: #d1d5db;
+  --border-secondary: #e5e7eb;
+  
+  --accent-primary: #3b82f6;
+  --accent-secondary: #10b981;
+  --accent-danger: #ef4444;
+  --accent-warning: #f59e0b;
+}
+
+[data-theme="dark"] {
+  /* Dark theme */
+  --bg-primary: #0b0b0b;
+  --bg-secondary: #151515;
+  --bg-tertiary: #1a1a1a;
+  --bg-card: #151515;
+  --bg-hover: #242424;
+  --bg-active: #363636;
+  
+  --text-primary: #ffffff;
+  --text-secondary: #d1d5db;
+  --text-tertiary: #9ca3af;
+  --text-muted: #6b7280;
+  
+  --border-primary: #4a5565;
+  --border-secondary: #374151;
+  
+  --accent-primary: #3b82f6;
+  --accent-secondary: #10b981;
+  --accent-danger: #ef4444;
+  --accent-warning: #f59e0b;
+}
+
 @layer base {
   * {
-    @apply border-gray-700;
+    border-color: var(--border-primary, #d1d5db);
   }
+  
   body {
-    @apply bg-background text-foreground;
+    background-color: var(--bg-primary, #ffffff);
+    color: var(--text-primary, #111827);
     font-feature-settings: "rlig" 1, "calt" 1;
+    transition: background-color 0.3s ease, color 0.3s ease;
   }
+  
+  /* Убеждаемся, что html элемент имеет правильный атрибут по умолчанию */
+  html {
+    color-scheme: light dark;
+  }
+  
+  html[data-theme="light"] {
+    color-scheme: light;
+  }
+  
+  html[data-theme="dark"] {
+    color-scheme: dark;
+  }
+}
+
+/* DayniteJS transition classes */
+.DayniteJs-transition,
+.DayniteJs-transition * {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease !important;
 }
 
 /* Кастомный скроллбар */
@@ -18,16 +87,16 @@
 }
 
 ::-webkit-scrollbar-track {
-  background: #1a1a1a;
+  background: var(--bg-tertiary);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #404040;
+  background: var(--bg-hover);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #606060;
+  background: var(--bg-active);
 }
 
 /* Тонкий скроллбар для модальных окон */
@@ -40,64 +109,40 @@
 }
 
 .modal-content::-webkit-scrollbar-thumb {
-  background: #404040;
+  background: var(--bg-hover);
   border-radius: 3px;
 }
 
-/* Стили для KaTeX в темной теме */
+/* Стили для KaTeX */
 .katex {
-  color: #ffffff;
+  color: var(--text-primary);
   font-size: 1.1em;
 }
 
-.katex .base {
-  color: #ffffff;
-}
-
-.katex .mord {
-  color: #ffffff;
-}
-
-.katex .mrel {
-  color: #ffffff;
-}
-
-.katex .mop {
-  color: #ffffff;
-}
-
-.katex .mbin {
-  color: #ffffff;
-}
-
-.katex .mopen {
-  color: #ffffff;
-}
-
-.katex .mclose {
-  color: #ffffff;
-}
-
-.katex .mpunct {
-  color: #ffffff;
-}
-
+.katex .base,
+.katex .mord,
+.katex .mrel,
+.katex .mop,
+.katex .mbin,
+.katex .mopen,
+.katex .mclose,
+.katex .mpunct,
 .katex .mord.mathdefault {
-  color: #ffffff;
+  color: var(--text-primary);
 }
 
 /* Блочные формулы */
 .katex-display {
   margin: 1em 0;
   padding: 0.5em;
-  background: #1a1a1a;
+  background: var(--bg-tertiary);
   border-radius: 8px;
   overflow-x: auto;
 }
 
 /* Встроенные формулы */
 .katex:not(.katex-display) {
-  background: #242424;
+  background: var(--bg-hover);
   padding: 0.1em 0.3em;
   border-radius: 4px;
 }

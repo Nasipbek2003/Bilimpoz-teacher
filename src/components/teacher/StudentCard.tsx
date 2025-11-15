@@ -35,31 +35,31 @@ const StudentCard: React.FC<StudentCardProps> = ({
   const getStatusConfig = (status: Student['status']) => {
     if (!mounted || !ready) {
       // Fallback значения до готовности переводов
-      switch (status) {
-        case 'active':
-          return {
-            label: 'Активен',
-            bgColor: 'bg-green-500/10',
-            textColor: 'text-green-400',
-            borderColor: 'border-green-500/20'
-          }
-        case 'inactive':
-          return {
-            label: 'Неактивен',
-            bgColor: 'bg-yellow-500/10',
-            textColor: 'text-yellow-400',
-            borderColor: 'border-yellow-500/20'
-          }
-        case 'banned':
-          return {
-            label: 'Заблокирован',
-            bgColor: 'bg-red-500/10',
-            textColor: 'text-red-400',
-            borderColor: 'border-red-500/20'
-          }
-        default:
-          return {
-            label: 'Неизвестно',
+    switch (status) {
+      case 'active':
+        return {
+          label: 'Активен',
+          bgColor: 'bg-green-500/10',
+          textColor: 'text-green-400',
+          borderColor: 'border-green-500/20'
+        }
+      case 'inactive':
+        return {
+          label: 'Неактивен',
+          bgColor: 'bg-yellow-500/10',
+          textColor: 'text-yellow-400',
+          borderColor: 'border-yellow-500/20'
+        }
+      case 'banned':
+        return {
+          label: 'Заблокирован',
+          bgColor: 'bg-red-500/10',
+          textColor: 'text-red-400',
+          borderColor: 'border-red-500/20'
+        }
+      default:
+        return {
+          label: 'Неизвестно',
             bgColor: 'bg-gray-500/10',
             textColor: 'text-gray-400',
             borderColor: 'border-gray-500/20'

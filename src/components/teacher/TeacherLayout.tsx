@@ -20,7 +20,7 @@ const TeacherLayout: React.FC<TeacherLayoutProps> = ({ children }) => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-[var(--bg-primary)]">
       {/* Header */}
       <div className="p-4 pb-0">
         <Header onMenuToggle={handleMenuToggle} />
@@ -32,7 +32,7 @@ const TeacherLayout: React.FC<TeacherLayoutProps> = ({ children }) => {
         <Sidebar isOpen={isSidebarOpen} onClose={handleSidebarClose} />
 
         {/* Main Content */}
-        <main className="flex-1 overflow-y-auto bg-[#151515] rounded-2xl p-6">
+        <main className="flex-1 overflow-y-auto bg-[var(--bg-card)] rounded-2xl p-6 border border-[var(--border-secondary)]">
           {children}
         </main>
       </div>

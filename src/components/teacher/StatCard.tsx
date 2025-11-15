@@ -21,27 +21,27 @@ const StatCard: React.FC<StatCardProps> = ({
 
   return (
     <div
-      className={`bg-[#1A1A1A] rounded-2xl p-6 transition-all ${
+      className={`bg-[var(--bg-card)] rounded-2xl p-6 transition-all border border-[var(--border-secondary)] ${
         isClickable 
-          ? 'hover:bg-[#1f1f1f] cursor-pointer group' 
+          ? 'hover:bg-[var(--bg-hover)] cursor-pointer group' 
           : ''
       } ${className}`}
       onClick={onClick}
     >
       {/* Иконка и заголовок */}
       <div className="flex items-center justify-between mb-4">
-        <div className="p-2 bg-[#242424] rounded-lg">
-          <Icon className="h-6 w-6 text-white" />
+        <div className="p-2 bg-[var(--bg-tertiary)] rounded-lg">
+          <Icon className="h-6 w-6 text-[var(--text-primary)]" />
         </div>
       </div>
       
       {/* Заголовок */}
-      <h3 className="text-sm font-medium text-gray-400 mb-1">
+      <h3 className="text-sm font-medium text-[var(--text-tertiary)] mb-1">
         {title}
       </h3>
       
       {/* Значение */}
-      <p className="text-2xl font-bold text-white">
+      <p className="text-2xl font-bold text-[var(--text-primary)]">
         {typeof value === 'number' ? value.toLocaleString() : value}
       </p>
     </div>

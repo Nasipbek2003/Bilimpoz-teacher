@@ -115,6 +115,8 @@ import {
   UserMinus,
   Check,
   List,
+  Sun,
+  Moon,
 } from 'lucide-react'
 
 export const Icons = {
@@ -259,4 +261,8 @@ export const Icons = {
   UserX,
   UserMinus,
   List,
+  
+  // Тема
+  Sun,
+  Moon,
 }

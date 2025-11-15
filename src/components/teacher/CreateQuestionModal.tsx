@@ -118,7 +118,7 @@ const CreateQuestionModal: React.FC<CreateQuestionModalProps> = ({
       { value: 'rac', label: t('questions.questionTypes.rac') },
       { value: 'grammar', label: t('questions.questionTypes.grammar') },
       { value: 'standard', label: t('questions.questionTypes.standard') },
-    ]
+  ]
   }, [t, mounted, ready])
 
   const sourceOptions: SelectOption[] = useMemo(() => {
@@ -129,7 +129,7 @@ const CreateQuestionModal: React.FC<CreateQuestionModalProps> = ({
       { value: 'from_trial', label: t('questions.sources.from_trial') },
       { value: 'from_student', label: t('questions.sources.from_student') },
       { value: 'from_mentor', label: t('questions.sources.from_mentor') },
-    ]
+  ]
   }, [t, mounted, ready])
 
   const languageOptions: SelectOption[] = useMemo(() => {
@@ -137,7 +137,7 @@ const CreateQuestionModal: React.FC<CreateQuestionModalProps> = ({
     return [
       { value: 'ru', label: t('questions.languages.ru') },
       { value: 'kg', label: t('questions.languages.kg') },
-    ]
+  ]
   }, [t, mounted, ready])
 
   const validate = (): boolean => {
@@ -739,11 +739,11 @@ const CreateQuestionModal: React.FC<CreateQuestionModalProps> = ({
                     {/* Индикатор правильности */}
                     <div
                       onClick={() => {
-                        setFormData({ ...formData, correct_variant_index: index })
-                        if (errors.correct_variant) {
-                          setErrors({ ...errors, correct_variant: '' })
-                        }
-                      }}
+                          setFormData({ ...formData, correct_variant_index: index })
+                          if (errors.correct_variant) {
+                            setErrors({ ...errors, correct_variant: '' })
+                          }
+                        }}
                       className={`mt-1 w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 cursor-pointer ${
                         isSelected
                           ? 'border-green-500 bg-green-500'
@@ -760,27 +760,27 @@ const CreateQuestionModal: React.FC<CreateQuestionModalProps> = ({
                         : 'bg-[#242424]'
                     }`}>
                       <input
-                        type="text"
-                        value={variant.value}
-                        onChange={(e) => handleAnswerVariantChange(index, e.target.value)}
+                      type="text"
+                      value={variant.value}
+                      onChange={(e) => handleAnswerVariantChange(index, e.target.value)}
                         placeholder={getText('questions.form.answerVariantPlaceholder', 'Вариант ответа') + ' ' + (index + 1)}
                         className={`w-full bg-transparent border-none outline-none placeholder-gray-500 ${
                           isSelected ? 'text-green-400' : 'text-white'
                         }`}
-                      />
-                    </div>
+                    />
+                  </div>
                     
                     {/* Remove button */}
-                    {formData.answer_variants.length > 2 && (
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveVariant(index)}
+                  {formData.answer_variants.length > 2 && (
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveVariant(index)}
                         className="flex-shrink-0 mt-1 p-2 text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
-                      >
-                        <Icons.Trash2 className="h-5 w-5" />
-                      </button>
-                    )}
-                  </div>
+                    >
+                      <Icons.Trash2 className="h-5 w-5" />
+                    </button>
+                  )}
+                </div>
                 )
               })}
             </div>

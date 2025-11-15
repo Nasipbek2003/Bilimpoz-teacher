@@ -77,7 +77,7 @@ const QuestionsFilter: React.FC<QuestionsFilterProps> = ({
       { value: 'rac', label: t('questions.questionTypes.rac') },
       { value: 'grammar', label: t('questions.questionTypes.grammar') },
       { value: 'standard', label: t('questions.questionTypes.standard') },
-    ]
+  ]
   }, [t, mounted, ready])
 
   const sourceOptions: SelectOption[] = useMemo(() => {
@@ -89,7 +89,7 @@ const QuestionsFilter: React.FC<QuestionsFilterProps> = ({
       { value: 'from_trial', label: t('questions.sources.from_trial') },
       { value: 'from_student', label: t('questions.sources.from_student') },
       { value: 'from_mentor', label: t('questions.sources.from_mentor') },
-    ]
+  ]
   }, [t, mounted, ready])
 
   const languageOptions: SelectOption[] = useMemo(() => {
@@ -98,7 +98,7 @@ const QuestionsFilter: React.FC<QuestionsFilterProps> = ({
       { value: 'all', label: t('questions.languages.all') },
       { value: 'ru', label: t('questions.languages.ru') },
       { value: 'kg', label: t('questions.languages.kg') },
-    ]
+  ]
   }, [t, mounted, ready])
 
   const sortByOptions: SelectOption[] = useMemo(() => {
@@ -107,7 +107,7 @@ const QuestionsFilter: React.FC<QuestionsFilterProps> = ({
       { value: 'created_at', label: t('questions.sortOptions.created_at') },
       { value: 'updated_at', label: t('questions.sortOptions.updated_at') },
       { value: 'question', label: t('questions.sortOptions.question') },
-    ]
+  ]
   }, [t, mounted, ready])
 
   const periodOptions = useMemo(() => {
@@ -117,7 +117,7 @@ const QuestionsFilter: React.FC<QuestionsFilterProps> = ({
       { value: 'yesterday', label: t('dashboard.yesterday') },
       { value: 'week', label: t('dashboard.week') },
       { value: 'month', label: t('dashboard.month') },
-    ]
+  ]
   }, [t, mounted, ready])
 
   // Функция для вычисления дат периода

@@ -49,12 +49,12 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
   const getQuestionTypeLabel = (type: Question['type_question']) => {
     if (!mounted || !ready) {
       const fallbackLabels: Record<Question['type_question'], string> = {
-        math1: 'Математика 1',
-        math2: 'Математика 2',
-        analogy: 'Аналогия',
-        rac: 'РАЦ',
-        grammar: 'Грамматика',
-        standard: 'Стандартный',
+      math1: 'Математика 1',
+      math2: 'Математика 2',
+      analogy: 'Аналогия',
+      rac: 'РАЦ',
+      grammar: 'Грамматика',
+      standard: 'Стандартный',
       }
       return fallbackLabels[type] || type
     }
@@ -72,11 +72,11 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
   const getSourceLabel = (source: Question['type_from']) => {
     if (!mounted || !ready) {
       const fallbackLabels: Record<Question['type_from'], string> = {
-        from_lesson: 'Из урока',
-        from_teacher: 'От преподавателя',
-        from_trial: 'Из пробного теста',
-        from_student: 'От ученика',
-        from_mentor: 'От ментора',
+      from_lesson: 'Из урока',
+      from_teacher: 'От преподавателя',
+      from_trial: 'Из пробного теста',
+      from_student: 'От ученика',
+      from_mentor: 'От ментора',
       }
       return fallbackLabels[source] || source
     }
