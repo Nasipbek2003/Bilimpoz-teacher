@@ -46,7 +46,7 @@ export default function TestToolbar({ onFormat, isPreviewMode, onImageToLatex, o
   }, [showAiDropdown]);
 
   return (
-    <div className="bg-[var(--bg-card)] rounded-2xl border border-[var(--border-primary)]">
+    <div className="bg-[var(--bg-card)] rounded-2xl">
       <div className="flex items-center gap-2 p-4">
         {/* Жирный */}
         <button

@@ -65,16 +65,136 @@ class TelegramService {
   /**
    * Отправка кода подтверждения в Telegram
    */
-  async sendVerificationCode(telegramId: string, code: string): Promise<boolean> {
-    const message = `🔐 *Код подтверждения входа*
+  async sendVerificationCode(
+    login: string,
+    telegramId: string,
+    code: string,
+    language: 'ru' | 'kg' = 'ru'
+  ): Promise<{ success: boolean; isBlocked?: boolean; error?: string }> {
+    try {
+      // Получить имя пользователя из БД
+      const user = await prisma.users.findUnique({
+        where: { login }
+      })
+      
+      if (!user) {
+        return { success: false, error: 'Пользователь не найден' }
+      }
+      
+      // Проверить, что telegram_id совпадает
+      if (user.telegram_id !== telegramId) {
+        return { success: false, error: 'Неверный Telegram ID' }
+      }
+      
+      // Форматировать сообщение в зависимости от языка
+      const messages = {
+        ru: `🔐 *Код подтверждения входа*
 
-Ваш код: \`${code}\`
+Здравствуйте, ${user.name}!
+
+Ваш код подтверждения: \`${code}\`
 
 Введите этот код на странице авторизации для завершения входа в систему.
 
+⏰ Код действителен в течение 5 минут.`,
+        kg: `🔐 *Кирүүнү ырастаган код*
+
+Саламатсыздарбы, ${user.name}!
+
+Сиздин ырастаган кодуңуз: \`${code}\`
+
+Кирүүнү бүтүрүү үчүн бул кодду авторизация баракчасына киргизиңиз.
+
+⏰ Код 5 мүнөт ичинде жарактуу.`
+      }
+      
+      const message = messages[language] || messages.ru
+      
+      const botToken = await this.getBotToken('ADMIN_BOT_TOKEN')
+      
+      const response = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          chat_id: telegramId,
+          text: message,
+          parse_mode: 'Markdown'
+        }),
+      })
+
+      const result = await response.json()
+      
+      if (!response.ok) {
+        if (result.error_code === 403) {
+          return { success: false, isBlocked: true, error: 'BOT_BLOCKED' }
+        }
+        return { success: false, error: result.description || 'Unknown error' }
+      }
+
+      return { success: true }
+    } catch (error) {
+      console.error('Error sending verification code:', error)
+      return { success: false, error: 'Network error' }
+    }
+  }
+
+  /**
+   * Отправка кода восстановления пароля в Telegram
+   */
+  async sendRecoveryCode(
+    telegramId: string,
+    code: string,
+    login: string
+  ): Promise<{ success: boolean; isBlocked?: boolean; error?: string }> {
+    try {
+      const user = await prisma.users.findUnique({
+        where: { login }
+      })
+      
+      if (!user) {
+        return { success: false, error: 'Пользователь не найден' }
+      }
+      
+      const message = `🔑 *Код восстановления пароля*
+
+Здравствуйте, ${user.name}!
+
+Ваш код восстановления: \`${code}\`
+
+Введите этот код для сброса пароля.
+
 ⏰ Код действителен в течение 5 минут.`
 
-    return await this.sendMessage(telegramId, message)
+      const botToken = await this.getBotToken('ADMIN_BOT_TOKEN')
+      
+      const response = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          chat_id: telegramId,
+          text: message,
+          parse_mode: 'Markdown'
+        }),
+      })
+
+      const result = await response.json()
+      
+      if (!response.ok) {
+        if (result.error_code === 403) {
+          return { success: false, isBlocked: true, error: 'BOT_BLOCKED' }
+        }
+        return { success: false, error: result.description || 'Unknown error' }
+      }
+
+      return { success: true }
+    } catch (error) {
+      console.error('Error sending recovery code:', error)
+      return { success: false, error: 'Network error' }
+    }
   }
 
   /**
@@ -174,6 +294,8 @@ class TelegramService {
 }
 
 export const telegramService = new TelegramService()
+
+
 
 
 

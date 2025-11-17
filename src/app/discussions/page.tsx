@@ -218,7 +218,7 @@ export default function DiscussionsPage() {
         </div>
 
         {/* Фильтры */}
-        <div className="bg-[var(--bg-card)] rounded-2xl p-6 border border-[var(--border-secondary)]">
+        <div className="bg-[var(--bg-card)] rounded-2xl p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-[var(--text-primary)]">{t('discussions.filters.title')}</h3>
           </div>
@@ -242,7 +242,7 @@ export default function DiscussionsPage() {
         {/* Список обсуждений */}
         <div className="space-y-4">
           {discussions.length === 0 ? (
-            <div className="bg-[var(--bg-card)] rounded-2xl p-12 text-center border border-[var(--border-secondary)]">
+            <div className="bg-[var(--bg-card)] rounded-2xl p-12 text-center">
               <Icons.MessageCircle className="mx-auto h-12 w-12 text-[var(--text-tertiary)] mb-4" />
               <h3 className="text-lg font-medium text-[var(--text-primary)] mb-2">
                 {t('discussions.empty.title')}

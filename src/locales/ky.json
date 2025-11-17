@@ -336,7 +336,35 @@
     "loginButton": "Кирүү",
     "loginError": "Кирүү катасы",
     "invalidCredentials": "Туура эмес маалыматтар",
-    "confirmLogout": "Системадан чыгууну каалайсызбы?"
+    "confirmLogout": "Системадан чыгууну каалайсызбы?",
+    "register": {
+      "title": "Каттоо",
+      "subtitle": "Мугалим аккаунтун түзүү",
+      "fullName": "Толук аты",
+      "fullNamePlaceholder": "Толук атыңызды киргизиңиз",
+      "login": "Логин",
+      "loginPlaceholder": "Логинди киргизиңиз",
+      "password": "Сыр сөз",
+      "passwordPlaceholder": "Сыр сөздү киргизиңиз",
+      "confirmPassword": "Сыр сөздү ырастатуу",
+      "confirmPasswordPlaceholder": "Сыр сөздү кайталаңыз",
+      "registerButton": "Катталуу",
+      "registering": "Катталууда...",
+      "alreadyHaveAccount": "Аккаунт барбы?",
+      "signIn": "Кирүү",
+      "errors": {
+        "nameRequired": "Аты толтуруу милдеттүү",
+        "nameMinLength": "Аты эң кеминде 2 символдон турушу керек",
+        "loginRequired": "Логин толтуруу милдеттүү",
+        "loginMinLength": "Логин эң кеминде 3 символдон турушу керек",
+        "loginInvalid": "Логин гана тамгалар, сандар жана тире белгисин камтышы мүмкүн",
+        "passwordRequired": "Сыр сөз толтуруу милдеттүү",
+        "passwordMinLength": "Сыр сөз эң кеминде 6 символдон турушу керек",
+        "confirmPasswordRequired": "Сыр сөздү ырастатуу милдеттүү",
+        "passwordsMismatch": "Сыр сөздөр дал келбейт",
+        "general": "Каттоо учурунда ката кетти"
+      }
+    }
   },
   "datePicker": {
     "date": "Дата тандаңыз",
@@ -389,5 +417,24 @@
     "admin": "Администратор",
     "student": "Окуучу",
     "mentor": "Ментор"
+  },
+  "verification": {
+    "modal": {
+      "title": "Каттоо үчүн рахмат!",
+      "description": "Текшерүүдөн өтүү калды. Процессти бүтүрүү үчүн платформанын администраторуна жазыңыз.",
+      "goToChat": "Чатка өтүү"
+    }
+  },
+  "telegramConnection": {
+    "title": "Telegram туташуу",
+    "instruction": "Telegram аккаунтун туташтыруу үчүн төмөнкү баскычты басыңыз",
+    "openTelegramButton": "Telegramга кирүү",
+    "additionalInstruction": "Боттогу START баскычын баскандан кийин, бул баракка кайтыңыз",
+    "backButton": "Артка",
+    "checkingConnection": "Туташуу текшерилүүдө...",
+    "stepIndicator": {
+      "step1": "1",
+      "step2": "2"
+    }
   }
 }

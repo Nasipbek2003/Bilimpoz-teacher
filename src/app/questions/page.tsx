@@ -352,37 +352,41 @@ export default function QuestionsPage() {
           />
         </div>
 
-        {/* Фильтры */}
-        <QuestionsFilter
-          questionType={questionType}
-          onQuestionTypeChange={setQuestionType}
-          source={source}
-          onSourceChange={setSource}
-          language={language}
-          onLanguageChange={setLanguage}
-          sortBy={sortBy}
-          onSortByChange={setSortBy}
-          search={search}
-          onSearchChange={setSearch}
-          period={period}
-          onPeriodChange={setPeriod}
-          dateFrom={dateFrom}
-          onDateFromChange={setDateFrom}
-          timeFrom={timeFrom}
-          onTimeFromChange={setTimeFrom}
-          dateTo={dateTo}
-          onDateToChange={setDateTo}
-          timeTo={timeTo}
-          onTimeToChange={setTimeTo}
-          onClearFilters={handleClearFilters}
-        />
+        {/* Фильтры - отдельный контейнер */}
+        <div className="mt-8 mb-8">
+          <QuestionsFilter
+            questionType={questionType}
+            onQuestionTypeChange={setQuestionType}
+            source={source}
+            onSourceChange={setSource}
+            language={language}
+            onLanguageChange={setLanguage}
+            sortBy={sortBy}
+            onSortByChange={setSortBy}
+            search={search}
+            onSearchChange={setSearch}
+            period={period}
+            onPeriodChange={setPeriod}
+            dateFrom={dateFrom}
+            onDateFromChange={setDateFrom}
+            timeFrom={timeFrom}
+            onTimeFromChange={setTimeFrom}
+            dateTo={dateTo}
+            onDateToChange={setDateTo}
+            timeTo={timeTo}
+            onTimeToChange={setTimeTo}
+            onClearFilters={handleClearFilters}
+          />
+        </div>
 
-        {/* Таблица вопросов */}
-        <QuestionsTable
-          questions={sortedQuestions}
-          onQuestionClick={handleViewDetails}
-          onQuestionEdit={handleEdit}
-        />
+        {/* Таблица вопросов - отдельный контейнер */}
+        <div className="mt-8">
+          <QuestionsTable
+            questions={sortedQuestions}
+            onQuestionClick={handleViewDetails}
+            onQuestionEdit={handleEdit}
+          />
+        </div>
 
         {/* Модальное окно просмотра деталей вопроса */}
         <QuestionDetailsModal

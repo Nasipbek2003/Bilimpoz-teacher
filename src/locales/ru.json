@@ -35,6 +35,8 @@
   "dashboard": {
     "title": "Главная",
     "description": "Управление учебным процессом и анализ активности",
+    "welcome": "Добро пожаловать",
+    "welcomeSubtitle": "Начните создавать тесты и управлять учебным процессом",
     "stats": {
       "total": "Всего",
       "active": "Активные",
@@ -336,7 +338,35 @@
     "loginButton": "Войти",
     "loginError": "Ошибка входа",
     "invalidCredentials": "Неверные учетные данные",
-    "confirmLogout": "Вы уверены, что хотите выйти из системы?"
+    "confirmLogout": "Вы уверены, что хотите выйти из системы?",
+    "register": {
+      "title": "Регистрация",
+      "subtitle": "Создайте аккаунт преподавателя",
+      "fullName": "Полное имя",
+      "fullNamePlaceholder": "Введите ваше полное имя",
+      "login": "Логин",
+      "loginPlaceholder": "Введите логин",
+      "password": "Пароль",
+      "passwordPlaceholder": "Введите пароль",
+      "confirmPassword": "Подтверждение пароля",
+      "confirmPasswordPlaceholder": "Повторите пароль",
+      "registerButton": "Зарегистрироваться",
+      "registering": "Регистрация...",
+      "alreadyHaveAccount": "Уже есть аккаунт?",
+      "signIn": "Войти",
+      "errors": {
+        "nameRequired": "Имя обязательно для заполнения",
+        "nameMinLength": "Имя должно содержать минимум 2 символа",
+        "loginRequired": "Логин обязателен для заполнения",
+        "loginMinLength": "Логин должен содержать минимум 3 символа",
+        "loginInvalid": "Логин может содержать только буквы, цифры и знак подчеркивания",
+        "passwordRequired": "Пароль обязателен для заполнения",
+        "passwordMinLength": "Пароль должен содержать минимум 6 символов",
+        "confirmPasswordRequired": "Подтверждение пароля обязательно",
+        "passwordsMismatch": "Пароли не совпадают",
+        "general": "Произошла ошибка при регистрации"
+      }
+    }
   },
   "datePicker": {
     "date": "Выберите дату",
@@ -389,5 +419,78 @@
     "admin": "Администратор",
     "student": "Ученик",
     "mentor": "Ментор"
+  },
+  "stats": {
+    "testsAdded": "Тесты добавлены",
+    "testsAddedDesc": "Всего созданных тестов",
+    "studentsCompleted": "Студенты прошли тесты",
+    "studentsCompletedDesc": "Студенты, прошедшие ваши тесты",
+    "myReferrals": "Мои рефералы",
+    "myReferralsDesc": "Студенты по вашей реферальной ссылке",
+    "totalStudents": "Всего студентов",
+    "totalStudentsDesc": "Всего студентов на платформе"
+  },
+  "quickActions": {
+    "title": "Быстрые действия",
+    "createTest": "Создать тест",
+    "createTestDesc": "Создайте новый тест для ваших студентов",
+    "inviteStudent": "Пригласить студента",
+    "inviteStudentDesc": "Поделитесь реферальной ссылкой",
+    "profileSettings": "Настройки профиля",
+    "profileSettingsDesc": "Измените настройки вашего профиля"
+  },
+  "activity": {
+    "title": "Последняя активность",
+    "noActivity": "Нет активности",
+    "noActivityDesc": "Начните создавать тесты...",
+    "time": {
+      "justNow": "Только что",
+      "minutesAgo": "минут назад",
+      "hoursAgo": "часов назад",
+      "daysAgo": "дней назад"
+    },
+    "testCreated": {
+      "title": "Создан тест",
+      "description": "Тест создан и сохранен"
+    },
+    "studentJoined": {
+      "title": "Студент присоединился",
+      "description": "Новый студент зарегистрировался"
+    },
+    "testCompleted": {
+      "title": "Тест пройден",
+      "description": "Студент завершил тест"
+    },
+    "questionsAdded": {
+      "title": "Добавлены вопросы",
+      "description": "Вопросы добавлены в тест"
+    },
+    "testDuplicated": {
+      "title": "Тест скопирован",
+      "description": "Тест был скопирован"
+    },
+    "testPublished": {
+      "title": "Тест опубликован",
+      "description": "Тест стал доступен студентам"
+    }
+  },
+  "verification": {
+    "modal": {
+      "title": "Спасибо за регистрацию!",
+      "description": "Осталось пройти верификацию. Напишите администратору платформы для завершения процесса.",
+      "goToChat": "Перейти в чат"
+    }
+  },
+  "telegramConnection": {
+    "title": "Подключение Telegram",
+    "instruction": "Нажмите кнопку ниже для подключения Telegram аккаунта",
+    "openTelegramButton": "Войти в Telegram",
+    "additionalInstruction": "После нажатия кнопки START в боте, вернитесь на эту страницу",
+    "backButton": "Назад",
+    "checkingConnection": "Проверка подключения...",
+    "stepIndicator": {
+      "step1": "1",
+      "step2": "2"
+    }
   }
 }

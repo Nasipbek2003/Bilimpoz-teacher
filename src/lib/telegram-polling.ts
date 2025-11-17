@@ -1,0 +1,776 @@
+import { prisma } from './prisma'
+import { getTeacherBotToken, getTeacherSiteUrl, getAdminTelegramLogin, getTeacherBotUsername } from './settings'
+import { generateAndStoreVerificationCode } from './verification'
+
+// Мультиязычные сообщения
+const messages = {
+  ru: {
+    welcome: '👋 Добро пожаловать в BilimPoz Teacher!',
+    unknownCommand: '❌ Неизвестная команда. Используйте /start для начала работы.',
+    userNotFound: '❌ Пользователь не найден. Проверьте правильность ссылки.',
+    alreadyConnected: '✅ Ваш Telegram уже подключен к аккаунту.',
+    connectionSuccess: '✅ Telegram успешно подключен!',
+    welcomeUser: (name: string) => `👋 Добро пожаловать, ${name}!`,
+    connectionSuccessVerified: '🎉 Вы можете войти на сайт и начать работу.',
+    verificationRequired: '📋 *Требуется верификация аккаунта*',
+    whatIsVerification: '❓ *Что такое верификация?*',
+    verificationDescription: 'Верификация - это подтверждение вашей личности администратором системы. После верификации вы получите полный доступ ко всем функциям.',
+    howToVerify: '📝 *Как пройти верификацию?*',
+    verifyStep1: '1️⃣ Свяжитесь с администратором через кнопку ниже',
+    verifyStep2: '2️⃣ Предоставьте информацию о себе',
+    verifyStep3: '3️⃣ Дождитесь подтверждения',
+    verifyStep4: '4️⃣ После верификации вы получите уведомление',
+    afterVerification: '✅ После верификации вы сможете использовать все функции системы.',
+    goToSiteButton: '🌐 Перейти на сайт',
+    contactAdmin: '💬 Связаться с администратором',
+    verificationCodeTitle: '🔐 *Код подтверждения для входа*',
+    verificationCodeGreeting: (name: string) => `👋 Привет, ${name}!`,
+    verificationCodeMessage: (code: string) => `🔢 Ваш код: \`${code}\``,
+    verificationCodeValid: '⏰ Код действителен 5 минут',
+    verificationCodeAttempts: '🔄 Количество попыток: 5',
+    verificationCodeEnter: '💻 Введите его на сайте для завершения входа',
+    authError: '❌ Ошибка авторизации. Telegram ID не совпадает.',
+    botBlocked: '🔒 Вы заблокировали бота BilimPoz Teacher.\n\n📋 *Как разблокировать бота:*\n\n1️⃣ Откройте приложение Telegram\n2️⃣ Найдите бота @{botUsername} в списке чатов\n3️⃣ Нажмите на бота и выберите "Разблокировать" или "Начать"\n4️⃣ Вернитесь на сайт и попробуйте войти снова'
+  },
+  kg: {
+    welcome: '👋 BilimPoz Teacher\'ге кош келдиңиз!',
+    unknownCommand: '❌ Белгисиз буйрук. Иштоону баштоо үчүн /start колдонуңуз.',
+    userNotFound: '❌ Колдонуучу табылган жок. Шилтемени текшериңиз.',
+    alreadyConnected: '✅ Сиздин Telegram аккаунтуңузга туташтырылган.',
+    connectionSuccess: '✅ Telegram ийгиликтүү туташтырылды!',
+    welcomeUser: (name: string) => `👋 Кош келдиңиз, ${name}!`,
+    connectionSuccessVerified: '🎉 Сайтка кирип, иштоону баштай аласыз.',
+    verificationRequired: '📋 *Аккаунтты ырастоо талап кылынат*',
+    whatIsVerification: '❓ *Ырастоо деген эмне?*',
+    verificationDescription: 'Ырастоо - бул администратор тарабынан сиздин жеке баңгиңизди ырастоо. Ырастоодон кийин сиз бардык функцияларга толук мүмкүнчүлүк аласыз.',
+    howToVerify: '📝 *Ырастоону кантип өтүү керек?*',
+    verifyStep1: '1️⃣ Төмөнкү баскыч аркылуу администратор менен байланышыңыз',
+    verifyStep2: '2️⃣ Өзүңүз жөнүндө маалымат бериңиз',
+    verifyStep3: '3️⃣ Ырастоону күтүңүз',
+    verifyStep4: '4️⃣ Ырастоодон кийин сиз билдирүү аласыз',
+    afterVerification: '✅ Ырастоодон кийин сиз системанын бардык функцияларын колдоно аласыз.',
+    goToSiteButton: '🌐 Сайтка өтүү',
+    contactAdmin: '💬 Администратор менен байланышуу',
+    verificationCodeTitle: '🔐 *Кирүү үчүн ырастоо коду*',
+    verificationCodeGreeting: (name: string) => `👋 Салам, ${name}!`,
+    verificationCodeMessage: (code: string) => `🔢 Сиздин кодуңуз: \`${code}\``,
+    verificationCodeValid: '⏰ Код 5 мүнөткө жарактуу',
+    verificationCodeAttempts: '🔄 Аракеттер саны: 5',
+    verificationCodeEnter: '💻 Кирүүнү аяктоо үчүн аны сайтка киргизиңиз',
+    authError: '❌ Авторизация катасы. Telegram ID дал келбейт.',
+    botBlocked: '🔒 Сиз BilimPoz Teacher ботуну бөгөттөдүңүз.\n\n📋 *Ботту кантип бөгөттөн чыгаруу:*\n\n1️⃣ Telegram колдонмосуну ачыңыз\n2️⃣ Чаттар тизмесинде @{botUsername} ботуну табыңыз\n3️⃣ Ботту басып, "Бөгөттөн чыгаруу" же "Баштоо" тандаңыз\n4️⃣ Сайтка кайтып, кайрадан кирүүгө аракет кылыңыз'
+  }
+}
+
+class TelegramPollingService {
+  private pollingActive = false
+  private pollingTimeout: NodeJS.Timeout | null = null
+  private offset = 0
+  private botToken: string | null = null
+
+  // Геттер для проверки статуса
+  get isActive() {
+    return this.pollingActive
+  }
+
+  /**
+   * Запуск polling
+   */
+  async start(): Promise<boolean> {
+    // 1. Загрузка токена из БД
+    this.botToken = await getTeacherBotToken()
+    
+    if (!this.botToken) {
+      console.error('❌ TEACHER_BOT_TOKEN не установлен')
+      return false
+    }
+
+    if (this.pollingActive) {
+      console.log('⚠️ Polling уже активен')
+      return true
+    }
+
+    try {
+      // 2. Проверка бота
+      const botCheck = await this.checkBot()
+      if (!botCheck) {
+        return false
+      }
+
+      // 3. Удаление webhook перед запуском polling
+      await this.deleteWebhook()
+      
+      // 4. Запуск polling
+      this.pollingActive = true
+      console.log('🚀 Telegram polling запущен для бота:', botCheck.username)
+      
+      this.poll()
+      return true
+    } catch (error) {
+      console.error('❌ Ошибка запуска polling:', error)
+      return false
+    }
+  }
+
+  /**
+   * Остановка polling
+   */
+  stop() {
+    if (this.pollingTimeout) {
+      clearTimeout(this.pollingTimeout)
+      this.pollingTimeout = null
+    }
+    this.pollingActive = false
+    console.log('⏹️ Telegram polling остановлен')
+  }
+
+  /**
+   * Проверка бота
+   */
+  private async checkBot() {
+    try {
+      const response = await fetch(`https://api.telegram.org/bot${this.botToken}/getMe`)
+      const result = await response.json()
+      
+      if (result.ok) {
+        console.log('✅ Бот найден:', result.result.username, `(ID: ${result.result.id})`)
+        return result.result
+      } else {
+        console.error('❌ Ошибка проверки бота:', result.description)
+        return null
+      }
+    } catch (error) {
+      console.error('❌ Ошибка подключения к Telegram API:', error)
+      return null
+    }
+  }
+
+  /**
+   * Удаление webhook
+   */
+  private async deleteWebhook() {
+    try {
+      const response = await fetch(`https://api.telegram.org/bot${this.botToken}/deleteWebhook`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ drop_pending_updates: true })
+      })
+      
+      const result = await response.json()
+      if (result.ok) {
+        console.log('✅ Webhook удален')
+      }
+    } catch (error) {
+      console.error('⚠️ Ошибка удаления webhook:', error)
+    }
+  }
+
+  /**
+   * Polling механизм
+   */
+  private async poll() {
+    if (!this.pollingActive) return
+
+    try {
+      // Запрос обновлений с long polling (timeout 10 секунд)
+      const response = await fetch(
+        `https://api.telegram.org/bot${this.botToken}/getUpdates?offset=${this.offset}&timeout=10`
+      )
+      
+      const data = await response.json()
+
+      if (!data.ok) {
+        console.error('❌ Telegram API error:', data.description)
+        // Планируем следующий запрос через 3 секунды
+        if (this.pollingActive) {
+          this.pollingTimeout = setTimeout(() => this.poll(), 3000)
+        }
+        return
+      }
+
+      // Обработка полученных обновлений
+      if (data.result && data.result.length > 0) {
+        console.log(`📨 Получено ${data.result.length} обновлений`)
+        
+        for (const update of data.result) {
+          await this.processUpdate(update)
+          // Увеличиваем offset для следующего запроса
+          this.offset = update.update_id + 1
+        }
+      }
+    } catch (error) {
+      console.error('⚠️ Polling error:', error)
+    }
+
+    // Планируем следующий запрос через 3 секунды
+    if (this.pollingActive) {
+      this.pollingTimeout = setTimeout(() => this.poll(), 3000)
+    }
+  }
+
+  /**
+   * Обработка обновления
+   */
+  private async processUpdate(update: any) {
+    // Проверка наличия сообщения и отправителя
+    if (!update.message || !update.message.from) {
+      return
+    }
+
+    const message = update.message
+    const user = message.from
+    const text = message.text
+
+    if (!text) {
+      return
+    }
+
+    console.log(`📩 Сообщение от ${user.first_name}: "${text}"`)
+
+    // Проверка команды /start
+    if (!text.startsWith('/start')) {
+      // Отправляем справку для других команд
+      await this.sendMessage(user.id, messages.ru.unknownCommand)
+      return
+    }
+
+    // Обработка /start без параметров
+    if (text.trim() === '/start') {
+      await this.sendWelcomeMessage(user.id, 'ru')
+      return
+    }
+
+    // Парсинг параметров /start
+    // Формат: /start register_loginname__ru
+    // или: /start login_loginname__kg
+    const params = text.replace('/start ', '').trim()
+    
+    // Парсинг языка и параметров
+    let language: 'ru' | 'kg' = 'ru'
+    let paramsWithoutLanguage = params
+    
+    // Проверяем формат с двойным подчеркиванием (новый формат)
+    const doubleSeparatorIndex = params.lastIndexOf('__')
+    if (doubleSeparatorIndex !== -1) {
+      const potentialLanguage = params.substring(doubleSeparatorIndex + 2)
+      if (potentialLanguage === 'kg' || potentialLanguage === 'ky' || potentialLanguage === 'ru') {
+        language = (potentialLanguage === 'ky' ? 'kg' : potentialLanguage) as 'ru' | 'kg'
+        paramsWithoutLanguage = params.substring(0, doubleSeparatorIndex)
+      }
+    }
+
+    // Парсинг mode и login
+    const firstUnderscoreIndex = paramsWithoutLanguage.indexOf('_')
+    if (firstUnderscoreIndex === -1) {
+      await this.sendMessage(user.id, '❌ Некорректные параметры')
+      return
+    }
+
+    const mode = paramsWithoutLanguage.substring(0, firstUnderscoreIndex)
+    const login = paramsWithoutLanguage.substring(firstUnderscoreIndex + 1)
+
+    if (!mode || !login || !['register', 'login'].includes(mode)) {
+      await this.sendMessage(user.id, '❌ Некорректные параметры')
+      return
+    }
+
+    // Поиск пользователя в БД
+    const dbUser = await prisma.users.findUnique({
+      where: { login }
+    })
+
+    if (!dbUser) {
+      await this.sendMessage(user.id, messages[language].userNotFound)
+      return
+    }
+
+    // Обработка в зависимости от режима
+    if (mode === 'register') {
+      await this.handleRegister(user, dbUser, language)
+    } else if (mode === 'login') {
+      await this.handleLogin(user, dbUser, language)
+    }
+  }
+
+  /**
+   * Отправка приветственного сообщения
+   */
+  private async sendWelcomeMessage(chatId: number, language: 'ru' | 'kg' = 'ru') {
+    const msg = messages[language]
+    const welcomeText = `${msg.welcome}\n\n` +
+      `Для регистрации или входа используйте ссылку с сайта BilimPoz Teacher.`
+    
+    await this.sendMessage(chatId, welcomeText)
+  }
+
+  /**
+   * Обработка регистрации
+   */
+  private async handleRegister(user: any, dbUser: any, userLanguage: 'ru' | 'kg' = 'ru') {
+    const telegramIdString = user.id.toString()
+    const msg = messages[userLanguage]
+    
+    // 1. Проверка: уже подключен ли этот Telegram к пользователю
+    if (dbUser.telegram_id === telegramIdString) {
+      // Обновление фото профиля
+      await this.updateProfilePhoto(user, dbUser)
+      await this.sendMessage(user.id, msg.alreadyConnected)
+      return
+    }
+    
+    // 2. Проверка: используется ли telegram_id другим пользователем
+    const existingTelegramUser = await prisma.users.findUnique({
+      where: { telegram_id: telegramIdString }
+    })
+    
+    if (existingTelegramUser && existingTelegramUser.id !== dbUser.id) {
+      await this.sendMessage(user.id, '❌ Этот Telegram уже подключен к другому логину')
+      return
+    }
+    
+    // 3. Удаление старого фото из S3 (если есть)
+    if (dbUser.profile_photo_url) {
+      await this.deleteOldPhotoFromS3(dbUser.profile_photo_url)
+    }
+    
+    // 4. Получение фото профиля из Telegram
+    let profilePhotoUrl = await this.getTelegramProfilePhoto(user.id)
+    
+    // 5. Загрузка фото в S3 (опционально, если есть S3 функции)
+    // Если нет S3, используем оригинальный URL из Telegram
+    // if (profilePhotoUrl) {
+    //   profilePhotoUrl = await this.uploadPhotoToS3(profilePhotoUrl, dbUser.id)
+    // }
+    
+    // 6. Обновление данных пользователя в БД
+    await prisma.users.update({
+      where: { id: dbUser.id },
+      data: {
+        telegram_id: telegramIdString,
+        profile_photo_url: profilePhotoUrl,
+        updated_at: new Date()
+      }
+    })
+    
+    // 7. Обновление социальных сетей
+    await prisma.social_networks.upsert({
+      where: { user_id: dbUser.id },
+      update: { telegram_login: user.username || null },
+      create: {
+        user_id: dbUser.id,
+        telegram_login: user.username || null
+      }
+    })
+    
+    // 8. Отправка приветственного сообщения
+    const isVerified = dbUser.status === 'verified'
+    const siteUrl = await getTeacherSiteUrl()
+    
+    if (isVerified) {
+      // Для верифицированных пользователей - короткое сообщение
+      await this.sendMessage(user.id, 
+        `${msg.connectionSuccess}\n\n` +
+        `${msg.welcomeUser(dbUser.name)}\n\n` +
+        `${msg.connectionSuccessVerified}`,
+        {
+          reply_markup: {
+            inline_keyboard: [[{ text: msg.goToSiteButton, url: siteUrl }]]
+          }
+        }
+      )
+    } else {
+      // Для не верифицированных - инструкция по верификации
+      const verificationMessage = `Здравствуйте! Я зарегистрировался в системе BilimPoz Teacher.\n\n` +
+        `Имя: ${dbUser.name}\n` +
+        `Логин: ${dbUser.login}\n\n` +
+        `Прошу проверить и верифицировать мой аккаунт.`
+      
+      const adminButton = await this.getAdminButton(verificationMessage, userLanguage)
+      
+      const keyboard: any[] = []
+      if (adminButton) {
+        keyboard.push([adminButton])
+      }
+      keyboard.push([{ text: msg.goToSiteButton, url: siteUrl }])
+      
+      await this.sendMessage(user.id,
+        `${msg.connectionSuccess}\n\n` +
+        `${msg.welcomeUser(dbUser.name)}\n\n` +
+        `${msg.verificationRequired}\n\n` +
+        `${msg.whatIsVerification}\n` +
+        `${msg.verificationDescription}\n\n` +
+        `${msg.howToVerify}\n` +
+        `${msg.verifyStep1}\n` +
+        `${msg.verifyStep2}\n` +
+        `${msg.verifyStep3}\n` +
+        `${msg.verifyStep4}\n\n` +
+        `${msg.afterVerification}`,
+        {
+          parse_mode: 'Markdown',
+          reply_markup: {
+            inline_keyboard: keyboard
+          }
+        }
+      )
+    }
+    
+    console.log(`✅ Telegram подключен для пользователя ${dbUser.name} (${dbUser.login})`)
+  }
+
+  /**
+   * Обработка входа
+   */
+  private async handleLogin(user: any, dbUser: any, userLanguage: 'ru' | 'kg' = 'ru') {
+    const msg = messages[userLanguage]
+    
+    // 1. Проверка: если у пользователя нет Telegram ID, устанавливаем его
+    if (!dbUser.telegram_id) {
+      await this.handleRegister(user, dbUser, userLanguage)
+      return
+    }
+    
+    // 2. Проверка: Telegram ID должен совпадать
+    if (dbUser.telegram_id !== user.id.toString()) {
+      await this.sendMessage(user.id, msg.authError)
+      return
+    }
+    
+    // 3. Генерация кода верификации
+    const verificationCode = await generateAndStoreVerificationCode(dbUser.id, 'login')
+    
+    // 4. Отправка кода пользователю
+    const sendResult = await this.sendMessage(
+      user.id,
+      `${msg.verificationCodeTitle}\n\n` +
+      `${msg.verificationCodeGreeting(dbUser.name)}\n\n` +
+      `${msg.verificationCodeMessage(verificationCode)}\n\n` +
+      `${msg.verificationCodeValid}\n` +
+      `${msg.verificationCodeAttempts}\n` +
+      `${msg.verificationCodeEnter}`,
+      { parse_mode: 'Markdown' }
+    )
+    
+    // 5. Обработка ошибки блокировки бота
+    if (!sendResult.success && sendResult.isBlocked) {
+      const botUsername = await getTeacherBotUsername()
+      await this.sendMessage(user.id,
+        msg.botBlocked.replace('{botUsername}', botUsername),
+        { parse_mode: 'Markdown' }
+      )
+      return
+    }
+  }
+
+  /**
+   * Получение фото профиля из Telegram
+   */
+  private async getTelegramProfilePhoto(userId: number): Promise<string | null> {
+    try {
+      // 1. Запрос списка фото
+      const photosResponse = await fetch(
+        `https://api.telegram.org/bot${this.botToken}/getUserProfilePhotos?user_id=${userId}&limit=1`
+      )
+      const photosData = await photosResponse.json()
+      
+      if (!photosData.ok || photosData.result.total_count === 0) {
+        return null
+      }
+      
+      // 2. Выбор фото с максимальным разрешением
+      const photoSizes = photosData.result.photos[0]
+      let largestPhoto = photoSizes[0]
+      let maxSize = (largestPhoto.width || 0) * (largestPhoto.height || 0)
+      
+      for (const photo of photoSizes) {
+        const size = (photo.width || 0) * (photo.height || 0)
+        if (size > maxSize) {
+          maxSize = size
+          largestPhoto = photo
+        }
+      }
+      
+      // 3. Получение URL файла
+      const fileId = largestPhoto.file_id
+      const fileResponse = await fetch(
+        `https://api.telegram.org/bot${this.botToken}/getFile?file_id=${fileId}`
+      )
+      const fileData = await fileResponse.json()
+      
+      if (fileData.ok) {
+        return `https://api.telegram.org/file/bot${this.botToken}/${fileData.result.file_path}`
+      }
+      
+      return null
+    } catch (error) {
+      console.log('⚠️ Не удалось получить фото профиля:', error)
+      return null
+    }
+  }
+
+  /**
+   * Обновление фото профиля
+   */
+  private async updateProfilePhoto(user: any, dbUser: any) {
+    try {
+      const profilePhotoUrl = await this.getTelegramProfilePhoto(user.id)
+      if (profilePhotoUrl && profilePhotoUrl !== dbUser.profile_photo_url) {
+        // Удаление старого фото
+        if (dbUser.profile_photo_url) {
+          await this.deleteOldPhotoFromS3(dbUser.profile_photo_url)
+        }
+        
+        // Обновление в БД
+        await prisma.users.update({
+          where: { id: dbUser.id },
+          data: {
+            profile_photo_url: profilePhotoUrl,
+            updated_at: new Date()
+          }
+        })
+      }
+    } catch (error) {
+      console.warn('⚠️ Не удалось обновить фото профиля:', error)
+    }
+  }
+
+  /**
+   * Удаление старого фото из S3
+   */
+  private async deleteOldPhotoFromS3(photoUrl: string): Promise<void> {
+    try {
+      // Проверяем, что это S3 URL
+      if (photoUrl.includes('s3') || 
+          photoUrl.includes('amazonaws.com') ||
+          photoUrl.includes('storage.yandexcloud.net')) {
+        // Если есть функции S3, используем их
+        // const { deleteFileFromS3 } = await import('@/lib/s3')
+        // await deleteFileFromS3(photoUrl)
+        console.log(`🗑️ Старое фото профиля будет удалено: ${photoUrl}`)
+      }
+    } catch (error) {
+      console.warn('⚠️ Не удалось удалить старое фото из S3:', error)
+    }
+  }
+
+  /**
+   * Получение кнопки администратора
+   */
+  private async getAdminButton(
+    verificationMessage: string, 
+    language: 'ru' | 'kg' = 'ru'
+  ): Promise<{ text: string; url: string } | null> {
+    try {
+      const adminTelegram = await getAdminTelegramLogin()
+      
+      if (!adminTelegram) {
+        return null
+      }
+      
+      // Формирование URL
+      let adminChatUrl = adminTelegram
+      if (adminChatUrl.startsWith('@')) {
+        adminChatUrl = `https://t.me/${adminChatUrl.substring(1)}`
+      } else if (!adminChatUrl.startsWith('http')) {
+        adminChatUrl = `https://t.me/${adminChatUrl}`
+      }
+      
+      // Добавление предзаполненного текста
+      const encodedMessage = encodeURIComponent(verificationMessage)
+      return {
+        text: messages[language].contactAdmin,
+        url: `${adminChatUrl}?text=${encodedMessage}`
+      }
+    } catch (error) {
+      console.warn('⚠️ Не удалось создать кнопку администратора:', error)
+      return null
+    }
+  }
+
+  /**
+   * Отправка сообщения
+   */
+  private async sendMessage(
+    chatId: number, 
+    text: string, 
+    options: any = {}
+  ): Promise<{ success: boolean; error?: string; isBlocked?: boolean }> {
+    try {
+      // 1. Загрузка токена
+      if (!this.botToken) {
+        this.botToken = await getTeacherBotToken()
+      }
+      
+      if (!this.botToken) {
+        return { success: false, error: 'Bot token не настроен' }
+      }
+      
+      // 2. Проверка формата токена
+      if (this.botToken.length < 10) {
+        return { success: false, error: 'Bot token имеет неправильный формат' }
+      }
+      
+      // 3. Отправка сообщения
+      const response = await fetch(
+        `https://api.telegram.org/bot${this.botToken}/sendMessage`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            chat_id: chatId,
+            text,
+            ...options
+          })
+        }
+      )
+
+      const result = await response.json()
+
+      if (result.ok) {
+        return { success: true }
+      }
+
+      // 4. Обработка ошибок
+      const errorDescription = result.description || ''
+      const errorCode = result.error_code
+      
+      // Ошибка 404 - бот не найден
+      if (errorCode === 404) {
+        return { 
+          success: false, 
+          error: 'Бот не найден. Проверьте настройки токена в БД.' 
+        }
+      }
+      
+      // Ошибка 403 - бот заблокирован
+      if (errorCode === 403 || 
+          errorDescription.toLowerCase().includes('blocked') || 
+          errorDescription.toLowerCase().includes('chat not found')) {
+        return { 
+          success: false, 
+          error: errorDescription,
+          isBlocked: true 
+        }
+      }
+
+      return { success: false, error: errorDescription || `Ошибка ${errorCode}` }
+    } catch (error) {
+      console.error('❌ Ошибка отправки сообщения:', error)
+      return { success: false, error: 'Ошибка сети' }
+    }
+  }
+
+  /**
+   * Публичный метод для отправки кода верификации (используется в API)
+   */
+  async sendVerificationCode(
+    login: string, 
+    telegramId: string, 
+    language?: string
+  ): Promise<{ success: boolean; isBlocked?: boolean; error?: string }> {
+    try {
+      // 0. Убедиться, что токен загружен
+      if (!this.botToken) {
+        this.botToken = await getTeacherBotToken()
+      }
+      
+      if (!this.botToken) {
+        console.error('[sendVerificationCode] Bot token not found')
+        return { success: false, error: 'Bot token не настроен' }
+      }
+
+      // 1. Поиск пользователя в БД
+      const dbUser = await prisma.users.findUnique({
+        where: { login }
+      })
+
+      if (!dbUser) {
+        return { success: false, error: 'Пользователь не найден' }
+      }
+
+      // 2. Проверка Telegram ID
+      if (dbUser.telegram_id !== telegramId) {
+        return { success: false, error: 'Telegram ID не совпадает' }
+      }
+
+      // 3. Определение языка
+      const userLanguage: 'ru' | 'kg' = (language === 'ky' || language === 'kg') ? 'kg' : 'ru'
+      const msg = messages[userLanguage]
+
+      // 4. Генерация кода верификации
+      const verificationCode = await generateAndStoreVerificationCode(dbUser.id, 'login')
+      console.log(`[sendVerificationCode] Generated code for user ${dbUser.login}, sending to Telegram ${telegramId}`)
+
+      // 5. Отправка кода в Telegram
+      const sendResult = await this.sendMessage(
+        parseInt(telegramId),
+        `${msg.verificationCodeTitle}\n\n` +
+        `${msg.verificationCodeGreeting(dbUser.name)}\n\n` +
+        `${msg.verificationCodeMessage(verificationCode)}\n\n` +
+        `${msg.verificationCodeValid}\n` +
+        `${msg.verificationCodeAttempts}\n` +
+        `${msg.verificationCodeEnter}`,
+        { parse_mode: 'Markdown' }
+      )
+
+      console.log(`[sendVerificationCode] Send result:`, sendResult)
+
+      // 6. Обработка ошибки блокировки
+      if (!sendResult.success && sendResult.isBlocked) {
+        return { success: false, isBlocked: true, error: 'Бот заблокирован пользователем' }
+      }
+
+      return { success: sendResult.success, error: sendResult.error }
+    } catch (error) {
+      console.error('❌ Ошибка отправки кода верификации:', error)
+      return { success: false, error: 'Ошибка отправки кода' }
+    }
+  }
+
+  /**
+   * Отправка кода восстановления пароля (используется в API)
+   */
+  async sendRecoveryCode(
+    telegramId: string,
+    code: string,
+    login: string
+  ): Promise<{ success: boolean; isBlocked?: boolean; error?: string }> {
+    try {
+      const user = await prisma.users.findUnique({
+        where: { login }
+      })
+      
+      if (!user) {
+        return { success: false, error: 'Пользователь не найден' }
+      }
+      
+      const message = `🔑 *Код восстановления пароля*
+
+Здравствуйте, ${user.name}!
+
+Ваш код восстановления: \`${code}\`
+
+Введите этот код для сброса пароля.
+
+⏰ Код действителен в течение 5 минут.`
+
+      const sendResult = await this.sendMessage(
+        parseInt(telegramId),
+        message,
+        { parse_mode: 'Markdown' }
+      )
+
+      if (!sendResult.success && sendResult.isBlocked) {
+        return { success: false, isBlocked: true, error: 'BOT_BLOCKED' }
+      }
+
+      return { success: sendResult.success, error: sendResult.error }
+    } catch (error) {
+      console.error('Error sending recovery code:', error)
+      return { success: false, error: 'Network error' }
+    }
+  }
+}
+
+// Экспорт singleton экземпляра
+export const telegramPolling = new TelegramPollingService()
+

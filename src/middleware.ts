@@ -1,21 +1,36 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { AUTH_COOKIE_NAME } from '@/lib/cookie-config'
+import { getTokenFromRequest, verifyToken } from '@/lib/jwt-middleware'
 
 // Публичные маршруты, которые не требуют аутентификации
-const publicRoutes = ['/login', '/verify-telegram']
+const publicRoutes = ['/register', '/login', '/verify-telegram']
 
 // Маршруты, которые требуют аутентификации
 const protectedRoutes = ['/', '/questions', '/discussions', '/settings', '/students']
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
   
   // Получаем язык из cookie или используем 'ru' по умолчанию
   const lang = request.cookies.get('lang')?.value || 'ru'
   
-  // Получаем токен из cookies
-  const token = request.cookies.get(AUTH_COOKIE_NAME)?.value
+  // Получаем токен из запроса (cookie или header)
+  const token = getTokenFromRequest(request)
+  
+  // Проверяем валидность токена один раз (если он есть)
+  let payload = null
+  if (token) {
+    payload = await verifyToken(token)
+  }
+  
+  // Корневой маршрут - редирект только для неавторизованных
+  if (pathname === '/') {
+    if (!payload) {
+      const authUrl = new URL('/login', request.url)
+      return NextResponse.redirect(authUrl)
+    }
+    // Если авторизован, разрешаем доступ к главной странице
+  }
   
   // Проверяем, является ли маршрут защищенным
   const isProtectedRoute = protectedRoutes.some(route => 
@@ -27,14 +42,14 @@ export function middleware(request: NextRequest) {
     pathname === route || pathname.startsWith(route + '/')
   )
   
-  // Если пользователь пытается попасть на защищенный маршрут без токена
-  if (isProtectedRoute && !token) {
-    const loginUrl = new URL('/login', request.url)
-    return NextResponse.redirect(loginUrl)
+  // Если пользователь пытается попасть на защищенный маршрут без валидного токена
+  if (isProtectedRoute && !payload) {
+    const registerUrl = new URL('/register', request.url)
+    return NextResponse.redirect(registerUrl)
   }
   
-  // Если пользователь с токеном пытается попасть на страницу входа
-  if (isPublicRoute && token && pathname === '/login') {
+  // Если пользователь с валидным токеном пытается попасть на публичные страницы
+  if (isPublicRoute && payload && (pathname === '/login' || pathname === '/register')) {
     const homeUrl = new URL('/', request.url)
     return NextResponse.redirect(homeUrl)
   }
@@ -58,5 +73,3 @@ export const config = {
     '/((?!api|_next/static|_next/image|favicon.ico).*)',
   ],
 }
-
-

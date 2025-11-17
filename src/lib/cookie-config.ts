@@ -2,11 +2,11 @@
  * Конфигурация безопасности для cookies аутентификации
  */
 
-export const AUTH_COOKIE_NAME = 'auth-token'
+export const AUTH_COOKIE_NAME = 'auth_token'
 export const USER_DATA_COOKIE_NAME = 'user-data'
 
 export const AUTH_COOKIE_CONFIG = {
-  httpOnly: false, // Нужно для доступа из JavaScript на клиенте
+  httpOnly: true, // HTTP-only для безопасности
   secure: process.env.NODE_ENV === 'production', // HTTPS только в production
   sameSite: 'lax' as const, // Защита от CSRF, но позволяет переходы по ссылкам
   maxAge: 7 * 24 * 60 * 60, // 7 дней (в секундах)

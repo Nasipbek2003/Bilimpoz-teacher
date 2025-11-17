@@ -4,32 +4,7 @@
 
 /* DayniteJS Theme Variables */
 :root {
-  /* Light theme (default) */
-  --bg-primary: #ffffff;
-  --bg-secondary: #f9fafb;
-  --bg-tertiary: #f3f4f6;
-  --bg-card: #ffffff;
-  --bg-hover: #e5e7eb;
-  --bg-active: #d1d5db;
-  --bg-active-button: #f3f4f6;
-  
-  --text-primary: #111827;
-  --text-secondary: #374151;
-  --text-tertiary: #6b7280;
-  --text-muted: #9ca3af;
-  --text-active-button: #111827;
-  
-  --border-primary: #d1d5db;
-  --border-secondary: #e5e7eb;
-  
-  --accent-primary: #3b82f6;
-  --accent-secondary: #10b981;
-  --accent-danger: #ef4444;
-  --accent-warning: #f59e0b;
-}
-
-[data-theme="dark"] {
-  /* Dark theme */
+  /* Dark theme (default) - предотвращает мигание белого экрана */
   --bg-primary: #0b0b0b;
   --bg-secondary: #151515;
   --bg-tertiary: #1a1a1a;
@@ -53,21 +28,46 @@
   --accent-warning: #f59e0b;
 }
 
+[data-theme="light"] {
+  /* Light theme */
+  --bg-primary: #ffffff;
+  --bg-secondary: #f9fafb;
+  --bg-tertiary: #f3f4f6;
+  --bg-card: #f3f4f6;
+  --bg-hover: #e5e7eb;
+  --bg-active: #d1d5db;
+  --bg-active-button: #f3f4f6;
+  
+  --text-primary: #111827;
+  --text-secondary: #374151;
+  --text-tertiary: #6b7280;
+  --text-muted: #9ca3af;
+  --text-active-button: #111827;
+  
+  --border-primary: #d1d5db;
+  --border-secondary: #e5e7eb;
+  
+  --accent-primary: #3b82f6;
+  --accent-secondary: #10b981;
+  --accent-danger: #ef4444;
+  --accent-warning: #f59e0b;
+}
+
 @layer base {
   * {
-    border-color: var(--border-primary, #d1d5db);
+    border-color: var(--border-primary, #4a5565);
   }
   
   body {
-    background-color: var(--bg-primary, #ffffff);
-    color: var(--text-primary, #111827);
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
     font-feature-settings: "rlig" 1, "calt" 1;
     transition: background-color 0.3s ease, color 0.3s ease;
   }
   
   /* Убеждаемся, что html элемент имеет правильный атрибут по умолчанию */
   html {
-    color-scheme: light dark;
+    color-scheme: dark;
   }
   
   html[data-theme="light"] {

@@ -22,11 +22,11 @@ const Button: React.FC<ButtonProps> = ({
   const baseClasses = 'inline-flex items-center justify-center font-semibold rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-black disabled:opacity-50 disabled:cursor-not-allowed'
   
   const variantClasses = {
-    primary: 'bg-white text-black hover:bg-gray-100 hover:scale-[1.02] active:scale-[0.98] border border-white shadow-lg hover:shadow-xl focus:ring-white/30',
-    secondary: 'bg-[#242424] text-white hover:bg-[#2a2a2a] hover:scale-[1.02] active:scale-[0.98] border border-gray-700/50 shadow-md hover:shadow-lg focus:ring-white/20',
-    outline: 'bg-transparent text-white hover:bg-white hover:text-black border border-white focus:ring-white/30',
-    danger: 'bg-red-600 text-white hover:bg-red-700 hover:scale-[1.02] active:scale-[0.98] border border-red-600 shadow-lg hover:shadow-xl focus:ring-red-500/30',
-    warning: 'bg-yellow-600 text-white hover:bg-yellow-700 hover:scale-[1.02] active:scale-[0.98] border border-yellow-600 shadow-lg hover:shadow-xl focus:ring-yellow-500/30'
+    primary: 'bg-[var(--bg-active-button)] text-[var(--text-active-button)] hover:bg-[var(--bg-hover)] hover:scale-[1.02] active:scale-[0.98] border border-[var(--border-primary)] shadow-lg hover:shadow-xl focus:ring-[var(--accent-primary)]/30',
+    secondary: 'bg-[var(--bg-tertiary)] text-[var(--text-primary)] hover:bg-[var(--bg-hover)] hover:scale-[1.02] active:scale-[0.98] border border-[var(--border-primary)] shadow-md hover:shadow-lg focus:ring-[var(--accent-primary)]/20',
+    outline: 'bg-transparent text-[var(--text-primary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] border border-[var(--border-primary)] focus:ring-[var(--accent-primary)]/30',
+    danger: 'bg-[var(--accent-danger)] text-white hover:bg-red-700 hover:scale-[1.02] active:scale-[0.98] border border-[var(--accent-danger)] shadow-lg hover:shadow-xl focus:ring-[var(--accent-danger)]/30',
+    warning: 'bg-[var(--accent-warning)] text-white hover:bg-yellow-700 hover:scale-[1.02] active:scale-[0.98] border border-[var(--accent-warning)] shadow-lg hover:shadow-xl focus:ring-[var(--accent-warning)]/30'
   }
   
   const sizeClasses = {

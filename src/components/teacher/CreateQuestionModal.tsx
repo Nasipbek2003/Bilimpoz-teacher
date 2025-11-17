@@ -485,7 +485,7 @@ const CreateQuestionModal: React.FC<CreateQuestionModalProps> = ({
         }
       }}
     >
-      <div className="bg-[var(--bg-card)] rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto border border-[var(--border-primary)]">
+      <div className="bg-[var(--bg-card)] rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
         {/* Заголовок */}
         <div className="flex items-center justify-between p-6 pb-4 border-b border-[var(--border-primary)]">
           <h3 className="text-lg font-semibold text-[var(--text-primary)]">

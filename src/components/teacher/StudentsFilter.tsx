@@ -60,9 +60,9 @@ const StudentsFilter: React.FC<StudentsFilterProps> = ({
   }
 
   return (
-    <div className="bg-[#151515] rounded-2xl p-6 space-y-4">
+    <div className="bg-[var(--bg-card)] rounded-2xl p-6 space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-white">{getText('students.filters.title', 'Фильтры')}</h3>
+        <h3 className="text-lg font-semibold text-[var(--text-primary)]">{getText('students.filters.title', 'Фильтры')}</h3>
         <Button
           variant="secondary"
           size="sm"
@@ -75,13 +75,13 @@ const StudentsFilter: React.FC<StudentsFilterProps> = ({
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Поиск */}
         <div className="relative">
-          <Icons.Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Icons.Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-[var(--text-tertiary)]" />
           <input
             type="text"
             placeholder={getText('students.filters.searchPlaceholder', 'Поиск по имени...')}
             value={search}
             onChange={(e) => onSearchChange(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-[#242424] rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-white/20 border-0"
+            className="w-full pl-10 pr-4 py-2 bg-[var(--bg-tertiary)] rounded-lg text-[var(--text-primary)] placeholder-[var(--text-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/20 border border-[var(--border-primary)]"
           />
         </div>
 

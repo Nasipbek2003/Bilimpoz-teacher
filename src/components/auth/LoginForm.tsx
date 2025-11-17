@@ -53,17 +53,67 @@ export default function LoginForm() {
 
       const data = await response.json()
 
-      if (response.ok) {
-        if (data.requiresTelegram) {
+      console.log('[LoginForm] Login response:', { ok: response.ok, data })
+
+      if (response.ok && data.success) {
+        // Проверка наличия Telegram
+        if (data.needsTelegram) {
+          // Telegram не подключен - нужно подключить
+          setErrors({ general: 'Telegram не подключен. Пожалуйста, подключите Telegram для входа.' })
+          return
+        }
+
+        // Данные верны, есть Telegram ID - отправляем код верификации
+        if (data.data && data.data.telegramId) {
+          try {
+            console.log('[LoginForm] Sending verification code for:', data.data.login, data.data.telegramId)
+            
+            // Автоматически отправляем код верификации
+            const sendCodeResponse = await fetch('/api/auth/send-code', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                login: data.data.login,
+                telegramId: data.data.telegramId,
+                language: data.data.language || 'ru'
+              }),
+            })
+
+            const sendCodeData = await sendCodeResponse.json()
+            console.log('[LoginForm] Send code response:', sendCodeData)
+
+            if (sendCodeResponse.ok && sendCodeData.success) {
+          // Сохраняем данные для верификации
+          localStorage.setItem('pendingVerification', JSON.stringify({
+                login: data.data.login,
+                telegramId: data.data.telegramId,
+                userId: data.data.id,
+                user: data.data
+          }))
           // Перенаправляем на страницу верификации Telegram
-          router.push(`/verify-telegram?userId=${data.userId}`)
+          router.push('/verify-telegram')
         } else {
-          // Успешный вход без 2FA
-          await loadUser()
-          router.push('/dashboard')
+              // Ошибка отправки кода
+              if (sendCodeData.code === 'BOT_BLOCKED' || sendCodeData.isBlocked) {
+                setErrors({ general: 'Бот заблокирован. Пожалуйста, разблокируйте бота в Telegram и попробуйте снова.' })
+              } else {
+                setErrors({ general: sendCodeData.error || sendCodeData.message || 'Ошибка отправки кода верификации' })
+              }
+            }
+          } catch (sendError) {
+            console.error('[LoginForm] Send code error:', sendError)
+            setErrors({ general: 'Ошибка отправки кода верификации. Попробуйте еще раз.' })
+          }
+        } else {
+          setErrors({ general: 'Ошибка: данные пользователя неполные' })
         }
       } else {
-        setErrors({ general: data.message || 'Ошибка входа' })
+        // Ошибка входа
+        const errorMessage = data.error || data.message || 'Ошибка входа'
+        console.error('[LoginForm] Login error:', errorMessage)
+        setErrors({ general: errorMessage })
       }
     } catch (error) {
       console.error('Login error:', error)
@@ -84,12 +134,12 @@ export default function LoginForm() {
   }
 
   return (
-    <div className="bg-[#151515] rounded-3xl p-8 border border-gray-700">
+    <div className="bg-[var(--bg-card)] rounded-3xl p-8">
       <div className="text-center mb-8">
-        <h2 className="text-2xl font-bold text-white mb-2">
+        <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-2">
           Добро пожаловать!
         </h2>
-        <p className="text-gray-400">
+        <p className="text-[var(--text-tertiary)]">
           Войдите в свой аккаунт преподавателя
         </p>
       </div>
@@ -102,7 +152,7 @@ export default function LoginForm() {
         )}
 
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">
+          <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
             Логин
           </label>
           <Input
@@ -116,7 +166,7 @@ export default function LoginForm() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">
+          <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
             Пароль
           </label>
           <div className="relative">
@@ -131,7 +181,7 @@ export default function LoginForm() {
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-200 transition-colors"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors"
               disabled={isLoading}
             >
               {showPassword ? (
@@ -162,11 +212,14 @@ export default function LoginForm() {
       </form>
 
       <div className="mt-6 text-center">
-        <p className="text-gray-400 text-sm">
+        <p className="text-[var(--text-tertiary)] text-sm">
           Нет аккаунта?{' '}
-          <a href="#" className="text-white hover:underline">
-            Обратитесь к администратору
-          </a>
+          <button
+            onClick={() => router.push('/register')}
+            className="text-[var(--accent-primary)] hover:underline"
+          >
+            Зарегистрироваться
+          </button>
         </p>
       </div>
     </div>

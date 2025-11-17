@@ -236,7 +236,7 @@ export default function StudentsPage() {
         {/* Список учеников */}
         <div className="space-y-4">
           {filteredAndSortedStudents.length === 0 ? (
-            <div className="bg-[var(--bg-card)] rounded-2xl p-12 text-center border border-[var(--border-secondary)]">
+            <div className="bg-[var(--bg-card)] rounded-2xl p-12 text-center">
               <Icons.Users className="mx-auto h-12 w-12 text-[var(--text-tertiary)] mb-4" />
               <h3 className="text-lg font-medium text-[var(--text-primary)] mb-2">
                 {t('students.empty.title')}
@@ -272,7 +272,7 @@ export default function StudentsPage() {
 
         {/* Пагинация (заглушка) */}
         {filteredAndSortedStudents.length > 0 && (
-          <div className="flex items-center justify-between p-4 bg-[var(--bg-card)] rounded-2xl border border-[var(--border-secondary)]">
+          <div className="flex items-center justify-between p-4 bg-[var(--bg-card)] rounded-2xl">
             <span className="text-sm text-[var(--text-tertiary)]">
               {t('students.pagination.showing')} 1-{filteredAndSortedStudents.length} {t('students.pagination.of')} {filteredAndSortedStudents.length}
             </span>

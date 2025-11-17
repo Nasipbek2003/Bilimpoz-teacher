@@ -190,7 +190,10 @@ const QuestionsFilter: React.FC<QuestionsFilterProps> = ({
 
 
   return (
-    <div className="bg-[var(--bg-card)] rounded-2xl p-6 space-y-6 border border-[var(--border-secondary)]">
+    <div className="bg-[var(--bg-card)] rounded-2xl p-6 space-y-6 shadow-sm">
+      {/* Заголовок секции фильтров */}
+      
+
       {/* Выпадающие фильтры */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Select
@@ -227,7 +230,7 @@ const QuestionsFilter: React.FC<QuestionsFilterProps> = ({
           placeholder={getText('common.search', 'Поиск...')}
           value={search}
           onChange={(e) => onSearchChange(e.target.value)}
-          className="w-full pl-12 pr-4 py-3 bg-[var(--bg-primary)] border border-[var(--border-primary)] rounded-xl text-[var(--text-primary)] placeholder-[var(--text-tertiary)] focus:outline-none focus:border-[var(--accent-primary)] transition-all duration-300 ease-in-out"
+          className="w-full pl-12 pr-4 py-3 bg-[var(--bg-tertiary)] border border-[var(--border-primary)] rounded-xl text-[var(--text-primary)] placeholder-[var(--text-tertiary)] focus:outline-none focus:border-[var(--accent-primary)] transition-all duration-300 ease-in-out"
         />
       </div>
 

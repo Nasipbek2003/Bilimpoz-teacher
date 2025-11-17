@@ -1,4 +1,4 @@
-import bcrypt from 'bcryptjs'
+import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from './prisma'
@@ -68,17 +68,36 @@ export function verifyToken(token: string): JWTPayload | null {
 }
 
 /**
+ * Получение токена из запроса (из заголовка Authorization или cookie)
+ */
+export function getTokenFromRequest(request: NextRequest): string | null {
+  // Сначала проверяем заголовок Authorization
+  const authHeader = request.headers.get('authorization')
+  
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    return authHeader.substring(7).trim()
+  }
+
+  // Если нет в заголовке, проверяем cookies
+  const cookieToken = request.cookies.get('auth_token')?.value
+  if (cookieToken) {
+    return cookieToken
+  }
+  
+  return null
+}
+
+/**
  * Аутентификация запроса
  */
 export async function auth(request: NextRequest) {
-  // Извлечение токена из заголовка Authorization
-  const authHeader = request.headers.get('authorization')
+  // Получаем токен из заголовка Authorization или cookie
+  const token = getTokenFromRequest(request)
   
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+  if (!token) {
     return null
   }
 
-  const token = authHeader.substring(7) // Убираем "Bearer "
   const payload = verifyToken(token)
   
   if (!payload) {
@@ -156,6 +175,7 @@ export async function authenticatedHandler(
     )
   }
 }
+
 
 
 

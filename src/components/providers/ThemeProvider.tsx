@@ -13,12 +13,13 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined)
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   // Инициализируем тему из localStorage сразу (синхронно)
   const getInitialTheme = (): 'light' | 'dark' => {
-    if (typeof window === 'undefined') return 'light'
+    if (typeof window === 'undefined') return 'dark'
     try {
       const savedTheme = localStorage.getItem('bilimpoz-theme') as 'light' | 'dark' | null
-      return savedTheme || 'light'
+      // Тёмная тема по умолчанию, если данных нет
+      return savedTheme || 'dark'
     } catch {
-      return 'light'
+      return 'dark'
     }
   }
 
@@ -45,13 +46,18 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         const DayniteJsModule = await import('daynitejs')
         const DayniteJs = DayniteJsModule.default || DayniteJsModule
         
-        // Создаем экземпляр DayniteJS
+        // Создаем экземпляр DayniteJS с тёмной темой по умолчанию
         const daynite = new DayniteJs({
-          defaultTheme: initialTheme,
+          defaultTheme: 'dark', // Тёмная тема по умолчанию
           storageKey: 'bilimpoz-theme',
           attribute: 'data-theme',
           transitions: true,
         })
+        
+        // Устанавливаем тему из localStorage, если она есть
+        if (initialTheme !== 'dark') {
+          daynite.setTheme(initialTheme)
+        }
 
         setDayniteInstance(daynite)
 

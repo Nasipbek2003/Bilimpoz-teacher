@@ -21,7 +21,7 @@ const StatCard: React.FC<StatCardProps> = ({
 
   return (
     <div
-      className={`bg-[var(--bg-card)] rounded-2xl p-6 transition-all border border-[var(--border-secondary)] ${
+      className={`bg-[var(--bg-tertiary)] rounded-2xl p-6 transition-all ${
         isClickable 
           ? 'hover:bg-[var(--bg-hover)] cursor-pointer group' 
           : ''
@@ -29,16 +29,14 @@ const StatCard: React.FC<StatCardProps> = ({
       onClick={onClick}
     >
       {/* Иконка и заголовок */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="p-2 bg-[var(--bg-tertiary)] rounded-lg">
+      <div className="flex items-center gap-3 mb-4">
+        <div className="p-2 bg-[var(--bg-card)] rounded-lg">
           <Icon className="h-6 w-6 text-[var(--text-primary)]" />
         </div>
+        <h3 className="text-sm font-medium text-[var(--text-tertiary)]">
+          {title}
+        </h3>
       </div>
-      
-      {/* Заголовок */}
-      <h3 className="text-sm font-medium text-[var(--text-tertiary)] mb-1">
-        {title}
-      </h3>
       
       {/* Значение */}
       <p className="text-2xl font-bold text-[var(--text-primary)]">

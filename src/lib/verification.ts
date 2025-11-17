@@ -1,47 +1,33 @@
 import { prisma } from './prisma'
 import { VerificationCodeType } from '@prisma/client'
-import bcrypt from 'bcryptjs'
-
-// Временное хранилище в памяти (дублирование для надежности)
-const verificationCodes = new Map<string, { code: string; expiresAt: Date; userId: string; createdAt: Date }>()
-const verificationCodesBackup = new Map<string, { code: string; expiresAt: Date; userId: string; createdAt: Date }>()
+import bcrypt from 'bcrypt'
 
 /**
  * Генерация 6-значного кода подтверждения
  */
 export function generateVerificationCode(): string {
   const code = Math.floor(100000 + Math.random() * 900000).toString()
-  console.log('Generated verification code:', code)
   return code
 }
 
 /**
- * Хранение кода подтверждения
+ * Генерация и сохранение кода верификации в БД
  */
-export async function storeVerificationCode(userId: string, code: string, type: VerificationCodeType = 'login'): Promise<void> {
-  const expiresAt = new Date(Date.now() + 5 * 60 * 1000) // 5 минут
-  const createdAt = new Date()
-  const codeData = { code, expiresAt, userId, createdAt }
+export async function generateAndStoreVerificationCode(
+  userId: string,
+  type: VerificationCodeType = 'login'
+): Promise<string> {
+  // Генерируем 6-значный код
+  const code = generateVerificationCode()
   
-  // Сохраняем в основное хранилище и резервную копию
-  verificationCodes.set(userId, codeData)
-  verificationCodesBackup.set(userId, { ...codeData })
+  // Хэшируем код перед сохранением
+  const saltRounds = 12
+  const hashCode = await bcrypt.hash(code, saltRounds)
   
-  // Также сохраняем в базу данных для персистентности
-  try {
-    // Удаляем старые неиспользованные коды для этого пользователя и типа
-    await prisma.verification_codes.deleteMany({
-      where: {
-        user_id: userId,
-        type: type,
-        used_at: null
-      }
-    })
+  // Вычисляем время истечения (5 минут)
+  const expiresAt = new Date(Date.now() + 5 * 60 * 1000)
     
-    // Хешируем код перед сохранением в БД
-    const hashCode = await bcrypt.hash(code, 10)
-    
-    // Сохраняем новый код
+  // Сохраняем в БД
     await prisma.verification_codes.create({
       data: {
         user_id: userId,
@@ -50,114 +36,188 @@ export async function storeVerificationCode(userId: string, code: string, type: 
         expires_at: expiresAt
       }
     })
-  } catch (dbError) {
-    console.error('Failed to save verification code to database:', dbError)
-    // Продолжаем работу с памятью даже если БД недоступна
-  }
-  
-  // Автоматическая очистка истекших кодов
-  setTimeout(() => {
-    verificationCodes.delete(userId)
-    verificationCodesBackup.delete(userId)
-  }, 5 * 60 * 1000)
+    
+  // Возвращаем оригинальный код для отправки
+  return code
 }
 
 /**
- * Проверка кода подтверждения
+ * Проверка cooldown (60 секунд между запросами)
  */
-export async function verifyCode(userId: string, inputCode: string, type: VerificationCodeType = 'login'): Promise<boolean> {
-  // 1. Поиск в основном хранилище
-  let stored = verificationCodes.get(userId)
+export async function canRequestNewCode(userId: string): Promise<{
+  canRequest: boolean
+  message?: string
+  cooldownSeconds?: number
+}> {
+  // Найти последний созданный код для пользователя
+  const lastCode = await prisma.verification_codes.findFirst({
+    where: { user_id: userId },
+    orderBy: { created_at: 'desc' }
+  })
   
-  // 2. Если не найдено, проверяем резервную копию
-  if (!stored) {
-    stored = verificationCodesBackup.get(userId)
-    if (stored) {
-      // Восстанавливаем в основное хранилище
-      verificationCodes.set(userId, stored)
+  if (!lastCode) {
+    return { canRequest: true }
+  }
+  
+  const timeSinceCreation = Date.now() - lastCode.created_at.getTime()
+  const cooldownMs = 60 * 1000 // 60 секунд
+  
+  if (timeSinceCreation < cooldownMs) {
+    const cooldownSeconds = Math.ceil((cooldownMs - timeSinceCreation) / 1000)
+    return {
+      canRequest: false,
+      message: `Подождите ${cooldownSeconds} секунд`,
+      cooldownSeconds
     }
   }
   
-  // 3. Если не найдено в памяти, проверяем базу данных
-  if (!stored) {
-    const dbCodes = await prisma.verification_codes.findMany({
+  return { canRequest: true }
+}
+
+/**
+ * Проверка кода верификации
+ */
+export async function verifyCode(
+  userId: string,
+  inputCode: string,
+  type: VerificationCodeType = 'login'
+): Promise<{
+  success: boolean
+  message: string
+  attemptsLeft?: number
+}> {
+  // Нормализация кода (убрать пробелы)
+  const normalizedCode = inputCode.trim().replace(/\s/g, '')
+  
+  // Найти активный код в БД
+  const verificationCode = await prisma.verification_codes.findFirst({
       where: {
         user_id: userId,
         type: type,
-        used_at: null
+      used_at: null, // Не использован
+      expires_at: { gt: new Date() } // Не истек
       },
-      orderBy: { created_at: 'desc' },
-      take: 1
-    })
-    
-    if (dbCodes.length > 0) {
-      const dbCode = dbCodes[0]
-      
-      // Проверяем срок действия
-      if (dbCode.expires_at > new Date()) {
-        // Проверяем код через bcrypt
-        const isValid = await bcrypt.compare(inputCode, dbCode.hash_code)
-        
-        if (isValid) {
-          stored = {
-            code: inputCode, // Сохраняем для проверки в памяти
-            expiresAt: dbCode.expires_at,
-            userId: userId,
-            createdAt: dbCode.created_at
-          }
-          // Восстанавливаем в память
-          verificationCodes.set(userId, stored)
-          verificationCodesBackup.set(userId, { ...stored })
-        }
-      } else {
-        // Удаляем истекший код из БД
-        await prisma.verification_codes.delete({ where: { id: dbCode.id } })
-      }
+    orderBy: { created_at: 'desc' } // Последний созданный
+  })
+  
+  if (!verificationCode) {
+    return {
+      success: false,
+      message: 'Код не найден или истек. Запросите новый код.'
     }
   }
   
-  // 4. Проверка существования кода
-  if (!stored) {
-    return false
+  // Дополнительная проверка истечения
+  if (new Date() > verificationCode.expires_at) {
+    // Пометить как использованный (истек)
+    await prisma.verification_codes.update({
+      where: { id: verificationCode.id },
+      data: { used_at: new Date() }
+    })
+    
+    return {
+      success: false,
+      message: 'Код истек. Запросите новый код.'
+    }
   }
   
-  // 5. Проверка срока действия
-  if (new Date() > stored.expiresAt) {
-    // Удаляем истекший код
-    verificationCodes.delete(userId)
-    verificationCodesBackup.delete(userId)
-    await prisma.verification_codes.deleteMany({
+  // Сравнить хэши
+  const isCodeValid = await bcrypt.compare(normalizedCode, verificationCode.hash_code)
+        
+  if (!isCodeValid) {
+    return {
+      success: false,
+      message: 'Неверный код. Попробуйте еще раз.',
+      attemptsLeft: 4
+        }
+  }
+  
+  // Код верный - пометить как использованный
+  await prisma.verification_codes.update({
+    where: { id: verificationCode.id },
+    data: { used_at: new Date() }
+  })
+  
+  return {
+    success: true,
+    message: 'Код подтвержден'
+    }
+  }
+  
+/**
+ * Проверка кода восстановления (без пометки как использованного)
+ */
+export async function checkRecoveryCode(
+  userId: string,
+  inputCode: string
+): Promise<{
+  success: boolean
+  message: string
+  userId?: string
+  codeId?: string
+}> {
+  // Нормализация кода
+  const normalizedCode = inputCode.trim().replace(/\s/g, '')
+  
+  // Найти активный код
+  const verificationCode = await prisma.verification_codes.findFirst({
       where: { 
         user_id: userId,
-        type: type,
-        used_at: null
-      }
+      type: 'password_reset',
+      used_at: null,
+      expires_at: { gt: new Date() }
+    },
+    orderBy: { created_at: 'desc' }
     })
-    return false
+  
+  if (!verificationCode) {
+    return {
+      success: false,
+      message: 'Код не найден или истек'
+    }
   }
   
-  // 6. Проверка соответствия кода
-  if (stored.code !== inputCode) {
-    return false
+  // Проверить срок действия
+  if (new Date() > verificationCode.expires_at) {
+    return {
+      success: false,
+      message: 'Код истек'
+    }
   }
   
-  // 7. Код верный, удаляем его из всех хранилищ и помечаем как использованный в БД
-  verificationCodes.delete(userId)
-  verificationCodesBackup.delete(userId)
+  // Сравнить хэши
+  const isCodeValid = await bcrypt.compare(normalizedCode, verificationCode.hash_code)
+  
+  if (!isCodeValid) {
+    return {
+      success: false,
+      message: 'Неверный код восстановления'
+    }
+  }
+  
+  // Код верный - НЕ помечаем как использованный
+  // Это будет сделано после успешного сброса пароля
+  
+  return {
+    success: true,
+    message: 'Код подтвержден',
+    userId: verificationCode.user_id,
+    codeId: verificationCode.id
+  }
+}
+
+/**
+ * Пометить код восстановления как использованный
+ */
+export async function markRecoveryCodeAsUsed(userId: string): Promise<void> {
   await prisma.verification_codes.updateMany({
     where: { 
       user_id: userId,
-      type: type,
+      type: 'password_reset',
       used_at: null
     },
     data: {
       used_at: new Date()
     }
   })
-  
-  return true
 }
-
-
-
-

@@ -63,7 +63,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
       {/* Sidebar */}
       <aside
         className={`
-          w-64 bg-[var(--bg-card)] rounded-2xl z-40 border border-[var(--border-secondary)]
+          w-64 bg-[var(--bg-card)] rounded-2xl z-40
           transform transition-transform duration-300
           flex-shrink-0
           ${isOpen ? 'translate-x-0' : '-translate-x-full'}
@@ -74,7 +74,11 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
       >
         <nav className="p-6 space-y-2">
           {menuItems.map((item) => {
-            const isActive = pathname === item.href
+            // Для корневого пути проверяем точное совпадение
+            // Для остальных путей проверяем, начинается ли pathname с href
+            const isActive = item.href === '/' 
+              ? pathname === '/' || pathname === ''
+              : pathname === item.href || pathname.startsWith(item.href + '/')
             const Icon = item.icon
 
             return (

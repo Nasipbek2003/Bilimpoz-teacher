@@ -99,7 +99,7 @@ const QuestionsTable: React.FC<QuestionsTableProps> = ({
 
   if (isLoading) {
     return (
-      <div className="bg-[var(--bg-card)] rounded-2xl overflow-hidden border border-[var(--border-secondary)]">
+      <div className="bg-[var(--bg-card)] rounded-2xl overflow-hidden border border-[var(--border-primary)] shadow-sm">
         <div className="p-6 border-b border-[var(--border-primary)]">
           <div className="h-6 bg-[var(--bg-hover)] rounded w-1/4 animate-pulse"></div>
         </div>
@@ -115,7 +115,7 @@ const QuestionsTable: React.FC<QuestionsTableProps> = ({
   }
 
   return (
-    <div className="bg-[var(--bg-card)] rounded-2xl overflow-hidden border border-[var(--border-secondary)]">
+    <div className="bg-[var(--bg-card)] rounded-2xl overflow-hidden  shadow-sm">
       {/* Заголовок таблицы */}
       <div className="p-6 border-b border-[var(--border-primary)]">
         <h2 className="text-lg font-semibold text-[var(--text-primary)]">
@@ -207,7 +207,7 @@ const QuestionsTable: React.FC<QuestionsTableProps> = ({
 
                   {/* Ячейка "Язык" */}
                   <td className="py-4 px-6">
-                    <span className="px-3 py-1.5 bg-[var(--bg-tertiary)] text-[var(--text-primary)] rounded-xl text-xs font-medium border border-[var(--border-primary)]">
+                    <span className="px-3 py-1.5 bg-[var(--bg-tertiary)] text-[var(--text-primary)] rounded-xl text-xs font-medium">
                       {getLanguageLabel(question.language)}
                     </span>
                   </td>

@@ -1,0 +1,328 @@
+'use client'
+
+import React, { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { Icons } from '@/components/ui/Icons'
+import Input from '@/components/ui/Input'
+import Button from '@/components/ui/Button'
+import TelegramConnectionForm from './TelegramConnectionForm'
+import { useTranslation } from '@/hooks/useTranslation'
+
+export default function RegisterForm() {
+  const [formData, setFormData] = useState({
+    name: '',
+    login: '',
+    password: '',
+    confirmPassword: '',
+    language: 'ru' as 'ru' | 'kg'
+  })
+  const [errors, setErrors] = useState<Record<string, string>>({})
+  const [isLoading, setIsLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [showTelegramForm, setShowTelegramForm] = useState(false)
+  const [registeredUser, setRegisteredUser] = useState<{ login: string; name: string; id?: string } | null>(null)
+  const { t, language, changeLanguage, ready } = useTranslation()
+  const [mounted, setMounted] = useState(false)
+  
+  const router = useRouter()
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  // Устанавливаем язык по умолчанию из cookie или i18n при первой загрузке
+  useEffect(() => {
+    if (language && !mounted) {
+      setFormData(prev => ({ ...prev, language: language === 'ky' ? 'kg' : 'ru' }))
+    }
+  }, [language, mounted])
+
+  const getText = (key: string, fallback: string) => {
+    if (!mounted || !ready) return fallback
+    return t(key) || fallback
+  }
+
+  const validate = (): boolean => {
+    const newErrors: Record<string, string> = {}
+
+    if (!formData.name.trim()) {
+      newErrors.name = getText('auth.register.errors.nameRequired', 'Имя обязательно для заполнения')
+    } else if (formData.name.trim().length < 2) {
+      newErrors.name = getText('auth.register.errors.nameMinLength', 'Имя должно содержать минимум 2 символа')
+    }
+
+    if (!formData.login.trim()) {
+      newErrors.login = getText('auth.register.errors.loginRequired', 'Логин обязателен для заполнения')
+    } else if (formData.login.trim().length < 3) {
+      newErrors.login = getText('auth.register.errors.loginMinLength', 'Логин должен содержать минимум 3 символа')
+    } else if (!/^[a-zA-Z0-9_]+$/.test(formData.login)) {
+      newErrors.login = getText('auth.register.errors.loginInvalid', 'Логин может содержать только буквы, цифры и знак подчеркивания')
+    }
+
+    if (!formData.password.trim()) {
+      newErrors.password = getText('auth.register.errors.passwordRequired', 'Пароль обязателен для заполнения')
+    } else if (formData.password.length < 6) {
+      newErrors.password = getText('auth.register.errors.passwordMinLength', 'Пароль должен содержать минимум 6 символов')
+    }
+
+    if (!formData.confirmPassword.trim()) {
+      newErrors.confirmPassword = getText('auth.register.errors.confirmPasswordRequired', 'Подтверждение пароля обязательно')
+    } else if (formData.password !== formData.confirmPassword) {
+      newErrors.confirmPassword = getText('auth.register.errors.passwordsMismatch', 'Пароли не совпадают')
+    }
+
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    if (!validate()) return
+
+    setIsLoading(true)
+    setErrors({})
+
+    try {
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          fullName: formData.name.trim(),
+          login: formData.login.trim(),
+          password: formData.password,
+          language: formData.language
+        }),
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        // Успешная регистрация - показываем форму подключения Telegram
+        if (data.data) {
+          setRegisteredUser({
+            login: data.data.login,
+            name: data.data.name,
+            id: data.data.id
+          })
+          setShowTelegramForm(true)
+        } else {
+          // Если нет данных, перенаправляем на вход
+        router.push('/login?registered=true')
+        }
+      } else {
+        // Если пользователь существует, но не подключен Telegram
+        if (data.data?.needsTelegram) {
+          setRegisteredUser({
+            login: data.data.login,
+            name: data.data.name,
+            id: data.data.id
+          })
+          setShowTelegramForm(true)
+      } else {
+        setErrors({ general: data.message || getText('auth.register.errors.general', 'Ошибка регистрации') })
+        }
+      }
+    } catch (error) {
+      console.error('Register error:', error)
+      setErrors({ general: getText('auth.register.errors.general', 'Произошла ошибка при регистрации') })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleInputChange = (field: string, value: string) => {
+    setFormData({ ...formData, [field]: value })
+    if (errors[field]) {
+      setErrors({ ...errors, [field]: '' })
+    }
+    if (errors.general) {
+      setErrors({ ...errors, general: '' })
+    }
+  }
+
+  // Если показываем форму подключения Telegram
+  if (showTelegramForm && registeredUser) {
+    return (
+      <TelegramConnectionForm 
+        login={registeredUser.login} 
+        name={registeredUser.name} 
+        userId={registeredUser.id}
+        onBack={() => {
+          setShowTelegramForm(false)
+          setRegisteredUser(null)
+        }}
+      />
+    )
+  }
+
+  return (
+    <div className="bg-[var(--bg-card)] rounded-3xl p-8">
+      <div className="text-center mb-8">
+        <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-2">
+          {getText('auth.register.title', 'Регистрация')}
+        </h2>
+        <p className="text-[var(--text-tertiary)]">
+          {getText('auth.register.subtitle', 'Создайте аккаунт преподавателя')}
+        </p>
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {errors.general && (
+          <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3">
+            <p className="text-red-400 text-sm">{errors.general}</p>
+          </div>
+        )}
+
+        <div>
+          <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
+            {getText('auth.register.fullName', 'Полное имя')} <span className="text-red-400">*</span>
+          </label>
+          <Input
+            type="text"
+            value={formData.name}
+            onChange={(e) => handleInputChange('name', e.target.value)}
+            placeholder={getText('auth.register.fullNamePlaceholder', 'Введите ваше полное имя')}
+            error={errors.name}
+            disabled={isLoading}
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
+            {getText('auth.register.login', 'Логин')} <span className="text-red-400">*</span>
+          </label>
+          <Input
+            type="text"
+            value={formData.login}
+            onChange={(e) => handleInputChange('login', e.target.value)}
+            placeholder={getText('auth.register.loginPlaceholder', 'Введите логин')}
+            error={errors.login}
+            disabled={isLoading}
+          />
+          {/* Переключатель языка преподавателя */}
+          <div className="mt-2 flex justify-end">
+            <div className="flex items-center gap-1 bg-[var(--bg-tertiary)] rounded-lg p-1">
+              <button
+                type="button"
+                onClick={() => {
+                  setFormData(prev => ({ ...prev, language: 'ru' }))
+                }}
+                className={`px-2 py-1 text-xs font-medium rounded transition-colors ${
+                  formData.language === 'ru'
+                    ? 'bg-[var(--bg-active-button)] text-[var(--text-active-button)]'
+                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                }`}
+                disabled={isLoading}
+              >
+                RU
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setFormData(prev => ({ ...prev, language: 'kg' }))
+                }}
+                className={`px-2 py-1 text-xs font-medium rounded transition-colors ${
+                  formData.language === 'kg'
+                    ? 'bg-[var(--bg-active-button)] text-[var(--text-active-button)]'
+                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                }`}
+                disabled={isLoading}
+              >
+                KG
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
+            {getText('auth.register.password', 'Пароль')} <span className="text-red-400">*</span>
+          </label>
+          <div className="relative">
+            <Input
+              type={showPassword ? 'text' : 'password'}
+              value={formData.password}
+              onChange={(e) => handleInputChange('password', e.target.value)}
+              placeholder={getText('auth.register.passwordPlaceholder', 'Введите пароль')}
+              error={errors.password}
+              disabled={isLoading}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors"
+              disabled={isLoading}
+            >
+              {showPassword ? (
+                <Icons.EyeOff className="h-5 w-5" />
+              ) : (
+                <Icons.Eye className="h-5 w-5" />
+              )}
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
+            {getText('auth.register.confirmPassword', 'Подтверждение пароля')} <span className="text-red-400">*</span>
+          </label>
+          <div className="relative">
+            <Input
+              type={showConfirmPassword ? 'text' : 'password'}
+              value={formData.confirmPassword}
+              onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
+              placeholder={getText('auth.register.confirmPasswordPlaceholder', 'Повторите пароль')}
+              error={errors.confirmPassword}
+              disabled={isLoading}
+            />
+            <button
+              type="button"
+              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors"
+              disabled={isLoading}
+            >
+              {showConfirmPassword ? (
+                <Icons.EyeOff className="h-5 w-5" />
+              ) : (
+                <Icons.Eye className="h-5 w-5" />
+              )}
+            </button>
+          </div>
+        </div>
+
+        <Button
+          type="submit"
+          variant="primary"
+          size="lg"
+          disabled={isLoading}
+          className="w-full"
+        >
+          {isLoading ? (
+            <div className="flex items-center justify-center gap-2">
+              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              {getText('auth.register.registering', 'Регистрация...')}
+            </div>
+          ) : (
+            getText('auth.register.registerButton', 'Зарегистрироваться')
+          )}
+        </Button>
+      </form>
+
+      <div className="mt-6 text-center">
+        <p className="text-[var(--text-tertiary)] text-sm">
+          {getText('auth.register.alreadyHaveAccount', 'Уже есть аккаунт?')}{' '}
+          <button
+            onClick={() => router.push('/login')}
+            className="text-[var(--accent-primary)] hover:underline"
+          >
+            {getText('auth.register.signIn', 'Войти')}
+          </button>
+        </p>
+      </div>
+    </div>
+  )
+}

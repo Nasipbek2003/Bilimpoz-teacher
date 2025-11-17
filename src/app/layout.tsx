@@ -19,8 +19,28 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ru" suppressHydrationWarning className={`${GeistSans.variable} ${GeistMono.variable}`}>
+      <head>
+        {/* Блокирующий скрипт для установки темы ДО загрузки CSS - предотвращает мигание */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                try {
+                  const savedTheme = localStorage.getItem('bilimpoz-theme');
+                  // Тёмная тема по умолчанию, если данных нет
+                  const theme = savedTheme || 'dark';
+                  document.documentElement.setAttribute('data-theme', theme);
+                } catch (e) {
+                  // В случае ошибки устанавливаем тёмную тему по умолчанию
+                  document.documentElement.setAttribute('data-theme', 'dark');
+                }
+              })();
+            `,
+          }}
+        />
+      </head>
       <body className="font-sans antialiased">
-        {/* Скрипт для быстрой инициализации темы */}
+        {/* Дополнительный скрипт через Next.js Script для гарантии выполнения */}
         <Script
           id="theme-init"
           strategy="beforeInteractive"
@@ -28,10 +48,13 @@ export default function RootLayout({
             __html: `
               (function() {
                 try {
-                  const savedTheme = localStorage.getItem('bilimpoz-theme') || 'light';
-                  document.documentElement.setAttribute('data-theme', savedTheme);
+                  const savedTheme = localStorage.getItem('bilimpoz-theme');
+                  const theme = savedTheme || 'dark';
+                  if (document.documentElement.getAttribute('data-theme') !== theme) {
+                    document.documentElement.setAttribute('data-theme', theme);
+                  }
                 } catch (e) {
-                  document.documentElement.setAttribute('data-theme', 'light');
+                  document.documentElement.setAttribute('data-theme', 'dark');
                 }
               })();
             `,

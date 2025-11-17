@@ -141,7 +141,7 @@ const QuestionDetailsModal: React.FC<QuestionDetailsModalProps> = ({
           }
         }}
       >
-        <div className="bg-[var(--bg-card)] rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto border border-[var(--border-primary)]">
+        <div className="bg-[var(--bg-card)] rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
           {/* Заголовок (Sticky) */}
           <div className="sticky top-0 bg-[var(--bg-card)] border-b border-[var(--border-primary)] p-6 flex items-center justify-between z-10">
             <div>
@@ -461,7 +461,7 @@ const QuestionDetailsModal: React.FC<QuestionDetailsModalProps> = ({
             }
           }}
         >
-          <div className="bg-[var(--bg-card)] rounded-2xl max-w-md w-full p-6 border border-[var(--border-primary)]">
+          <div className="bg-[var(--bg-card)] rounded-2xl max-w-md w-full p-6">
             <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-2">
               {getText('questions.details.deleteConfirmTitle', 'Удалить вопрос?')}
             </h3>

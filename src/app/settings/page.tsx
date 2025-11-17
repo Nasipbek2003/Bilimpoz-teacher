@@ -7,6 +7,7 @@ import Select, { SelectOption } from '@/components/ui/Select'
 import { Icons } from '@/components/ui/Icons'
 import { useAuth } from '@/contexts/AuthContext'
 import { useTranslation } from '@/hooks/useTranslation'
+import ConfirmDialog from '@/components/ui/ConfirmDialog'
 
 export default function SettingsPage() {
   const { t, ready } = useTranslation()
@@ -94,10 +95,11 @@ export default function SettingsPage() {
     console.log('Пароль изменен')
   }
 
+  const [showLogoutDialog, setShowLogoutDialog] = useState(false)
+
   const handleLogout = async () => {
-    if (confirm(getText('auth.confirmLogout', 'Вы уверены, что хотите выйти из системы?'))) {
-      await logout()
-    }
+    setShowLogoutDialog(false)
+    await logout()
   }
 
   if (!mounted || !ready) {
@@ -359,7 +361,7 @@ export default function SettingsPage() {
             </div>
             <Button
               variant="danger"
-              onClick={handleLogout}
+              onClick={() => setShowLogoutDialog(true)}
             >
               <Icons.LogOut className="h-4 w-4 mr-2" />
               {t('settings.logoutButton')}
@@ -367,6 +369,18 @@ export default function SettingsPage() {
           </div>
         </div>
       </div>
+
+      {/* Диалог подтверждения выхода */}
+      <ConfirmDialog
+        isOpen={showLogoutDialog}
+        onClose={() => setShowLogoutDialog(false)}
+        onConfirm={handleLogout}
+        title={t('auth.confirmLogout', 'Подтвердите действие')}
+        message={t('auth.confirmLogoutMessage', 'Вы уверены, что хотите выйти из системы?')}
+        confirmText={t('auth.logout', 'Выйти')}
+        cancelText={t('common.cancel', 'Отмена')}
+        variant="danger"
+      />
     </TeacherLayout>
   )
 }

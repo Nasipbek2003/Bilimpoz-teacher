@@ -48,13 +48,13 @@ const ReferralSystem: React.FC<ReferralSystemProps> = ({
   }
 
   return (
-    <div className="bg-[#151515] rounded-2xl p-6">
+    <div className="bg-[var(--bg-card)] rounded-2xl p-6">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h3 className="text-lg font-semibold text-white mb-2">
+          <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-2">
             {getText('students.referral.title', 'Реферальная система')}
           </h3>
-          <p className="text-gray-400">
+          <p className="text-[var(--text-tertiary)]">
             {getText('students.referral.description', 'Приглашайте новых учеников и получайте бонусы')}
           </p>
         </div>
@@ -69,36 +69,36 @@ const ReferralSystem: React.FC<ReferralSystemProps> = ({
 
       {/* Статистика реферальной системы */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-        <div className="bg-[#242424] rounded-lg p-4 text-center">
+        <div className="bg-[var(--bg-tertiary)] rounded-lg p-4 text-center">
           <div className="flex items-center justify-center gap-2 mb-2">
             <Icons.MousePointer className="h-5 w-5 text-blue-400" />
-            <span className="text-sm font-medium text-gray-300">{getText('students.referral.clicks', 'Переходы')}</span>
+            <span className="text-sm font-medium text-[var(--text-secondary)]">{getText('students.referral.clicks', 'Переходы')}</span>
           </div>
-          <p className="text-2xl font-bold text-white">{totalClicks}</p>
+          <p className="text-2xl font-bold text-[var(--text-primary)]">{totalClicks}</p>
         </div>
 
-        <div className="bg-[#242424] rounded-lg p-4 text-center">
+        <div className="bg-[var(--bg-tertiary)] rounded-lg p-4 text-center">
           <div className="flex items-center justify-center gap-2 mb-2">
             <Icons.UserPlus className="h-5 w-5 text-green-400" />
-            <span className="text-sm font-medium text-gray-300">{getText('students.referral.registrations', 'Регистрации')}</span>
+            <span className="text-sm font-medium text-[var(--text-secondary)]">{getText('students.referral.registrations', 'Регистрации')}</span>
           </div>
-          <p className="text-2xl font-bold text-white">{totalRegistrations}</p>
+          <p className="text-2xl font-bold text-[var(--text-primary)]">{totalRegistrations}</p>
         </div>
       </div>
 
       {/* Реферальная ссылка */}
-      <div className="bg-[#242424] rounded-lg p-4">
+      <div className="bg-[var(--bg-tertiary)] rounded-lg p-4">
         <div className="flex items-center justify-between mb-3">
-          <h4 className="font-medium text-white">{getText('students.referral.linkTitle', 'Ваша реферальная ссылка')}</h4>
+          <h4 className="font-medium text-[var(--text-primary)]">{getText('students.referral.linkTitle', 'Ваша реферальная ссылка')}</h4>
           <div className="flex items-center gap-2">
-            <Icons.Link className="h-4 w-4 text-gray-400" />
-            <span className="text-sm text-gray-400">{getText('students.referral.shareHint', 'Поделитесь с учениками')}</span>
+            <Icons.Link className="h-4 w-4 text-[var(--text-tertiary)]" />
+            <span className="text-sm text-[var(--text-tertiary)]">{getText('students.referral.shareHint', 'Поделитесь с учениками')}</span>
           </div>
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="flex-1 bg-[#151515] rounded-lg px-4 py-3 border border-gray-700">
-            <p className="text-sm text-gray-300 font-mono break-all">
+          <div className="flex-1 bg-[var(--bg-card)] rounded-lg px-4 py-3 border border-[var(--border-primary)]">
+            <p className="text-sm text-[var(--text-secondary)] font-mono break-all">
               {referralLink}
             </p>
           </div>
@@ -126,35 +126,35 @@ const ReferralSystem: React.FC<ReferralSystemProps> = ({
 
       {/* Способы приглашения */}
       <div className="mt-6">
-        <h4 className="font-medium text-white mb-4">{getText('students.referral.inviteMethods', 'Способы приглашения')}</h4>
+        <h4 className="font-medium text-[var(--text-primary)] mb-4">{getText('students.referral.inviteMethods', 'Способы приглашения')}</h4>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <button className="flex items-center gap-3 p-3 bg-[#242424] rounded-lg hover:bg-[#363636] transition-colors group">
+          <button className="flex items-center gap-3 p-3 bg-[var(--bg-tertiary)] rounded-lg hover:bg-[var(--bg-hover)] transition-colors group">
             <div className="p-2 bg-blue-500/10 rounded-lg group-hover:bg-blue-500/20">
               <Icons.MessageCircle className="h-5 w-5 text-blue-400" />
             </div>
             <div className="text-left">
-              <p className="text-sm font-medium text-white">{getText('students.referral.telegram', 'Telegram')}</p>
-              <p className="text-xs text-gray-400">{getText('students.referral.telegramHint', 'Отправить в чат')}</p>
+              <p className="text-sm font-medium text-[var(--text-primary)]">{getText('students.referral.telegram', 'Telegram')}</p>
+              <p className="text-xs text-[var(--text-tertiary)]">{getText('students.referral.telegramHint', 'Отправить в чат')}</p>
             </div>
           </button>
 
-          <button className="flex items-center gap-3 p-3 bg-[#242424] rounded-lg hover:bg-[#363636] transition-colors group">
+          <button className="flex items-center gap-3 p-3 bg-[var(--bg-tertiary)] rounded-lg hover:bg-[var(--bg-hover)] transition-colors group">
             <div className="p-2 bg-green-500/10 rounded-lg group-hover:bg-green-500/20">
               <Icons.Phone className="h-5 w-5 text-green-400" />
             </div>
             <div className="text-left">
-              <p className="text-sm font-medium text-white">{getText('students.referral.whatsapp', 'WhatsApp')}</p>
-              <p className="text-xs text-gray-400">{getText('students.referral.whatsappHint', 'Поделиться ссылкой')}</p>
+              <p className="text-sm font-medium text-[var(--text-primary)]">{getText('students.referral.whatsapp', 'WhatsApp')}</p>
+              <p className="text-xs text-[var(--text-tertiary)]">{getText('students.referral.whatsappHint', 'Поделиться ссылкой')}</p>
             </div>
           </button>
 
-          <button className="flex items-center gap-3 p-3 bg-[#242424] rounded-lg hover:bg-[#363636] transition-colors group">
+          <button className="flex items-center gap-3 p-3 bg-[var(--bg-tertiary)] rounded-lg hover:bg-[var(--bg-hover)] transition-colors group">
             <div className="p-2 bg-purple-500/10 rounded-lg group-hover:bg-purple-500/20">
               <Icons.Share2 className="h-5 w-5 text-purple-400" />
             </div>
             <div className="text-left">
-              <p className="text-sm font-medium text-white">{getText('students.referral.other', 'Другие')}</p>
-              <p className="text-xs text-gray-400">{getText('students.referral.otherHint', 'Социальные сети')}</p>
+              <p className="text-sm font-medium text-[var(--text-primary)]">{getText('students.referral.other', 'Другие')}</p>
+              <p className="text-xs text-[var(--text-tertiary)]">{getText('students.referral.otherHint', 'Социальные сети')}</p>
             </div>
           </button>
         </div>

@@ -11,21 +11,27 @@ const TelegramVerificationForm: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const [timeLeft, setTimeLeft] = useState(300) // 5 минут в секундах
-  const [userId, setUserId] = useState<string | null>(null)
+  const [login, setLogin] = useState<string | null>(null)
+  const [telegramId, setTelegramId] = useState<string | null>(null)
   const inputRefs = useRef<(HTMLInputElement | null)[]>([])
 
-  // Получаем userId из localStorage или параметров
+  // Получаем данные из localStorage
   useEffect(() => {
     const pendingVerification = localStorage.getItem('pendingVerification')
     if (pendingVerification) {
       try {
         const data = JSON.parse(pendingVerification)
-        setUserId(data.userId)
+        setLogin(data.login)
+        setTelegramId(data.telegramId)
       } catch (e) {
         console.error('Error parsing pending verification:', e)
+        setError('Ошибка загрузки данных верификации')
       }
+    } else {
+      // Если нет данных, перенаправляем на страницу входа
+      router.push('/login')
     }
-  }, [])
+  }, [router])
 
   // Таймер обратного отсчета
   useEffect(() => {
@@ -93,8 +99,8 @@ const TelegramVerificationForm: React.FC = () => {
       return
     }
 
-    if (!userId) {
-      setError('Ошибка: не найден ID пользователя')
+    if (!login || !telegramId) {
+      setError('Ошибка: не найдены данные для верификации')
       return
     }
 
@@ -108,30 +114,29 @@ const TelegramVerificationForm: React.FC = () => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          userId: userId,
+          login: login,
+          telegramId: telegramId,
           code: codeString,
         }),
       })
 
       const data = await response.json()
 
-      if (!response.ok) {
-        throw new Error(data.error || 'Неверный код подтверждения')
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || data.message || 'Неверный код подтверждения')
       }
 
-      // Сохраняем токен и данные пользователя
-      if (data.token) {
-        const { setAuthToken, setUserCookie } = await import('@/lib/client-auth')
-        setAuthToken(data.token)
-        setUserCookie(data.user)
-        localStorage.setItem('user', JSON.stringify(data.user))
+      // Токен устанавливается в HTTP-only cookie автоматически
+      // Сохраняем данные пользователя в localStorage
+      if (data.data) {
+        localStorage.setItem('user', JSON.stringify(data.data))
       }
 
       // Удаляем данные о pending verification
       localStorage.removeItem('pendingVerification')
 
       // После успешной проверки перенаправляем на главную
-      router.push('/')
+      router.push('/questions')
     } catch (err: any) {
       setError(err.message || 'Неверный код подтверждения')
       // Очищаем поля и возвращаем фокус на первое поле
@@ -143,8 +148,8 @@ const TelegramVerificationForm: React.FC = () => {
   }
 
   const handleResendCode = async () => {
-    if (!userId) {
-      setError('Ошибка: не найден ID пользователя')
+    if (!login || !telegramId) {
+      setError('Ошибка: не найдены данные для верификации')
       return
     }
 
@@ -158,15 +163,21 @@ const TelegramVerificationForm: React.FC = () => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          userId: userId,
+          login: login,
+          telegramId: telegramId,
+          language: 'ru'
         }),
       })
 
       const data = await response.json()
 
-      if (!response.ok) {
-        throw new Error(data.error || 'Не удалось отправить код повторно')
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || data.message || 'Не удалось отправить код повторно')
       }
+
+      // Код успешно отправлен - сбрасываем таймер
+      setTimeLeft(300)
+      setError('')
     } catch (err: any) {
       setError(err.message || 'Не удалось отправить код повторно')
     }

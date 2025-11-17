@@ -46,6 +46,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       if (response.ok) {
         const currentUser = await response.json()
+        
+        // Проверка статуса пользователя - если забанен, автоматически выходим
+        if (currentUser.status === 'banned' || currentUser.status === 'deleted') {
+          // Очищаем данные и перенаправляем на страницу логина
+          removeAuthToken()
+          setUser(null)
+          setError(null)
+          window.location.href = '/login?error=banned'
+          return
+        }
+        
         setUser(currentUser)
         // Сохраняем в cookies и localStorage
         setUserCookie(currentUser)

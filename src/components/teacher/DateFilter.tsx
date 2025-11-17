@@ -126,7 +126,7 @@ const DateFilter: React.FC<DateFilterProps> = ({
   }
 
   return (
-    <div className="bg-[var(--bg-card)] rounded-2xl p-6 border border-[var(--border-secondary)]">
+    <div className="bg-[var(--bg-card)] rounded-2xl p-6">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-semibold text-[var(--text-primary)]">{getText('dashboard.period', 'Период')}</h3>
         <button

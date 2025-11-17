@@ -6,6 +6,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useTranslation } from '@/hooks/useTranslation'
 import LanguageSwitcher from '@/components/ui/LanguageSwitcher'
 import ThemeToggle from '@/components/ui/ThemeToggle'
+import ConfirmDialog from '@/components/ui/ConfirmDialog'
 
 interface HeaderProps {
   onMenuToggle: () => void
@@ -13,17 +14,17 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ onMenuToggle }) => {
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false)
+  const [showLogoutDialog, setShowLogoutDialog] = useState(false)
   const { user, logout } = useAuth()
   const { t } = useTranslation()
 
   const handleLogout = async () => {
-    if (confirm(t('auth.confirmLogout'))) {
-      await logout()
-    }
+    setShowLogoutDialog(false)
+    await logout()
   }
 
   return (
-    <header className="bg-[var(--bg-card)] rounded-2xl shadow-2xl z-50 relative border border-[var(--border-secondary)]">
+    <header className="bg-[var(--bg-card)] rounded-2xl shadow-2xl z-50 relative">
       <div className="flex items-center justify-between px-4 lg:px-6 h-16">
         {/* Левая часть */}
         <div className="flex items-center gap-4">
@@ -54,7 +55,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuToggle }) => {
             <input
               type="text"
               placeholder={t('common.search')}
-              className="pl-12 pr-4 py-3 bg-[var(--bg-tertiary)] border-0 rounded-xl text-sm text-[var(--text-primary)] placeholder-[var(--text-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/20 transition-all w-64"
+              className="pl-12 pr-4 py-3 bg-[var(--bg-tertiary)] border border-[var(--border-primary)] rounded-xl text-sm text-[var(--text-primary)] placeholder-[var(--text-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/20 focus:border-[var(--accent-primary)] transition-all w-64"
             />
           </div>
 
@@ -98,7 +99,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuToggle }) => {
 
             {/* Выпадающее меню профиля */}
             {isProfileMenuOpen && (
-              <div className="absolute right-0 mt-2 w-48 bg-[var(--bg-card)] rounded-2xl shadow-2xl py-2 z-50 border border-[var(--border-secondary)]">
+              <div className="absolute right-0 mt-2 w-48 bg-[var(--bg-card)] rounded-2xl shadow-2xl py-2 z-50">
                 <button className="w-full px-4 py-2 text-left text-sm text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] transition-colors flex items-center gap-3">
                   <Icons.User className="h-4 w-4" />
                   {t('header.profile')}
@@ -109,7 +110,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuToggle }) => {
                 </button>
                 <hr className="my-2 border-[var(--border-primary)]" />
                 <button 
-                  onClick={handleLogout}
+                  onClick={() => setShowLogoutDialog(true)}
                   className="w-full px-4 py-2 text-left text-sm text-[var(--accent-danger)] hover:bg-[var(--bg-hover)] transition-colors flex items-center gap-3"
                 >
                   <Icons.LogOut className="h-4 w-4" />
@@ -120,6 +121,18 @@ const Header: React.FC<HeaderProps> = ({ onMenuToggle }) => {
           </div>
         </div>
       </div>
+
+      {/* Диалог подтверждения выхода */}
+      <ConfirmDialog
+        isOpen={showLogoutDialog}
+        onClose={() => setShowLogoutDialog(false)}
+        onConfirm={handleLogout}
+        title={t('auth.confirmLogoutTitle', 'Подтвердите действие')}
+        message={t('auth.confirmLogout', 'Вы уверены, что хотите выйти из системы?')}
+        confirmText={t('auth.logout', 'Выйти')}
+        cancelText={t('common.cancel', 'Отмена')}
+        variant="danger"
+      />
     </header>
   )
 }

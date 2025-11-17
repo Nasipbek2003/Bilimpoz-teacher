@@ -3,6 +3,9 @@ const nextConfig = {
   images: {
     domains: ['localhost'],
   },
+  experimental: {
+    instrumentationHook: true,
+  },
   webpack: (config, { isServer }) => {
     // Исключаем daynitejs из серверного бандла
     if (isServer) {
