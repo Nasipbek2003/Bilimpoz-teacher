@@ -328,6 +328,9 @@
     "settingsSaved": "Настройки сохранены",
     "passwordChanged": "Пароль изменен"
   },
+  "app": {
+    "platformForTeachers": "Платформа для преподавателей"
+  },
   "auth": {
     "login": "Вход",
     "logout": "Выход",
@@ -339,6 +342,28 @@
     "loginError": "Ошибка входа",
     "invalidCredentials": "Неверные учетные данные",
     "confirmLogout": "Вы уверены, что хотите выйти из системы?",
+    "loginForm": {
+      "welcome": "Добро пожаловать!",
+      "subtitle": "Войдите в свой аккаунт преподавателя",
+      "login": "Логин",
+      "loginPlaceholder": "Введите ваш логин",
+      "password": "Пароль",
+      "passwordPlaceholder": "Введите ваш пароль",
+      "loginButton": "Войти",
+      "loggingIn": "Вход...",
+      "noAccount": "Нет аккаунта?",
+      "registerLink": "Зарегистрироваться",
+      "errors": {
+        "loginRequired": "Логин обязателен для заполнения",
+        "passwordRequired": "Пароль обязателен для заполнения",
+        "telegramNotConnected": "Telegram не подключен. Пожалуйста, подключите Telegram для входа.",
+        "botBlocked": "Бот заблокирован. Пожалуйста, разблокируйте бота в Telegram и попробуйте снова.",
+        "verificationCodeError": "Ошибка отправки кода верификации",
+        "verificationCodeErrorRetry": "Ошибка отправки кода верификации. Попробуйте еще раз.",
+        "incompleteData": "Ошибка: данные пользователя неполные",
+        "general": "Произошла ошибка при входе"
+      }
+    },
     "register": {
       "title": "Регистрация",
       "subtitle": "Создайте аккаунт преподавателя",
@@ -348,6 +373,10 @@
       "loginPlaceholder": "Введите логин",
       "password": "Пароль",
       "passwordPlaceholder": "Введите пароль",
+      "language": "Язык преподавателя",
+      "languagePlaceholder": "Выберите язык",
+      "languageRu": "Русский",
+      "languageKg": "Кыргызский",
       "confirmPassword": "Подтверждение пароля",
       "confirmPasswordPlaceholder": "Повторите пароль",
       "registerButton": "Зарегистрироваться",
@@ -478,7 +507,8 @@
     "modal": {
       "title": "Спасибо за регистрацию!",
       "description": "Осталось пройти верификацию. Напишите администратору платформы для завершения процесса.",
-      "goToChat": "Перейти в чат"
+      "goToChat": "Перейти в чат",
+      "logout": "Выйти"
     }
   },
   "telegramConnection": {

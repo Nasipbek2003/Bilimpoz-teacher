@@ -174,7 +174,7 @@ export default function CustomDatePicker({ value, onChange, className = '', plac
       {/* Input field */}
       <div
         onClick={() => setIsOpen(!isOpen)}
-        className="px-3 py-2 bg-[var(--bg-tertiary)] border-0 rounded-xl text-[var(--text-primary)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/20 transition-all cursor-pointer flex items-center justify-between w-full"
+        className="px-3 py-2 bg-[var(--bg-select)] border-0 rounded-xl text-[var(--text-primary)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/20 transition-all cursor-pointer flex items-center justify-between w-full"
       >
         <span className={value ? 'text-[var(--text-primary)]' : 'text-[var(--text-tertiary)]'}>
           {value ? formatDate(value) : (placeholder || t('datePicker.date'))}

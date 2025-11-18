@@ -14,7 +14,7 @@ const Input: React.FC<InputProps> = ({
   return (
     <input
       className={`
-        w-full px-5 py-4 rounded-xl border
+        w-full px-4 py-2.5 rounded-xl border text-sm
         bg-[var(--bg-card)] text-[var(--text-primary)] placeholder-[var(--text-tertiary)]
         focus:outline-none
         transition-all duration-300 ease-in-out

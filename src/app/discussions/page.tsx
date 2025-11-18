@@ -7,6 +7,7 @@ import DiscussionCard from '@/components/teacher/DiscussionCard'
 import ChatModal from '@/components/teacher/ChatModal'
 import { Icons } from '@/components/ui/Icons'
 import { useTranslation } from '@/hooks/useTranslation'
+import { DiscussionsPageSkeleton } from '@/components/ui/PageSkeletons'
 
 // Моковые данные
 const mockDiscussions = [
@@ -169,12 +170,7 @@ export default function DiscussionsPage() {
   if (!mounted || !ready) {
     return (
       <TeacherLayout>
-        <div className="space-y-6">
-          <div>
-            <h1 className="text-2xl font-bold text-white mb-2">Обсуждения</h1>
-            <p className="text-gray-400">Загрузка...</p>
-          </div>
-        </div>
+        <DiscussionsPageSkeleton />
       </TeacherLayout>
     )
   }

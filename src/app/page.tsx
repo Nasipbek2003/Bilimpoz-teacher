@@ -8,6 +8,7 @@ import RecentActivity from '@/components/teacher/RecentActivity'
 import { Icons } from '@/components/ui/Icons'
 import { useTranslation } from '@/hooks/useTranslation'
 import { useAuth } from '@/contexts/AuthContext'
+import { DashboardSkeleton } from '@/components/ui/PageSkeletons'
 
 export default function HomePage() {
   const { t, ready } = useTranslation()
@@ -28,11 +29,7 @@ export default function HomePage() {
   if (!mounted || !ready) {
     return (
       <TeacherLayout>
-        <div className="space-y-4">
-          <div className="bg-[var(--bg-card)] rounded-xl lg:rounded-2xl shadow-sm border border-[var(--border-primary)] p-3 md:p-4">
-            <div className="h-12 bg-[var(--bg-hover)] rounded w-3/4 animate-pulse"></div>
-          </div>
-        </div>
+        <DashboardSkeleton />
       </TeacherLayout>
     )
   }

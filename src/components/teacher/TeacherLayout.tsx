@@ -95,7 +95,7 @@ const TeacherLayout: React.FC<TeacherLayoutProps> = ({ children }) => {
         <Sidebar isOpen={isSidebarOpen} onClose={handleSidebarClose} />
 
         {/* Main Content */}
-        <main className="flex-1 overflow-y-auto bg-[var(--bg-card)] rounded-2xl p-6">
+        <main className="flex-1 overflow-y-auto bg-[var(--bg-main-container)] rounded-2xl p-6">
           {children}
         </main>
       </div>

@@ -55,7 +55,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuToggle }) => {
             <input
               type="text"
               placeholder={t('common.search')}
-              className="pl-12 pr-4 py-3 bg-[var(--bg-tertiary)] border border-[var(--border-primary)] rounded-xl text-sm text-[var(--text-primary)] placeholder-[var(--text-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/20 focus:border-[var(--accent-primary)] transition-all w-64"
+              className="pl-12 pr-4 py-3 bg-[var(--bg-select)] rounded-xl text-sm text-[var(--text-primary)] placeholder-[var(--text-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/20 transition-all w-64"
             />
           </div>
 

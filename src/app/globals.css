@@ -9,6 +9,8 @@
   --bg-secondary: #151515;
   --bg-tertiary: #1a1a1a;
   --bg-card: #151515;
+  --bg-main-container: #0A0A0A;
+  --bg-select: #1A1A1A;
   --bg-hover: #242424;
   --bg-active: #363636;
   --bg-active-button: #ffffff;
@@ -34,6 +36,8 @@
   --bg-secondary: #f9fafb;
   --bg-tertiary: #f3f4f6;
   --bg-card: #f3f4f6;
+  --bg-main-container: #ffffff;
+  --bg-select: #E5E7EB;
   --bg-hover: #e5e7eb;
   --bg-active: #d1d5db;
   --bg-active-button: #f3f4f6;
@@ -149,4 +153,25 @@
   background: var(--bg-hover);
   padding: 0.1em 0.3em;
   border-radius: 4px;
+}
+
+/* Shimmer анимация для skeleton loading */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--bg-tertiary) 0%,
+    var(--bg-hover) 50%,
+    var(--bg-tertiary) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
 }

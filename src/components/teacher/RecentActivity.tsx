@@ -92,36 +92,17 @@ const RecentActivity: React.FC<RecentActivityProps> = ({ teacherId }) => {
     }
   }
 
-  if (!mounted || !ready) {
+  if (!mounted || !ready || loading) {
     return (
       <div className="bg-[var(--bg-card)] rounded-2xl p-6 border border-[var(--border-primary)] shadow-sm">
-        <div className="h-6 bg-[var(--bg-hover)] rounded w-1/3 mb-4 animate-pulse"></div>
+        <div className="h-6 skeleton-shimmer rounded w-1/3 mb-4"></div>
         <div className="space-y-4">
           {[...Array(3)].map((_, i) => (
             <div key={i} className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-[var(--bg-hover)] rounded-lg animate-pulse"></div>
+              <div className="w-10 h-10 skeleton-shimmer rounded-lg"></div>
               <div className="flex-1 space-y-2">
-                <div className="h-4 bg-[var(--bg-hover)] rounded w-3/4 animate-pulse"></div>
-                <div className="h-3 bg-[var(--bg-hover)] rounded w-1/2 animate-pulse"></div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    )
-  }
-
-  if (loading) {
-    return (
-      <div className="bg-[var(--bg-card)] rounded-2xl p-6 border border-[var(--border-primary)] shadow-sm">
-        <div className="h-6 bg-[var(--bg-hover)] rounded w-1/3 mb-4 animate-pulse"></div>
-        <div className="space-y-4">
-          {[...Array(3)].map((_, i) => (
-            <div key={i} className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-[var(--bg-hover)] rounded-lg animate-pulse"></div>
-              <div className="flex-1 space-y-2">
-                <div className="h-4 bg-[var(--bg-hover)] rounded w-3/4 animate-pulse"></div>
-                <div className="h-3 bg-[var(--bg-hover)] rounded w-1/2 animate-pulse"></div>
+                <div className="h-4 skeleton-shimmer rounded w-3/4"></div>
+                <div className="h-3 skeleton-shimmer rounded w-1/2"></div>
               </div>
             </div>
           ))}

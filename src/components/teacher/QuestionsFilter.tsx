@@ -144,9 +144,10 @@ const QuestionsFilter: React.FC<QuestionsFilterProps> = ({
         toDate.setHours(23, 59, 59, 999)
         break
       case 'month':
-        // Последние 30 дней
-        fromDate.setDate(now.getDate() - 29)
+        // Текущий месяц: от 1 числа до конца месяца
+        fromDate = new Date(now.getFullYear(), now.getMonth(), 1)
         fromDate.setHours(0, 0, 0, 0)
+        toDate = new Date(now.getFullYear(), now.getMonth() + 1, 0)
         toDate.setHours(23, 59, 59, 999)
         break
       default:
@@ -188,9 +189,24 @@ const QuestionsFilter: React.FC<QuestionsFilterProps> = ({
     }
   }
 
+  // Проверка, применены ли какие-либо фильтры
+  const hasActiveFilters = useMemo(() => {
+    return (
+      questionType !== 'all' ||
+      source !== 'all' ||
+      language !== 'all' ||
+      sortBy !== 'created_at' ||
+      search.trim() !== '' ||
+      period !== '' ||
+      dateFrom !== '' ||
+      dateTo !== '' ||
+      timeFrom !== '' ||
+      timeTo !== ''
+    )
+  }, [questionType, source, language, sortBy, search, period, dateFrom, dateTo, timeFrom, timeTo])
 
   return (
-    <div className="bg-[var(--bg-card)] rounded-2xl p-6 space-y-6 shadow-sm">
+    <div className="bg-[var(--bg-card)] rounded-2xl p-6 space-y-6 shadow-sm ">
       {/* Заголовок секции фильтров */}
       
 
@@ -230,7 +246,7 @@ const QuestionsFilter: React.FC<QuestionsFilterProps> = ({
           placeholder={getText('common.search', 'Поиск...')}
           value={search}
           onChange={(e) => onSearchChange(e.target.value)}
-          className="w-full pl-12 pr-4 py-3 bg-[var(--bg-tertiary)] border border-[var(--border-primary)] rounded-xl text-[var(--text-primary)] placeholder-[var(--text-tertiary)] focus:outline-none focus:border-[var(--accent-primary)] transition-all duration-300 ease-in-out"
+          className="w-full pl-12 pr-4 py-3 bg-[var(--bg-select)] rounded-xl text-[var(--text-primary)] placeholder-[var(--text-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/20 transition-all duration-300 ease-in-out"
         />
       </div>
 
@@ -246,8 +262,8 @@ const QuestionsFilter: React.FC<QuestionsFilterProps> = ({
               onClick={() => handlePeriodChange(option.value)}
               className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
                 period === option.value
-                  ? 'bg-[var(--bg-active-button)] text-[var(--text-active-button)]'
-                  : 'bg-[var(--bg-tertiary)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)]'
+                  ? 'bg-[var(--bg-active)] text-[var(--text-primary)]'
+                  : 'bg-[var(--bg-select)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)]'
               }`}
             >
               {option.label}
@@ -293,15 +309,17 @@ const QuestionsFilter: React.FC<QuestionsFilterProps> = ({
         </div>
       </div>
 
-      {/* Кнопка очистки фильтров */}
-      <div className="flex justify-end">
-        <button
-          onClick={onClearFilters}
-          className="px-4 py-2 text-sm text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors"
-        >
-          {getText('questions.clearFilters', 'Очистить фильтры')}
-        </button>
-      </div>
+      {/* Кнопка очистки фильтров - показывается только при наличии активных фильтров */}
+      {hasActiveFilters && (
+        <div className="flex justify-end">
+          <button
+            onClick={onClearFilters}
+            className="px-4 py-2 text-sm text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors"
+          >
+            {getText('questions.clearFilters', 'Очистить фильтры')}
+          </button>
+        </div>
+      )}
     </div>
   )
 }

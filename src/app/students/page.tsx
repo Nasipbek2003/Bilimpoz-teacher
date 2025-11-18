@@ -8,6 +8,7 @@ import StudentCard from '@/components/teacher/StudentCard'
 import ReferralSystem from '@/components/teacher/ReferralSystem'
 import { Icons } from '@/components/ui/Icons'
 import { useTranslation } from '@/hooks/useTranslation'
+import { StudentsPageSkeleton } from '@/components/ui/PageSkeletons'
 
 // Моковые данные учеников
 const mockStudents = [
@@ -163,12 +164,7 @@ export default function StudentsPage() {
   if (!mounted || !ready) {
     return (
       <TeacherLayout>
-        <div className="space-y-6">
-          <div>
-            <h1 className="text-2xl font-bold text-white mb-2">Ученики</h1>
-            <p className="text-gray-400">Загрузка...</p>
-          </div>
-        </div>
+        <StudentsPageSkeleton />
       </TeacherLayout>
     )
   }

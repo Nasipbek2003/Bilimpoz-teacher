@@ -70,3 +70,70 @@ export async function getAdminTelegramLogin(): Promise<string | null> {
   return null
 }
 
+/**
+ * Получение сообщений верификации из БД
+ */
+export async function getVerificationMessages(): Promise<{
+  ru: Record<string, string>
+  kg: Record<string, string>
+} | null> {
+  try {
+    const setting = await prisma.settings.findUnique({
+      where: { key: 'TELEGRAM_VERIFICATION_MESSAGES' }
+    })
+    
+    if (!setting?.value) {
+      console.warn('⚠️ Сообщения верификации не найдены в БД')
+      return null
+    }
+    
+    try {
+      const parsed = JSON.parse(setting.value)
+      
+      // Валидация структуры
+      if (!parsed.ru || !parsed.kg || typeof parsed.ru !== 'object' || typeof parsed.kg !== 'object') {
+        console.error('❌ Неверная структура сообщений в БД')
+        return null
+      }
+      
+      return parsed
+    } catch (jsonError) {
+      console.error('❌ Ошибка парсинга JSON сообщений верификации:', jsonError)
+      console.error('📄 Поврежденный JSON (первые 500 символов):', setting.value.substring(0, 500))
+      return null
+    }
+  } catch (error) {
+    console.error('❌ Ошибка получения сообщений верификации из БД:', error)
+    return null
+  }
+}
+
+/**
+ * Обновление сообщений верификации в БД
+ */
+export async function updateVerificationMessages(messages: {
+  ru: Record<string, string>
+  kg: Record<string, string>
+}): Promise<boolean> {
+  try {
+    const value = JSON.stringify(messages, null, 2)
+    
+    await prisma.settings.upsert({
+      where: { key: 'TELEGRAM_VERIFICATION_MESSAGES' },
+      update: {
+        value,
+        updated_at: new Date()
+      },
+      create: {
+        key: 'TELEGRAM_VERIFICATION_MESSAGES',
+        value
+      }
+    })
+    
+    return true
+  } catch (error) {
+    console.error('❌ Ошибка обновления сообщений верификации:', error)
+    return false
+  }
+}
+

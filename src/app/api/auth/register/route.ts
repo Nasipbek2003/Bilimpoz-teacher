@@ -60,7 +60,8 @@ export async function POST(request: NextRequest) {
             id: existingUser.id,
             login: existingUser.login,
             name: existingUser.name,
-            status: existingUser.status
+            status: existingUser.status,
+            language: existingUser.language
           }
         })
       } else {
@@ -110,7 +111,8 @@ export async function POST(request: NextRequest) {
         id: user.id,
         login: user.login,
         name: user.name,
-        status: user.status
+        status: user.status,
+        language: validLanguage
       }
     })
 

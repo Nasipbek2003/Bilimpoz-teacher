@@ -4,9 +4,11 @@ import React, { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Button from '@/components/ui/Button'
 import { Icons } from '@/components/ui/Icons'
+import { useAuth } from '@/contexts/AuthContext'
 
 const TelegramVerificationForm: React.FC = () => {
   const router = useRouter()
+  const { refreshUser } = useAuth()
   const [code, setCode] = useState<string[]>(['', '', '', '', '', ''])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
@@ -135,8 +137,11 @@ const TelegramVerificationForm: React.FC = () => {
       // Удаляем данные о pending verification
       localStorage.removeItem('pendingVerification')
 
+      // Обновляем данные пользователя в AuthContext
+      await refreshUser()
+
       // После успешной проверки перенаправляем на главную
-      router.push('/questions')
+      router.push('/')
     } catch (err: any) {
       setError(err.message || 'Неверный код подтверждения')
       // Очищаем поля и возвращаем фокус на первое поле

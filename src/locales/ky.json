@@ -326,6 +326,9 @@
     "settingsSaved": "Жөндөөлөр сакталды",
     "passwordChanged": "Сыр сөз өзгөртүлдү"
   },
+  "app": {
+    "platformForTeachers": "Мугалимдер үчүн платформа"
+  },
   "auth": {
     "login": "Кирүү",
     "logout": "Чыгуу",
@@ -337,6 +340,28 @@
     "loginError": "Кирүү катасы",
     "invalidCredentials": "Туура эмес маалыматтар",
     "confirmLogout": "Системадан чыгууну каалайсызбы?",
+    "loginForm": {
+      "welcome": "Кош келдиңиз!",
+      "subtitle": "Мугалим аккаунтуңузга кириңиз",
+      "login": "Логин",
+      "loginPlaceholder": "Логинди киргизиңиз",
+      "password": "Сыр сөз",
+      "passwordPlaceholder": "Сыр сөздү киргизиңиз",
+      "loginButton": "Кирүү",
+      "loggingIn": "Кирүүдө...",
+      "noAccount": "Аккаунт жокбу?",
+      "registerLink": "Катталуу",
+      "errors": {
+        "loginRequired": "Логин толтуруу милдеттүү",
+        "passwordRequired": "Сыр сөз толтуруу милдеттүү",
+        "telegramNotConnected": "Telegram туташтырылган жок. Кирүү үчүн Telegramды туташтырыңыз.",
+        "botBlocked": "Бот бөгөттөлгөн. Telegramдагы боттун бөгөттөлүшүн алып салып, кайра аракет кылыңыз.",
+        "verificationCodeError": "Ырастоо кодунун жөнөтүлүшүндө ката",
+        "verificationCodeErrorRetry": "Ырастоо кодунун жөнөтүлүшүндө ката. Кайра аракет кылыңыз.",
+        "incompleteData": "Ката: колдонуучунун маалыматтары толук эмес",
+        "general": "Кирүү учурунда ката кетти"
+      }
+    },
     "register": {
       "title": "Каттоо",
       "subtitle": "Мугалим аккаунтун түзүү",
@@ -346,6 +371,10 @@
       "loginPlaceholder": "Логинди киргизиңиз",
       "password": "Сыр сөз",
       "passwordPlaceholder": "Сыр сөздү киргизиңиз",
+      "language": "Мугалимдин тили",
+      "languagePlaceholder": "Тилди тандаңыз",
+      "languageRu": "Орусча",
+      "languageKg": "Кыргызча",
       "confirmPassword": "Сыр сөздү ырастатуу",
       "confirmPasswordPlaceholder": "Сыр сөздү кайталаңыз",
       "registerButton": "Катталуу",
@@ -422,7 +451,8 @@
     "modal": {
       "title": "Каттоо үчүн рахмат!",
       "description": "Текшерүүдөн өтүү калды. Процессти бүтүрүү үчүн платформанын администраторуна жазыңыз.",
-      "goToChat": "Чатка өтүү"
+      "goToChat": "Чатка өтүү",
+      "logout": "Чыгуу"
     }
   },
   "telegramConnection": {

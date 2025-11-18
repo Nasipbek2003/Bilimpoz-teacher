@@ -3,6 +3,7 @@
 import React from 'react'
 import { Icons } from '@/components/ui/Icons'
 import { useTranslation } from '@/hooks/useTranslation'
+import { useAuth } from '@/contexts/AuthContext'
 
 interface VerificationModalProps {
   isOpen: boolean
@@ -12,12 +13,17 @@ interface VerificationModalProps {
 
 const VerificationModal: React.FC<VerificationModalProps> = ({ isOpen, onClose, onGoToChat }) => {
   const { t, ready } = useTranslation()
+  const { logout } = useAuth()
 
   if (!isOpen) return null
 
   const getText = (key: string, fallback: string) => {
     if (!ready) return fallback
     return t(key)
+  }
+
+  const handleLogout = async () => {
+    await logout()
   }
 
   return (
@@ -48,14 +54,26 @@ const VerificationModal: React.FC<VerificationModalProps> = ({ isOpen, onClose, 
           </p>
         </div>
 
-        {/* Call to Action Button */}
-        <button
-          onClick={onGoToChat}
-          className="w-full bg-[var(--bg-active-button)] text-[var(--text-active-button)] py-3 px-4 rounded-xl font-medium flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
-        >
-          <Icons.MessageCircle className="w-5 h-5" />
-          <span>{getText('verification.modal.goToChat', 'Перейти в чат')}</span>
-        </button>
+        {/* Buttons */}
+        <div className="space-y-3">
+          {/* Call to Action Button */}
+          <button
+            onClick={onGoToChat}
+            className="w-full bg-[var(--bg-active-button)] text-[var(--text-active-button)] py-3 px-4 rounded-xl font-medium flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
+          >
+            <Icons.MessageCircle className="w-5 h-5" />
+            <span>{getText('verification.modal.goToChat', 'Перейти в чат')}</span>
+          </button>
+
+          {/* Logout Button */}
+          <button
+            onClick={handleLogout}
+            className="w-full bg-[var(--bg-tertiary)] text-[var(--text-primary)] py-3 px-4 rounded-xl font-medium flex items-center justify-center gap-2 hover:bg-[var(--bg-hover)] transition-colors"
+          >
+            <Icons.LogOut className="w-5 h-5" />
+            <span>{getText('verification.modal.logout', 'Выйти')}</span>
+          </button>
+        </div>
       </div>
     </div>
   )

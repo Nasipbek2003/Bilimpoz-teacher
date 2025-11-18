@@ -1,11 +1,12 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { Icons } from '@/components/ui/Icons'
 import Input from '@/components/ui/Input'
 import Button from '@/components/ui/Button'
+import { useTranslation } from '@/hooks/useTranslation'
 
 export default function LoginForm() {
   const [formData, setFormData] = useState({
@@ -15,19 +16,30 @@ export default function LoginForm() {
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [isLoading, setIsLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
+  const { t, ready } = useTranslation()
+  const [mounted, setMounted] = useState(false)
   
   const router = useRouter()
   const { loadUser } = useAuth()
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  const getText = (key: string, fallback: string) => {
+    if (!mounted || !ready) return fallback
+    return t(key) || fallback
+  }
 
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {}
 
     if (!formData.login.trim()) {
-      newErrors.login = 'Логин обязателен для заполнения'
+      newErrors.login = getText('auth.loginForm.errors.loginRequired', 'Логин обязателен для заполнения')
     }
 
     if (!formData.password.trim()) {
-      newErrors.password = 'Пароль обязателен для заполнения'
+      newErrors.password = getText('auth.loginForm.errors.passwordRequired', 'Пароль обязателен для заполнения')
     }
 
     setErrors(newErrors)
@@ -59,7 +71,7 @@ export default function LoginForm() {
         // Проверка наличия Telegram
         if (data.needsTelegram) {
           // Telegram не подключен - нужно подключить
-          setErrors({ general: 'Telegram не подключен. Пожалуйста, подключите Telegram для входа.' })
+          setErrors({ general: getText('auth.loginForm.errors.telegramNotConnected', 'Telegram не подключен. Пожалуйста, подключите Telegram для входа.') })
           return
         }
 
@@ -97,27 +109,27 @@ export default function LoginForm() {
         } else {
               // Ошибка отправки кода
               if (sendCodeData.code === 'BOT_BLOCKED' || sendCodeData.isBlocked) {
-                setErrors({ general: 'Бот заблокирован. Пожалуйста, разблокируйте бота в Telegram и попробуйте снова.' })
+                setErrors({ general: getText('auth.loginForm.errors.botBlocked', 'Бот заблокирован. Пожалуйста, разблокируйте бота в Telegram и попробуйте снова.') })
               } else {
-                setErrors({ general: sendCodeData.error || sendCodeData.message || 'Ошибка отправки кода верификации' })
+                setErrors({ general: sendCodeData.error || sendCodeData.message || getText('auth.loginForm.errors.verificationCodeError', 'Ошибка отправки кода верификации') })
               }
             }
           } catch (sendError) {
             console.error('[LoginForm] Send code error:', sendError)
-            setErrors({ general: 'Ошибка отправки кода верификации. Попробуйте еще раз.' })
+            setErrors({ general: getText('auth.loginForm.errors.verificationCodeErrorRetry', 'Ошибка отправки кода верификации. Попробуйте еще раз.') })
           }
         } else {
-          setErrors({ general: 'Ошибка: данные пользователя неполные' })
+          setErrors({ general: getText('auth.loginForm.errors.incompleteData', 'Ошибка: данные пользователя неполные') })
         }
       } else {
         // Ошибка входа
-        const errorMessage = data.error || data.message || 'Ошибка входа'
+        const errorMessage = data.error || data.message || getText('auth.loginForm.errors.general', 'Ошибка входа')
         console.error('[LoginForm] Login error:', errorMessage)
         setErrors({ general: errorMessage })
       }
     } catch (error) {
       console.error('Login error:', error)
-      setErrors({ general: 'Произошла ошибка при входе' })
+      setErrors({ general: getText('auth.loginForm.errors.general', 'Произошла ошибка при входе') })
     } finally {
       setIsLoading(false)
     }
@@ -137,10 +149,10 @@ export default function LoginForm() {
     <div className="bg-[var(--bg-card)] rounded-3xl p-8">
       <div className="text-center mb-8">
         <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-2">
-          Добро пожаловать!
+          {getText('auth.loginForm.welcome', 'Добро пожаловать!')}
         </h2>
         <p className="text-[var(--text-tertiary)]">
-          Войдите в свой аккаунт преподавателя
+          {getText('auth.loginForm.subtitle', 'Войдите в свой аккаунт преподавателя')}
         </p>
       </div>
 
@@ -153,13 +165,13 @@ export default function LoginForm() {
 
         <div>
           <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
-            Логин
+            {getText('auth.loginForm.login', 'Логин')}
           </label>
           <Input
             type="text"
             value={formData.login}
             onChange={(e) => handleInputChange('login', e.target.value)}
-            placeholder="Введите ваш логин"
+            placeholder={getText('auth.loginForm.loginPlaceholder', 'Введите ваш логин')}
             error={errors.login}
             disabled={isLoading}
           />
@@ -167,14 +179,14 @@ export default function LoginForm() {
 
         <div>
           <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
-            Пароль
+            {getText('auth.loginForm.password', 'Пароль')}
           </label>
           <div className="relative">
             <Input
               type={showPassword ? 'text' : 'password'}
               value={formData.password}
               onChange={(e) => handleInputChange('password', e.target.value)}
-              placeholder="Введите ваш пароль"
+              placeholder={getText('auth.loginForm.passwordPlaceholder', 'Введите ваш пароль')}
               error={errors.password}
               disabled={isLoading}
             />
@@ -203,22 +215,22 @@ export default function LoginForm() {
           {isLoading ? (
             <div className="flex items-center justify-center gap-2">
               <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              Вход...
+              {getText('auth.loginForm.loggingIn', 'Вход...')}
             </div>
           ) : (
-            'Войти'
+            getText('auth.loginForm.loginButton', 'Войти')
           )}
         </Button>
       </form>
 
       <div className="mt-6 text-center">
         <p className="text-[var(--text-tertiary)] text-sm">
-          Нет аккаунта?{' '}
+          {getText('auth.loginForm.noAccount', 'Нет аккаунта?')}{' '}
           <button
             onClick={() => router.push('/register')}
             className="text-[var(--accent-primary)] hover:underline"
           >
-            Зарегистрироваться
+            {getText('auth.loginForm.registerLink', 'Зарегистрироваться')}
           </button>
         </p>
       </div>

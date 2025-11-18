@@ -21,8 +21,8 @@ interface QuestionDetails {
   explanation_ai?: string
   points?: number
   time_limit?: number
-  answer_variants: Array<{ value: string }>
-  correct_variant_index: number
+  answer_variants?: Array<{ value: string }>
+  correct_variant_index?: number
   total_answers?: number
   correct_answers?: number
   wrong_answers?: number

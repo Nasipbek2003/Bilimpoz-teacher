@@ -101,12 +101,12 @@ const QuestionsTable: React.FC<QuestionsTableProps> = ({
     return (
       <div className="bg-[var(--bg-card)] rounded-2xl overflow-hidden border border-[var(--border-primary)] shadow-sm">
         <div className="p-6 border-b border-[var(--border-primary)]">
-          <div className="h-6 bg-[var(--bg-hover)] rounded w-1/4 animate-pulse"></div>
+          <div className="h-6 skeleton-shimmer rounded w-1/4"></div>
         </div>
         <div className="p-6">
           <div className="space-y-3">
             {[...Array(5)].map((_, i) => (
-              <div key={i} className="h-12 bg-[var(--bg-hover)] rounded animate-pulse"></div>
+              <div key={i} className="h-12 skeleton-shimmer rounded"></div>
             ))}
           </div>
         </div>
@@ -115,9 +115,9 @@ const QuestionsTable: React.FC<QuestionsTableProps> = ({
   }
 
   return (
-    <div className="bg-[var(--bg-card)] rounded-2xl overflow-hidden  shadow-sm">
+    <div className="bg-[var(--bg-card)] rounded-2xl overflow-hidden shadow-sm ">
       {/* Заголовок таблицы */}
-      <div className="p-6 border-b border-[var(--border-primary)]">
+      <div className="p-6 border-b border-[var(--border-primary">
         <h2 className="text-lg font-semibold text-[var(--text-primary)]">
           {getText('questions.foundQuestions', 'Найдено вопросов')}: {questions.length}
         </h2>

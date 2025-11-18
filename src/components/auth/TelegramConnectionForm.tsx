@@ -10,6 +10,8 @@ interface TelegramConnectionFormProps {
   login: string
   name: string
   userId?: string
+  password?: string
+  language?: 'ru' | 'kg'
   onBack?: () => void
 }
 
@@ -17,6 +19,8 @@ const TelegramConnectionForm: React.FC<TelegramConnectionFormProps> = ({
   login, 
   name,
   userId,
+  password,
+  language = 'ru',
   onBack
 }) => {
   const router = useRouter()
@@ -55,8 +59,9 @@ const TelegramConnectionForm: React.FC<TelegramConnectionFormProps> = ({
 
   // Формируем ссылку на бота с параметрами
   const getTelegramBotUrl = () => {
-    const language = 'ru' // Можно получить из localStorage или настроек
-    return `https://t.me/${botUsername}?start=register_${login}__${language}`
+    // Используем язык пользователя из пропсов (из БД)
+    const userLanguage = language === 'kg' || language === 'ky' ? 'kg' : 'ru'
+    return `https://t.me/${botUsername}?start=register_${login}__${userLanguage}`
   }
 
   // Проверка подключения Telegram через API
@@ -95,14 +100,13 @@ const TelegramConnectionForm: React.FC<TelegramConnectionFormProps> = ({
       const interval = setInterval(async () => {
         try {
           // Проверяем через API, есть ли у пользователя telegram_id
-          // Можно создать специальный endpoint или использовать существующий
           const response = await fetch(`/api/auth/check-telegram?login=${encodeURIComponent(login)}`)
           const data = await response.json()
           
           if (data.success && data.connected) {
             clearInterval(interval)
             setCheckingStatus(false)
-            // Telegram подключен - перенаправляем на вход
+            // Telegram подключен - перенаправляем на страницу входа
             router.push('/login?telegramConnected=true')
           }
         } catch (error) {

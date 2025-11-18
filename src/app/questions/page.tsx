@@ -10,6 +10,7 @@ import QuestionDetailsModal from '@/components/teacher/QuestionDetailsModal'
 import Button from '@/components/ui/Button'
 import { Icons } from '@/components/ui/Icons'
 import { useTranslation } from '@/hooks/useTranslation'
+import { QuestionsPageSkeleton } from '@/components/ui/PageSkeletons'
 
 interface Question {
   id: string
@@ -21,55 +22,15 @@ interface Question {
   hasComplaint?: boolean
   averageCorrect?: number
   photo_url?: string
+  answer_variants?: Array<{ value: string }>
+  correct_variant_index?: number
 }
-
-// Моковые данные вопросов (из базы данных Questions)
-const mockQuestions = [
-  {
-    id: '1',
-    question: 'Решите уравнение: 2x + 5 = 15',
-    type_question: 'math1' as const,
-    type_from: 'from_lesson' as const,
-    language: 'ru' as const,
-    created_at: '2024-11-12T10:30:00Z',
-    hasComplaint: false,
-    averageCorrect: 75.5,
-  },
-  {
-    id: '2',
-    question: 'Найдите производную функции f(x) = x² + 3x',
-    type_question: 'math2' as const,
-    type_from: 'from_teacher' as const,
-    language: 'ru' as const,
-    created_at: '2024-11-11T14:20:00Z',
-    hasComplaint: true,
-    averageCorrect: 63.2,
-  },
-  {
-    id: '3',
-    question: 'Выберите правильный вариант ответа',
-    type_question: 'analogy' as const,
-    type_from: 'from_trial' as const,
-    language: 'kg' as const,
-    created_at: '2024-11-10T09:15:00Z',
-    hasComplaint: false,
-    averageCorrect: 82.1,
-  },
-  {
-    id: '4',
-    question: 'Определите часть речи слова "красивый"',
-    type_question: 'grammar' as const,
-    type_from: 'from_student' as const,
-    language: 'ru' as const,
-    created_at: '2024-11-09T16:45:00Z',
-    hasComplaint: true,
-    averageCorrect: 45.8,
-  },
-]
 
 export default function QuestionsPage() {
   const { t, ready } = useTranslation()
   const [mounted, setMounted] = useState(false)
+  const [questions, setQuestions] = useState<Question[]>([])
+  const [isLoading, setIsLoading] = useState(true)
   const [questionType, setQuestionType] = useState('all')
   const [source, setSource] = useState('all')
   const [language, setLanguage] = useState('all')
@@ -87,22 +48,49 @@ export default function QuestionsPage() {
   const [editingQuestionData, setEditingQuestionData] = useState<QuestionFormData | null>(null)
   const [viewingQuestion, setViewingQuestion] = useState<Question | null>(null)
 
+  // Загрузка вопросов из API
+  useEffect(() => {
+    const fetchQuestions = async () => {
+      setIsLoading(true)
+      try {
+        const response = await fetch('/api/teacher/questions')
+        const result = await response.json()
+        
+        if (result.success && result.data) {
+          setQuestions(result.data)
+        } else {
+          console.error('Ошибка загрузки вопросов:', result.error)
+          setQuestions([])
+        }
+      } catch (error) {
+        console.error('Ошибка при загрузке вопросов:', error)
+        setQuestions([])
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    if (mounted) {
+      fetchQuestions()
+    }
+  }, [mounted])
+
   useEffect(() => {
     setMounted(true)
   }, [])
 
   // Статистика
   const stats = {
-    total: mockQuestions.length,
-    active: mockQuestions.filter(q => !q.hasComplaint).length,
-    problematic: mockQuestions.filter(q => q.hasComplaint).length,
-    averageCorrect: mockQuestions.length > 0
-      ? (mockQuestions.reduce((sum, q) => sum + q.averageCorrect, 0) / mockQuestions.length).toFixed(1)
+    total: questions.length,
+    active: questions.filter(q => !q.hasComplaint).length,
+    problematic: questions.filter(q => q.hasComplaint).length,
+    averageCorrect: questions.length > 0
+      ? (questions.reduce((sum, q) => sum + (q.averageCorrect || 0), 0) / questions.length).toFixed(1)
       : '0'
   }
 
   // Фильтрация вопросов
-  const filteredQuestions = mockQuestions.filter(question => {
+  const filteredQuestions = questions.filter(question => {
     const matchesType = questionType === 'all' || question.type_question === questionType
     const matchesSource = source === 'all' || question.type_from === source
     const matchesLanguage = language === 'all' || question.language === language
@@ -184,48 +172,33 @@ export default function QuestionsPage() {
   }
 
   const handleViewDetails = (question: Question) => {
-    // В реальном приложении здесь будет запрос к API для получения полных данных вопроса
-    // Пока используем моковые данные
-    const fullQuestionData = {
-      ...question,
-      photo_url: question.photo_url || '',
-      explanation_ai: '', // Нужно получить из API
-      points: 1, // Нужно получить из API
-      time_limit: 60, // Нужно получить из API
-      answer_variants: [
-        { value: 'Вариант ответа 1' }, // Нужно получить из API
-        { value: 'Вариант ответа 2' },
-        { value: 'Вариант ответа 3' },
-        { value: 'Вариант ответа 4' }
-      ],
-      correct_variant_index: 0 // Нужно получить из API
-    }
-    setViewingQuestion(fullQuestionData as any)
+    setViewingQuestion(question)
     setIsDetailsModalOpen(true)
   }
 
   const handleEdit = (question: Question) => {
-    const foundQuestion = mockQuestions.find(q => q.id === question.id)
+    const foundQuestion = questions.find(q => q.id === question.id)
     if (foundQuestion) {
       // Преобразуем данные вопроса в формат формы
-      // В реальном приложении здесь будет запрос к API для получения полных данных вопроса
+      // Для редактирования нужно загрузить полные данные вопроса с вариантами ответов
+      // Пока используем базовые данные
       const questionData: QuestionFormData = {
         question: foundQuestion.question,
         type_question: foundQuestion.type_question,
         type_from: foundQuestion.type_from,
         language: foundQuestion.language,
-        source_id: '', // Нужно получить из API
-        points: 1, // Нужно получить из API
-        time_limit: 60, // Нужно получить из API
-        photo_url: foundQuestion.photo_url || '', // Нужно получить из API
-        explanation_ai: '', // Нужно получить из API
+        source_id: '', // Будет заполнено при загрузке полных данных
+        points: 1,
+        time_limit: 60,
+        photo_url: foundQuestion.photo_url || '',
+        explanation_ai: '',
         answer_variants: [
-          { value: '' }, // Нужно получить из API
+          { value: '' },
           { value: '' },
           { value: '' },
           { value: '' }
         ],
-        correct_variant_index: 0 // Нужно получить из API
+        correct_variant_index: 0
       }
       setEditingQuestionId(foundQuestion.id)
       setEditingQuestionData(questionData)
@@ -274,18 +247,43 @@ export default function QuestionsPage() {
   const handleCreateQuestion = async (data: QuestionFormData) => {
     setIsCreating(true)
     try {
-      // TODO: Реализовать API запрос для создания вопроса
-      console.log('Создание вопроса:', data)
+      // Получаем ID текущего пользователя для source_id
+      const userResponse = await fetch('/api/user/me')
+      const user = await userResponse.json()
       
-      // Имитация API запроса
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      if (!user.id) {
+        throw new Error('Пользователь не авторизован')
+      }
+
+      // Создаем вопрос через API
+      const response = await fetch('/api/teacher/questions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...data,
+          source_id: user.id // ID текущего учителя
+        })
+      })
+
+      const result = await response.json()
+
+      if (!result.success) {
+        throw new Error(result.error || 'Ошибка при создании вопроса')
+      }
+
+      // Обновляем список вопросов
+      const questionsResponse = await fetch('/api/teacher/questions')
+      const questionsResult = await questionsResponse.json()
+      
+      if (questionsResult.success && questionsResult.data) {
+        setQuestions(questionsResult.data)
+      }
       
       // После успешного создания закрываем модальное окно
       setIsCreateModalOpen(false)
-      
-      // TODO: Обновить список вопросов
     } catch (error) {
       console.error('Ошибка при создании вопроса:', error)
+      alert('Ошибка при создании вопроса. Попробуйте снова.')
     } finally {
       setIsCreating(false)
     }
@@ -301,12 +299,7 @@ export default function QuestionsPage() {
   if (!mounted || !ready) {
     return (
       <TeacherLayout>
-        <div className="space-y-6">
-          <div>
-            <h1 className="text-2xl font-bold text-[var(--text-primary)] mb-2">Вопросы</h1>
-            <p className="text-[var(--text-tertiary)]">Загрузка...</p>
-          </div>
-        </div>
+        <QuestionsPageSkeleton />
       </TeacherLayout>
     )
   }
@@ -316,7 +309,7 @@ export default function QuestionsPage() {
       <div className="space-y-6">
         {/* Заголовок страницы */}
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-[var(--text-primary)] mb-2">
+          <h1 className="text-2xl font-bold text-[var(--text-primary)]">
             {t('questions.title')}
           </h1>
           <Button
@@ -328,32 +321,34 @@ export default function QuestionsPage() {
           </Button>
         </div>
 
-        {/* Статистические карточки */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <StatCard
-            title={t('questions.totalQuestions')}
-            value={stats.total}
-            icon={Icons.HelpCircle}
-          />
-          <StatCard
-            title={t('questions.activeQuestions')}
-            value={stats.active}
-            icon={Icons.CheckCircle}
-          />
-          <StatCard
-            title={t('questions.problematicQuestions')}
-            value={stats.problematic}
-            icon={Icons.Flag}
-          />
-          <StatCard
-            title={t('questions.averageCorrect')}
-            value={`${stats.averageCorrect}%`}
-            icon={Icons.TrendingUp}
-          />
+        {/* Статистические карточки - отдельный контейнер */}
+        <div className="bg-[var(--bg-main-container)] rounded-2xl p-6 shadow-sm ">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <StatCard
+              title={t('questions.totalQuestions')}
+              value={stats.total}
+              icon={Icons.HelpCircle}
+            />
+            <StatCard
+              title={t('questions.activeQuestions')}
+              value={stats.active}
+              icon={Icons.CheckCircle}
+            />
+            <StatCard
+              title={t('questions.problematicQuestions')}
+              value={stats.problematic}
+              icon={Icons.Flag}
+            />
+            <StatCard
+              title={t('questions.averageCorrect')}
+              value={`${stats.averageCorrect}%`}
+              icon={Icons.TrendingUp}
+            />
+          </div>
         </div>
 
         {/* Фильтры - отдельный контейнер */}
-        <div className="mt-8 mb-8">
+        <div>
           <QuestionsFilter
             questionType={questionType}
             onQuestionTypeChange={setQuestionType}
@@ -380,11 +375,12 @@ export default function QuestionsPage() {
         </div>
 
         {/* Таблица вопросов - отдельный контейнер */}
-        <div className="mt-8">
+        <div>
           <QuestionsTable
             questions={sortedQuestions}
             onQuestionClick={handleViewDetails}
             onQuestionEdit={handleEdit}
+            isLoading={isLoading}
           />
         </div>
 
@@ -409,7 +405,7 @@ export default function QuestionsPage() {
           }}
           onSubmit={editingQuestionId ? handleUpdateQuestion : handleCreateQuestion}
           isLoading={isCreating}
-          initialData={editingQuestionData ? { ...editingQuestionData, id: editingQuestionId } : undefined}
+          initialData={editingQuestionData ? { ...editingQuestionData, id: editingQuestionId || undefined } : undefined}
           mode={editingQuestionId ? 'edit' : 'create'}
         />
       </div>

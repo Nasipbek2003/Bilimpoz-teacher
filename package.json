@@ -9,12 +9,14 @@
     "lint": "next lint",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "init:verification-messages": "npx tsx src/scripts/init-verification-messages.ts"
   },
   "dependencies": {
     "@prisma/client": "^5.7.0",
     "@types/bcrypt": "^6.0.0",
     "bcrypt": "^6.0.0",
+    "clsx": "^2.1.1",
     "daynitejs": "^1.0.0",
     "geist": "^1.2.0",
     "i18next": "^25.6.2",
@@ -32,7 +34,8 @@
     "rehype-katex": "^7.0.1",
     "rehype-raw": "^7.0.0",
     "remark-gfm": "^4.0.1",
-    "remark-math": "^6.0.0"
+    "remark-math": "^6.0.0",
+    "tailwind-merge": "^3.4.0"
   },
   "devDependencies": {
     "@types/jsonwebtoken": "^9.0.10",

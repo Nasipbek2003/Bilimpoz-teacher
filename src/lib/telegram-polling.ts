@@ -1,9 +1,9 @@
 import { prisma } from './prisma'
-import { getTeacherBotToken, getTeacherSiteUrl, getAdminTelegramLogin, getTeacherBotUsername } from './settings'
+import { getTeacherBotToken, getTeacherSiteUrl, getAdminTelegramLogin, getTeacherBotUsername, getVerificationMessages } from './settings'
 import { generateAndStoreVerificationCode } from './verification'
 
-// Мультиязычные сообщения
-const messages = {
+// Дефолтные сообщения (используются как fallback)
+const defaultMessages = {
   ru: {
     welcome: '👋 Добро пожаловать в BilimPoz Teacher!',
     unknownCommand: '❌ Неизвестная команда. Используйте /start для начала работы.',
@@ -30,7 +30,11 @@ const messages = {
     verificationCodeAttempts: '🔄 Количество попыток: 5',
     verificationCodeEnter: '💻 Введите его на сайте для завершения входа',
     authError: '❌ Ошибка авторизации. Telegram ID не совпадает.',
-    botBlocked: '🔒 Вы заблокировали бота BilimPoz Teacher.\n\n📋 *Как разблокировать бота:*\n\n1️⃣ Откройте приложение Telegram\n2️⃣ Найдите бота @{botUsername} в списке чатов\n3️⃣ Нажмите на бота и выберите "Разблокировать" или "Начать"\n4️⃣ Вернитесь на сайт и попробуйте войти снова'
+    botBlocked: '🔒 Вы заблокировали бота BilimPoz Teacher.\n\n📋 *Как разблокировать бота:*\n\n1️⃣ Откройте приложение Telegram\n2️⃣ Найдите бота @{botUsername} в списке чатов\n3️⃣ Нажмите на бота и выберите "Разблокировать" или "Начать"\n4️⃣ Вернитесь на сайт и попробуйте войти снова',
+    // Дополнительные сообщения из БД
+    invalidParameters: '❌ Некорректные параметры',
+    telegramAlreadyConnected: '❌ Этот Telegram уже подключен к другому логину',
+    adminVerificationMessage: 'Здравствуйте! Я зарегистрировался в системе BilimPoz Teacher.\n\nИмя: {name}\nЛогин: {login}\n\nПрошу проверить и верифицировать мой аккаунт.'
   },
   kg: {
     welcome: '👋 BilimPoz Teacher\'ге кош келдиңиз!',
@@ -58,7 +62,11 @@ const messages = {
     verificationCodeAttempts: '🔄 Аракеттер саны: 5',
     verificationCodeEnter: '💻 Кирүүнү аяктоо үчүн аны сайтка киргизиңиз',
     authError: '❌ Авторизация катасы. Telegram ID дал келбейт.',
-    botBlocked: '🔒 Сиз BilimPoz Teacher ботуну бөгөттөдүңүз.\n\n📋 *Ботту кантип бөгөттөн чыгаруу:*\n\n1️⃣ Telegram колдонмосуну ачыңыз\n2️⃣ Чаттар тизмесинде @{botUsername} ботуну табыңыз\n3️⃣ Ботту басып, "Бөгөттөн чыгаруу" же "Баштоо" тандаңыз\n4️⃣ Сайтка кайтып, кайрадан кирүүгө аракет кылыңыз'
+    botBlocked: '🔒 Сиз BilimPoz Teacher ботуну бөгөттөдүңүз.\n\n📋 *Ботту кантип бөгөттөн чыгаруу:*\n\n1️⃣ Telegram колдонмосуну ачыңыз\n2️⃣ Чаттар тизмесинде @{botUsername} ботуну табыңыз\n3️⃣ Ботту басып, "Бөгөттөн чыгаруу" же "Баштоо" тандаңыз\n4️⃣ Сайтка кайтып, кайрадан кирүүгө аракет кылыңыз',
+    // Дополнительные сообщения из БД
+    invalidParameters: '❌ Туура эмес параметрлер',
+    telegramAlreadyConnected: '❌ Бул Telegram башка логинге туташтырылган',
+    adminVerificationMessage: 'Саламатсыздарбы! Мен BilimPoz Teacher системасына катталдым.\n\nАты: {name}\nЛогин: {login}\n\nАккаунтумду текшерип, ырастаңыз.'
   }
 }
 
@@ -71,6 +79,30 @@ class TelegramPollingService {
   // Геттер для проверки статуса
   get isActive() {
     return this.pollingActive
+  }
+
+  /**
+   * Получение сообщений верификации из БД (прямая связь без кэширования)
+   */
+  private async getMessages(language: 'ru' | 'kg' = 'ru'): Promise<typeof defaultMessages.ru> {
+    // Всегда загружаем из БД для прямой связи
+    const dbMessages = await getVerificationMessages()
+    
+    // Базовые сообщения из дефолтных (включая функции)
+    const baseMessages = { ...defaultMessages[language] }
+    
+    // Перезаписываем сообщения верификации из БД (если есть)
+    if (dbMessages && dbMessages[language]) {
+      const keys = Object.keys(dbMessages[language])
+      
+      keys.forEach(key => {
+        if (key in baseMessages && typeof baseMessages[key as keyof typeof baseMessages] === 'string') {
+          ;(baseMessages as any)[key] = dbMessages[language][key]
+        }
+      })
+    }
+    
+    return baseMessages
   }
 
   /**
@@ -230,7 +262,8 @@ class TelegramPollingService {
     // Проверка команды /start
     if (!text.startsWith('/start')) {
       // Отправляем справку для других команд
-      await this.sendMessage(user.id, messages.ru.unknownCommand)
+      const msg = await this.getMessages('ru')
+      await this.sendMessage(user.id, msg.unknownCommand)
       return
     }
 
@@ -262,7 +295,8 @@ class TelegramPollingService {
     // Парсинг mode и login
     const firstUnderscoreIndex = paramsWithoutLanguage.indexOf('_')
     if (firstUnderscoreIndex === -1) {
-      await this.sendMessage(user.id, '❌ Некорректные параметры')
+      const msg = await this.getMessages(language)
+      await this.sendMessage(user.id, msg.invalidParameters)
       return
     }
 
@@ -270,7 +304,8 @@ class TelegramPollingService {
     const login = paramsWithoutLanguage.substring(firstUnderscoreIndex + 1)
 
     if (!mode || !login || !['register', 'login'].includes(mode)) {
-      await this.sendMessage(user.id, '❌ Некорректные параметры')
+      const msg = await this.getMessages(language)
+      await this.sendMessage(user.id, msg.invalidParameters)
       return
     }
 
@@ -280,15 +315,19 @@ class TelegramPollingService {
     })
 
     if (!dbUser) {
-      await this.sendMessage(user.id, messages[language].userNotFound)
+      const msg = await this.getMessages(language)
+      await this.sendMessage(user.id, msg.userNotFound)
       return
     }
 
+    // Определяем язык пользователя из БД (приоритет над языком из URL)
+    const userLanguage: 'ru' | 'kg' = dbUser.language === 'kg' ? 'kg' : 'ru'
+
     // Обработка в зависимости от режима
     if (mode === 'register') {
-      await this.handleRegister(user, dbUser, language)
+      await this.handleRegister(user, dbUser, userLanguage)
     } else if (mode === 'login') {
-      await this.handleLogin(user, dbUser, language)
+      await this.handleLogin(user, dbUser, userLanguage)
     }
   }
 
@@ -296,7 +335,7 @@ class TelegramPollingService {
    * Отправка приветственного сообщения
    */
   private async sendWelcomeMessage(chatId: number, language: 'ru' | 'kg' = 'ru') {
-    const msg = messages[language]
+    const msg = await this.getMessages(language)
     const welcomeText = `${msg.welcome}\n\n` +
       `Для регистрации или входа используйте ссылку с сайта BilimPoz Teacher.`
     
@@ -308,7 +347,7 @@ class TelegramPollingService {
    */
   private async handleRegister(user: any, dbUser: any, userLanguage: 'ru' | 'kg' = 'ru') {
     const telegramIdString = user.id.toString()
-    const msg = messages[userLanguage]
+    const msg = await this.getMessages(userLanguage)
     
     // 1. Проверка: уже подключен ли этот Telegram к пользователю
     if (dbUser.telegram_id === telegramIdString) {
@@ -324,7 +363,7 @@ class TelegramPollingService {
     })
     
     if (existingTelegramUser && existingTelegramUser.id !== dbUser.id) {
-      await this.sendMessage(user.id, '❌ Этот Telegram уже подключен к другому логину')
+      await this.sendMessage(user.id, msg.telegramAlreadyConnected)
       return
     }
     
@@ -380,10 +419,9 @@ class TelegramPollingService {
       )
     } else {
       // Для не верифицированных - инструкция по верификации
-      const verificationMessage = `Здравствуйте! Я зарегистрировался в системе BilimPoz Teacher.\n\n` +
-        `Имя: ${dbUser.name}\n` +
-        `Логин: ${dbUser.login}\n\n` +
-        `Прошу проверить и верифицировать мой аккаунт.`
+      const verificationMessage = msg.adminVerificationMessage
+        .replace('{name}', dbUser.name)
+        .replace('{login}', dbUser.login)
       
       const adminButton = await this.getAdminButton(verificationMessage, userLanguage)
       
@@ -421,7 +459,7 @@ class TelegramPollingService {
    * Обработка входа
    */
   private async handleLogin(user: any, dbUser: any, userLanguage: 'ru' | 'kg' = 'ru') {
-    const msg = messages[userLanguage]
+    const msg = await this.getMessages(userLanguage)
     
     // 1. Проверка: если у пользователя нет Telegram ID, устанавливаем его
     if (!dbUser.telegram_id) {
@@ -576,8 +614,9 @@ class TelegramPollingService {
       
       // Добавление предзаполненного текста
       const encodedMessage = encodeURIComponent(verificationMessage)
+      const msg = await this.getMessages(language)
       return {
-        text: messages[language].contactAdmin,
+        text: msg.contactAdmin,
         url: `${adminChatUrl}?text=${encodedMessage}`
       }
     } catch (error) {
@@ -694,7 +733,7 @@ class TelegramPollingService {
 
       // 3. Определение языка
       const userLanguage: 'ru' | 'kg' = (language === 'ky' || language === 'kg') ? 'kg' : 'ru'
-      const msg = messages[userLanguage]
+      const msg = await this.getMessages(userLanguage)
 
       // 4. Генерация кода верификации
       const verificationCode = await generateAndStoreVerificationCode(dbUser.id, 'login')

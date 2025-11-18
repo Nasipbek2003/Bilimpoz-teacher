@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Icons } from '@/components/ui/Icons'
 import Input from '@/components/ui/Input'
 import Button from '@/components/ui/Button'
+import Select from '@/components/ui/Select'
 import TelegramConnectionForm from './TelegramConnectionForm'
 import { useTranslation } from '@/hooks/useTranslation'
 
@@ -13,15 +14,13 @@ export default function RegisterForm() {
     name: '',
     login: '',
     password: '',
-    confirmPassword: '',
     language: 'ru' as 'ru' | 'kg'
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [isLoading, setIsLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [showTelegramForm, setShowTelegramForm] = useState(false)
-  const [registeredUser, setRegisteredUser] = useState<{ login: string; name: string; id?: string } | null>(null)
+  const [registeredUser, setRegisteredUser] = useState<{ login: string; name: string; id?: string; password?: string; language?: 'ru' | 'kg' } | null>(null)
   const { t, language, changeLanguage, ready } = useTranslation()
   const [mounted, setMounted] = useState(false)
   
@@ -66,12 +65,6 @@ export default function RegisterForm() {
       newErrors.password = getText('auth.register.errors.passwordMinLength', 'Пароль должен содержать минимум 6 символов')
     }
 
-    if (!formData.confirmPassword.trim()) {
-      newErrors.confirmPassword = getText('auth.register.errors.confirmPasswordRequired', 'Подтверждение пароля обязательно')
-    } else if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = getText('auth.register.errors.passwordsMismatch', 'Пароли не совпадают')
-    }
-
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
@@ -106,7 +99,9 @@ export default function RegisterForm() {
           setRegisteredUser({
             login: data.data.login,
             name: data.data.name,
-            id: data.data.id
+            id: data.data.id,
+            password: formData.password, // Сохраняем пароль для автоматического входа
+            language: data.data.language || formData.language // Язык из БД или из формы
           })
           setShowTelegramForm(true)
         } else {
@@ -119,7 +114,9 @@ export default function RegisterForm() {
           setRegisteredUser({
             login: data.data.login,
             name: data.data.name,
-            id: data.data.id
+            id: data.data.id,
+            password: formData.password, // Сохраняем пароль для автоматического входа
+            language: data.data.language || formData.language // Язык из БД или из формы
           })
           setShowTelegramForm(true)
       } else {
@@ -151,6 +148,8 @@ export default function RegisterForm() {
         login={registeredUser.login} 
         name={registeredUser.name} 
         userId={registeredUser.id}
+        password={registeredUser.password}
+        language={registeredUser.language}
         onBack={() => {
           setShowTelegramForm(false)
           setRegisteredUser(null)
@@ -160,9 +159,9 @@ export default function RegisterForm() {
   }
 
   return (
-    <div className="bg-[var(--bg-card)] rounded-3xl p-8">
-      <div className="text-center mb-8">
-        <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-2">
+    <div className="bg-[var(--bg-card)] rounded-3xl p-6">
+      <div className="text-center mb-6">
+        <h2 className="text-xl font-bold text-[var(--text-primary)] mb-1.5">
           {getText('auth.register.title', 'Регистрация')}
         </h2>
         <p className="text-[var(--text-tertiary)]">
@@ -170,15 +169,15 @@ export default function RegisterForm() {
         </p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-3">
         {errors.general && (
-          <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3">
-            <p className="text-red-400 text-sm">{errors.general}</p>
+          <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-2.5">
+            <p className="text-red-400 text-xs">{errors.general}</p>
           </div>
         )}
 
         <div>
-          <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
+          <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">
             {getText('auth.register.fullName', 'Полное имя')} <span className="text-red-400">*</span>
           </label>
           <Input
@@ -192,7 +191,7 @@ export default function RegisterForm() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
+          <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">
             {getText('auth.register.login', 'Логин')} <span className="text-red-400">*</span>
           </label>
           <Input
@@ -203,43 +202,27 @@ export default function RegisterForm() {
             error={errors.login}
             disabled={isLoading}
           />
-          {/* Переключатель языка преподавателя */}
-          <div className="mt-2 flex justify-end">
-            <div className="flex items-center gap-1 bg-[var(--bg-tertiary)] rounded-lg p-1">
-              <button
-                type="button"
-                onClick={() => {
-                  setFormData(prev => ({ ...prev, language: 'ru' }))
-                }}
-                className={`px-2 py-1 text-xs font-medium rounded transition-colors ${
-                  formData.language === 'ru'
-                    ? 'bg-[var(--bg-active-button)] text-[var(--text-active-button)]'
-                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-                }`}
-                disabled={isLoading}
-              >
-                RU
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setFormData(prev => ({ ...prev, language: 'kg' }))
-                }}
-                className={`px-2 py-1 text-xs font-medium rounded transition-colors ${
-                  formData.language === 'kg'
-                    ? 'bg-[var(--bg-active-button)] text-[var(--text-active-button)]'
-                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-                }`}
-                disabled={isLoading}
-              >
-                KG
-              </button>
-            </div>
-          </div>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
+          <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">
+            {getText('auth.register.language', 'Язык преподавателя')} <span className="text-red-400">*</span>
+          </label>
+          <Select
+            value={formData.language}
+            onChange={(value) => handleInputChange('language', value)}
+            options={[
+              { value: 'ru', label: getText('auth.register.languageRu', 'Русский') },
+              { value: 'kg', label: getText('auth.register.languageKg', 'Кыргызский') }
+            ]}
+            placeholder={getText('auth.register.languagePlaceholder', 'Выберите язык')}
+            className="w-full"
+            disabled={isLoading}
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">
             {getText('auth.register.password', 'Пароль')} <span className="text-red-400">*</span>
           </label>
           <div className="relative">
@@ -258,34 +241,6 @@ export default function RegisterForm() {
               disabled={isLoading}
             >
               {showPassword ? (
-                <Icons.EyeOff className="h-5 w-5" />
-              ) : (
-                <Icons.Eye className="h-5 w-5" />
-              )}
-            </button>
-          </div>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
-            {getText('auth.register.confirmPassword', 'Подтверждение пароля')} <span className="text-red-400">*</span>
-          </label>
-          <div className="relative">
-            <Input
-              type={showConfirmPassword ? 'text' : 'password'}
-              value={formData.confirmPassword}
-              onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
-              placeholder={getText('auth.register.confirmPasswordPlaceholder', 'Повторите пароль')}
-              error={errors.confirmPassword}
-              disabled={isLoading}
-            />
-            <button
-              type="button"
-              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors"
-              disabled={isLoading}
-            >
-              {showConfirmPassword ? (
                 <Icons.EyeOff className="h-5 w-5" />
               ) : (
                 <Icons.Eye className="h-5 w-5" />

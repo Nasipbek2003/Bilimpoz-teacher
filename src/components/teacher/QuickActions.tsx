@@ -66,10 +66,18 @@ const QuickActions: React.FC<QuickActionsProps> = ({ teacherId, onTabChange }) =
   if (!mounted || !ready) {
     return (
       <div className="bg-[var(--bg-card)] rounded-2xl p-6 border border-[var(--border-primary)] shadow-sm">
-        <div className="h-6 bg-[var(--bg-hover)] rounded w-1/4 mb-4 animate-pulse"></div>
+        <div className="h-6 skeleton-shimmer rounded w-1/4 mb-4"></div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {[...Array(3)].map((_, i) => (
-            <div key={i} className="h-20 bg-[var(--bg-hover)] rounded-xl animate-pulse"></div>
+            <div key={i} className="p-4 rounded-xl bg-[var(--bg-tertiary)]">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 skeleton-shimmer rounded-lg"></div>
+                <div className="flex-1 space-y-2">
+                  <div className="h-4 skeleton-shimmer rounded w-3/4"></div>
+                  <div className="h-3 skeleton-shimmer rounded w-full"></div>
+                </div>
+              </div>
+            </div>
           ))}
         </div>
       </div>

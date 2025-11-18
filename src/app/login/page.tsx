@@ -1,16 +1,30 @@
 'use client'
 
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import LoginForm from '@/components/auth/LoginForm'
 import ThemeToggle from '@/components/ui/ThemeToggle'
+import LanguageSwitcher from '@/components/ui/LanguageSwitcher'
+import { useTranslation } from '@/hooks/useTranslation'
 
 export default function LoginPage() {
+  const { t, ready } = useTranslation()
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  const getText = (key: string, fallback: string) => {
+    if (!mounted || !ready) return fallback
+    return t(key) || fallback
+  }
   return (
     <div 
       className="min-h-screen flex items-center justify-center p-4 bg-[var(--bg-primary)]"
     >
-      {/* Переключатель темы */}
-      <div className="fixed top-4 right-4 z-50">
+      {/* Переключатели темы и языка */}
+      <div className="fixed top-4 right-4 z-50 flex items-center gap-3">
+        <LanguageSwitcher />
         <ThemeToggle />
       </div>
 
@@ -25,7 +39,7 @@ export default function LoginPage() {
             </h1>
           </div>
           <p className="text-[var(--text-tertiary)]">
-            Платформа для преподавателей
+            {getText('app.platformForTeachers', 'Платформа для преподавателей')}
           </p>
         </div>
         <LoginForm />

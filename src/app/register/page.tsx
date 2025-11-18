@@ -1,11 +1,23 @@
 'use client'
 
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import RegisterForm from '@/components/auth/RegisterForm'
 import ThemeToggle from '@/components/ui/ThemeToggle'
 import LanguageSwitcher from '@/components/ui/LanguageSwitcher'
+import { useTranslation } from '@/hooks/useTranslation'
 
 export default function RegisterPage() {
+  const { t, ready } = useTranslation()
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  const getText = (key: string, fallback: string) => {
+    if (!mounted || !ready) return fallback
+    return t(key) || fallback
+  }
   return (
     <div 
       className="min-h-screen flex items-center justify-center p-4 bg-[var(--bg-primary)]"
@@ -27,7 +39,7 @@ export default function RegisterPage() {
             </h1>
           </div>
           <p className="text-[var(--text-tertiary)]">
-            Платформа для преподавателей
+            {getText('app.platformForTeachers', 'Платформа для преподавателей')}
           </p>
         </div>
         <RegisterForm />

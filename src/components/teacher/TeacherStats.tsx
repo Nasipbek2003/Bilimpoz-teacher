@@ -56,26 +56,16 @@ const TeacherStats: React.FC<TeacherStatsProps> = ({ teacherId }) => {
     return t(key)
   }
 
-  if (!mounted || !ready) {
+  if (!mounted || !ready || loading) {
     return (
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
         {[...Array(4)].map((_, i) => (
-          <div key={i} className="bg-[var(--bg-tertiary)] rounded-2xl p-6 animate-pulse">
-            <div className="h-3 bg-[var(--bg-hover)] rounded w-3/4 mb-2"></div>
-            <div className="h-6 bg-[var(--bg-hover)] rounded w-1/2"></div>
-          </div>
-        ))}
-      </div>
-    )
-  }
-
-  if (loading) {
-    return (
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-        {[...Array(4)].map((_, i) => (
-          <div key={i} className="bg-[var(--bg-tertiary)] rounded-2xl p-6 animate-pulse">
-            <div className="h-3 bg-[var(--bg-hover)] rounded w-3/4 mb-2"></div>
-            <div className="h-6 bg-[var(--bg-hover)] rounded w-1/2"></div>
+          <div key={i} className="bg-[var(--bg-tertiary)] rounded-2xl p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 skeleton-shimmer rounded-lg"></div>
+              <div className="h-4 skeleton-shimmer rounded w-3/4"></div>
+            </div>
+            <div className="h-8 skeleton-shimmer rounded w-1/2"></div>
           </div>
         ))}
       </div>
