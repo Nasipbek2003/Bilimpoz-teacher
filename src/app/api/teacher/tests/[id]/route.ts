@@ -98,7 +98,7 @@ export async function PUT(
 
     const testId = params.id
     const body = await request.json()
-    const { name, description } = body
+    const { name, description, language, section } = body
 
     // Проверка существования теста
     const existingTest = await prisma.teacher_tests.findUnique({
@@ -128,13 +128,24 @@ export async function PUT(
       )
     }
 
+    // Подготовка данных для обновления
+    const updateData: any = {
+      name: name.trim(),
+      description: description.trim()
+    }
+
+    // Добавляем language если передан
+    if (language && ['ru', 'kg'].includes(language)) {
+      updateData.language = language
+    }
+
+    // Примечание: section не сохраняется в БД, только в localStorage
+    // Если нужно сохранять section в БД, нужно добавить поле в схему Prisma
+
     // Обновление теста
     const updatedTest = await prisma.teacher_tests.update({
       where: { id: testId },
-      data: {
-        name: name.trim(),
-        description: description.trim()
-      }
+      data: updateData
     })
 
     return NextResponse.json({
@@ -222,4 +233,5 @@ export async function DELETE(
     )
   }
 }
+
 

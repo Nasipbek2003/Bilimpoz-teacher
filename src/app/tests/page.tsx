@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import TeacherLayout from '@/components/teacher/TeacherLayout'
 import Button from '@/components/ui/Button'
@@ -8,6 +8,11 @@ import { Icons } from '@/components/ui/Icons'
 import { useTranslation } from '@/hooks/useTranslation'
 import { useAuth } from '@/contexts/AuthContext'
 import { generateTempId, saveDraftTest, setTestStatus, getDraftTests, getTestStatuses, getDraftTest } from '@/lib/test-storage'
+import CreateTestModal from '@/components/teacher/CreateTestModal'
+import CustomDatePicker from '@/components/ui/CustomDatePicker'
+import CustomTimePicker from '@/components/ui/CustomTimePicker'
+import Select, { SelectOption } from '@/components/ui/Select'
+import ConfirmDialog from '@/components/ui/ConfirmDialog'
 
 interface Test {
   id: string
@@ -18,6 +23,7 @@ interface Test {
   createdAt: string
   updatedAt: string
   language: 'ru' | 'kg'
+  status?: 'draft' | 'published'
 }
 
 export default function TestsPage() {
@@ -29,6 +35,16 @@ export default function TestsPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [language, setLanguage] = useState<'all' | 'ru' | 'kg'>('all')
+  const [status, setStatus] = useState<'all' | 'draft' | 'published'>('all')
+  const [period, setPeriod] = useState('')
+  const [dateFrom, setDateFrom] = useState('')
+  const [timeFrom, setTimeFrom] = useState('')
+  const [dateTo, setDateTo] = useState('')
+  const [timeTo, setTimeTo] = useState('')
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [testToDelete, setTestToDelete] = useState<string | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   useEffect(() => {
     setMounted(true)
@@ -100,53 +116,173 @@ export default function TestsPage() {
     return translation === key ? fallback : translation
   }
 
+  // Функция для вычисления дат периода
+  const getPeriodDates = (periodValue: string) => {
+    const now = new Date()
+    let fromDate = new Date()
+    let toDate = new Date()
+
+    switch (periodValue) {
+      case 'today':
+        fromDate.setHours(0, 0, 0, 0)
+        toDate.setHours(23, 59, 59, 999)
+        break
+      case 'yesterday':
+        fromDate.setDate(now.getDate() - 1)
+        fromDate.setHours(0, 0, 0, 0)
+        toDate.setDate(now.getDate() - 1)
+        toDate.setHours(23, 59, 59, 999)
+        break
+      case 'week':
+        // Последние 7 дней
+        fromDate.setDate(now.getDate() - 6)
+        fromDate.setHours(0, 0, 0, 0)
+        toDate.setHours(23, 59, 59, 999)
+        break
+      case 'month':
+        // Текущий месяц: от 1 числа до конца месяца
+        fromDate = new Date(now.getFullYear(), now.getMonth(), 1)
+        fromDate.setHours(0, 0, 0, 0)
+        toDate = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+        toDate.setHours(23, 59, 59, 999)
+        break
+      default:
+        return { dateFrom: '', timeFrom: '', dateTo: '', timeTo: '' }
+    }
+
+    const formatDate = (date: Date) => {
+      const year = date.getFullYear()
+      const month = (date.getMonth() + 1).toString().padStart(2, '0')
+      const day = date.getDate().toString().padStart(2, '0')
+      return `${year}-${month}-${day}`
+    }
+
+    const formatTime = (date: Date) => {
+      const hours = date.getHours().toString().padStart(2, '0')
+      const minutes = date.getMinutes().toString().padStart(2, '0')
+      return `${hours}:${minutes}`
+    }
+
+    return {
+      dateFrom: formatDate(fromDate),
+      timeFrom: formatTime(fromDate),
+      dateTo: formatDate(toDate),
+      timeTo: formatTime(toDate)
+    }
+  }
+
+  // Обработчик изменения периода
+  const handlePeriodChange = (newPeriod: string) => {
+    setPeriod(newPeriod)
+    
+    // Автоматически устанавливаем даты для выбранного периода
+    if (newPeriod !== 'all' && newPeriod !== 'custom') {
+      const dates = getPeriodDates(newPeriod)
+      setDateFrom(dates.dateFrom)
+      setTimeFrom(dates.timeFrom)
+      setDateTo(dates.dateTo)
+      setTimeTo(dates.timeTo)
+    }
+  }
+
+  // Опции для фильтра по языку
+  const languageOptions: SelectOption[] = useMemo(() => {
+    if (!mounted || !ready) return []
+    return [
+      { value: 'all', label: getText('tests.allLanguages', 'Все языки') },
+      { value: 'ru', label: getText('tests.russian', 'Русский') },
+      { value: 'kg', label: getText('tests.kyrgyz', 'Кыргызский') }
+    ]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [t, mounted, ready])
+
+  // Опции для фильтра по статусу
+  const statusOptions: SelectOption[] = useMemo(() => {
+    if (!mounted || !ready) return []
+    return [
+      { value: 'all', label: getText('tests.allStatuses', 'Все статусы') },
+      { value: 'draft', label: getText('tests.draft', 'Черновик') },
+      { value: 'published', label: getText('tests.published', 'Опубликован') }
+    ]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [t, mounted, ready])
+
   // Фильтрация тестов
   const filteredTests = tests.filter(test => {
     const matchesSearch = test.name.toLowerCase().includes(search.toLowerCase()) ||
                          test.description.toLowerCase().includes(search.toLowerCase())
     const matchesLanguage = language === 'all' || test.language === language
-    return matchesSearch && matchesLanguage
+    const matchesStatus = status === 'all' || (test.status && test.status === status)
+    
+    // Фильтрация по дате и времени
+    let matchesDate = true
+    // Фильтруем только если указана хотя бы одна дата
+    if (dateFrom || dateTo) {
+      const testDate = new Date(test.updatedAt || test.createdAt)
+      
+      if (dateFrom) {
+        const fromDate = new Date(dateFrom)
+        if (timeFrom) {
+          const [hours, minutes] = timeFrom.split(':')
+          fromDate.setHours(parseInt(hours) || 0, parseInt(minutes) || 0, 0, 0)
+        } else {
+          fromDate.setHours(0, 0, 0, 0)
+        }
+        if (testDate < fromDate) {
+          matchesDate = false
+        }
+      }
+      
+      if (dateTo) {
+        const toDate = new Date(dateTo)
+        if (timeTo) {
+          const [hours, minutes] = timeTo.split(':')
+          toDate.setHours(parseInt(hours) || 23, parseInt(minutes) || 59, 59, 999)
+        } else {
+          toDate.setHours(23, 59, 59, 999)
+        }
+        if (testDate > toDate) {
+          matchesDate = false
+        }
+      }
+    }
+    
+    return matchesSearch && matchesLanguage && matchesStatus && matchesDate
   })
 
-  // Создание нового теста
+  // Проверка, применены ли какие-либо фильтры
+  const hasActiveFilters = useMemo(() => {
+    return (
+      search.trim() !== '' ||
+      language !== 'all' ||
+      status !== 'all' ||
+      period !== '' ||
+      dateFrom !== '' ||
+      dateTo !== '' ||
+      timeFrom !== '' ||
+      timeTo !== ''
+    )
+  }, [search, language, status, period, dateFrom, dateTo, timeFrom, timeTo])
+
+  // Очистка фильтров
+  const handleClearFilters = () => {
+    setSearch('')
+    setLanguage('all')
+    setStatus('all')
+    setPeriod('')
+    setDateFrom('')
+    setTimeFrom('')
+    setDateTo('')
+    setTimeTo('')
+  }
+
+  // Создание нового теста - открываем модал
   const handleCreateTest = () => {
     if (!user?.id) {
       alert(getText('tests.authRequired', 'Необходима авторизация'))
       return
     }
-
-    try {
-      const tempTestId = generateTempId()
-      const newTest = {
-        id: tempTestId,
-        name: getText('tests.newTestName', 'Новый тест'),
-        description: getText('tests.newTestDescription', 'Описание теста'),
-        language: 'ru' as 'ru' | 'kg',
-        status: 'draft' as const,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        teacherId: user.id
-      }
-
-      console.log('Создание теста:', newTest)
-      saveDraftTest(newTest)
-      setTestStatus(tempTestId, 'draft')
-      
-      // Проверяем, что тест сохранен
-      const savedTest = getDraftTest(tempTestId)
-      console.log('Сохраненный тест:', savedTest)
-      
-      if (!savedTest) {
-        throw new Error('Тест не был сохранен в localStorage')
-      }
-      
-      // Переход в редактор
-      console.log('Переход на страницу:', `/tests/${tempTestId}`)
-      router.push(`/tests/${tempTestId}`)
-    } catch (error) {
-      console.error('Ошибка создания теста:', error)
-      alert(getText('tests.createError', 'Ошибка при создании теста') + ': ' + (error instanceof Error ? error.message : String(error)))
-    }
+    setIsCreateModalOpen(true)
   }
 
   // Открытие теста
@@ -157,34 +293,43 @@ export default function TestsPage() {
   // Удаление теста
   const handleDeleteTest = async (testId: string, e: React.MouseEvent) => {
     e.stopPropagation()
-    
-    if (!confirm(getText('tests.confirmDelete', 'Вы уверены, что хотите удалить этот тест?'))) {
-      return
-    }
+    setTestToDelete(testId)
+    setShowDeleteConfirm(true)
+  }
 
+  const executeDeleteTest = async () => {
+    if (!testToDelete) return
+
+    setIsDeleting(true)
     try {
       // Если это временный ID, удаляем из localStorage
-      if (testId.startsWith('temp-')) {
+      if (testToDelete.startsWith('temp-')) {
         const { removeDraftTest, removeTestStatus, removeTestQuestions } = await import('@/lib/test-storage')
-        removeDraftTest(testId)
-        removeTestStatus(testId)
-        removeTestQuestions(testId)
-        setTests(tests.filter(t => t.id !== testId))
+        removeDraftTest(testToDelete)
+        removeTestStatus(testToDelete)
+        removeTestQuestions(testToDelete)
+        setTests(tests.filter(t => t.id !== testToDelete))
       } else {
         // Удаляем из БД
-        const response = await fetch(`/api/teacher/tests/${testId}`, {
+        const response = await fetch(`/api/teacher/tests/${testToDelete}`, {
           method: 'DELETE'
         })
 
         if (response.ok) {
-          setTests(tests.filter(t => t.id !== testId))
+          setTests(tests.filter(t => t.id !== testToDelete))
         } else {
-          alert(getText('tests.deleteError', 'Ошибка при удалении теста'))
+          const errorText = getText('tests.deleteError', 'Ошибка при удалении теста')
+          alert(errorText)
         }
       }
     } catch (error) {
       console.error('Ошибка удаления теста:', error)
-      alert(getText('tests.deleteError', 'Ошибка при удалении теста'))
+      const errorText = getText('tests.deleteError', 'Ошибка при удалении теста')
+      alert(errorText)
+    } finally {
+      setIsDeleting(false)
+      setShowDeleteConfirm(false)
+      setTestToDelete(null)
     }
   }
 
@@ -216,8 +361,8 @@ export default function TestsPage() {
         </div>
 
         {/* Фильтры */}
-        <div className="bg-[var(--bg-card)] rounded-2xl p-6 space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="bg-[var(--bg-card)] rounded-2xl p-6 space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {/* Поиск */}
             <div>
               <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
@@ -240,17 +385,103 @@ export default function TestsPage() {
               <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
                 {getText('tests.language', 'Язык')}
               </label>
-              <select
+              <Select
                 value={language}
-                onChange={(e) => setLanguage(e.target.value as 'all' | 'ru' | 'kg')}
-                className="w-full px-4 py-2 rounded-lg border border-[var(--border-primary)] bg-[var(--bg-tertiary)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent-primary)]"
-              >
-                <option value="all">{getText('tests.allLanguages', 'Все языки')}</option>
-                <option value="ru">{getText('tests.russian', 'Русский')}</option>
-                <option value="kg">{getText('tests.kyrgyz', 'Кыргызский')}</option>
-              </select>
+                onChange={(value) => setLanguage(value as 'all' | 'ru' | 'kg')}
+                options={languageOptions}
+                placeholder={getText('tests.allLanguages', 'Все языки')}
+              />
+            </div>
+
+            {/* Статус */}
+            <div>
+              <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
+                {getText('tests.status', 'Статус')}
+              </label>
+              <Select
+                value={status}
+                onChange={(value) => setStatus(value as 'all' | 'draft' | 'published')}
+                options={statusOptions}
+                placeholder={getText('tests.allStatuses', 'Все статусы')}
+              />
             </div>
           </div>
+
+          {/* Период */}
+          <div>
+            <label className="block text-sm font-medium text-[var(--text-secondary)] mb-3">
+              {getText('questions.period', 'Период')}:
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {[
+                { value: 'today', label: getText('dashboard.today', 'Сегодня') },
+                { value: 'yesterday', label: getText('dashboard.yesterday', 'Вчера') },
+                { value: 'week', label: getText('dashboard.week', 'Неделя') },
+                { value: 'month', label: getText('dashboard.month', 'Месяц') }
+              ].map((option) => (
+                <button
+                  key={option.value}
+                  onClick={() => handlePeriodChange(option.value)}
+                  className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+                    period === option.value
+                      ? 'bg-[var(--accent-primary)]/20 text-[var(--accent-primary)]'
+                      : 'bg-[var(--bg-tertiary)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)]'
+                  }`}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Диапазон дат */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* От даты */}
+            <div>
+              <label className="block text-sm font-medium text-[var(--text-secondary)] mb-3">
+                {getText('questions.fromDate', 'От даты')}:
+              </label>
+              <div className="space-y-3">
+                <CustomDatePicker
+                  value={dateFrom}
+                  onChange={setDateFrom}
+                />
+                <CustomTimePicker
+                  value={timeFrom}
+                  onChange={setTimeFrom}
+                />
+              </div>
+            </div>
+
+            {/* До даты */}
+            <div>
+              <label className="block text-sm font-medium text-[var(--text-secondary)] mb-3">
+                {getText('questions.toDate', 'До даты')}:
+              </label>
+              <div className="space-y-3">
+                <CustomDatePicker
+                  value={dateTo}
+                  onChange={setDateTo}
+                />
+                <CustomTimePicker
+                  value={timeTo}
+                  onChange={setTimeTo}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Кнопка очистки фильтров */}
+          {hasActiveFilters && (
+            <div className="flex justify-end">
+              <button
+                onClick={handleClearFilters}
+                className="px-4 py-2 text-sm text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors"
+              >
+                {getText('questions.clearFilters', 'Очистить фильтры')}
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Список тестов */}
@@ -327,6 +558,31 @@ export default function TestsPage() {
           </div>
         )}
       </div>
+
+      {/* Модал создания теста */}
+      <CreateTestModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        teacherId={user?.id || ''}
+      />
+
+      {/* Диалог подтверждения удаления теста */}
+      <ConfirmDialog
+        isOpen={showDeleteConfirm}
+        onClose={() => {
+          if (!isDeleting) {
+            setShowDeleteConfirm(false)
+            setTestToDelete(null)
+          }
+        }}
+        onConfirm={executeDeleteTest}
+        title={getText('tests.deleteConfirmTitle', 'Удалить тест?')}
+        message={getText('tests.deleteConfirmMessage', 'Вы уверены, что хотите удалить этот тест? Это действие нельзя отменить.')}
+        confirmText={getText('common.delete', 'Удалить')}
+        cancelText={getText('common.cancel', 'Отмена')}
+        variant="danger"
+        isLoading={isDeleting}
+      />
     </TeacherLayout>
   )
 }

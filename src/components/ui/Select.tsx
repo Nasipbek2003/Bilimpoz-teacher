@@ -15,6 +15,7 @@ interface SelectProps {
   placeholder?: string
   className?: string
   disabled?: boolean
+  error?: boolean
 }
 
 const Select: React.FC<SelectProps> = ({
@@ -23,7 +24,8 @@ const Select: React.FC<SelectProps> = ({
   options,
   placeholder = 'Выберите опцию',
   className = '',
-  disabled = false
+  disabled = false,
+  error = false
 }) => {
   const [isOpen, setIsOpen] = useState(false)
   const [position, setPosition] = useState<'bottom' | 'top'>('bottom')
@@ -75,9 +77,11 @@ const Select: React.FC<SelectProps> = ({
         type="button"
         onClick={handleToggle}
         disabled={disabled}
-        className={`w-full px-4 py-2.5 text-sm rounded-xl bg-[var(--bg-select)] text-[var(--text-primary)] hover:bg-[var(--bg-hover)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/20 flex items-center justify-between transition-all ${
-          disabled ? 'opacity-50 cursor-not-allowed' : ''
-        }`}
+        className={`w-full px-4 py-2.5 text-sm rounded-xl bg-[var(--bg-select)] text-[var(--text-primary)] hover:bg-[var(--bg-hover)] focus:outline-none flex items-center justify-between transition-all border ${
+          error 
+            ? 'border-red-400 focus:border-red-400 focus:ring-2 focus:ring-red-400/20' 
+            : 'border-[var(--border-primary)] focus:border-[var(--accent-primary)] focus:ring-2 focus:ring-[var(--accent-primary)]/20'
+        } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
       >
         <span className={selectedOption ? 'text-[var(--text-primary)]' : 'text-[var(--text-tertiary)]'}>
           {selectedOption ? selectedOption.label : placeholder}

@@ -116,7 +116,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { name, description, teacherId, language } = body
+    const { name, description, teacherId, language, section } = body
 
     // Валидация
     if (!name || !description || !teacherId || !language) {
@@ -171,4 +171,5 @@ export async function POST(request: NextRequest) {
     )
   }
 }
+
 

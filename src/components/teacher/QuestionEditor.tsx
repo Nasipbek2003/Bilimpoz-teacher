@@ -23,6 +23,7 @@ interface QuestionEditorProps {
   questionId: string
   testId: string
   testLanguage: 'ru' | 'kg'
+  questionType: QuestionType
   onQuestionUpdate?: (questionId: string, data: { question: string; type: QuestionType }) => void
 }
 
@@ -30,11 +31,11 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
   questionId,
   testId,
   testLanguage,
+  questionType,
   onQuestionUpdate
 }) => {
   const { t, ready } = useTranslation()
   const [mounted, setMounted] = useState(false)
-  const [questionType, setQuestionType] = useState<QuestionType>('standard')
   const [questionText, setQuestionText] = useState('')
   const [answers, setAnswers] = useState<Array<{ value: string; isCorrect: boolean }>>([
     { value: '', isCorrect: false },
@@ -45,6 +46,7 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
   const [imageUrl, setImageUrl] = useState('')
   const [isPreviewMode, setIsPreviewMode] = useState(false)
   const [isUploadingImage, setIsUploadingImage] = useState(false)
+  const [cursorPosition, setCursorPosition] = useState({ start: 0, end: 0 })
   const questionTextareaRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const imageToLatexInputRef = useRef<HTMLInputElement>(null)
@@ -105,6 +107,44 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
     return translation === key ? fallback : translation
   }
 
+  // Функция для определения активного форматирования в выделенном тексте
+  const getActiveFormats = (text: string, start: number, end: number) => {
+    const selectedText = text.substring(start, end)
+    const formats = {
+      bold: false,
+      italic: false,
+      strikethrough: false,
+      underline: false
+    }
+
+    // Проверяем, окружен ли выделенный текст маркерами форматирования
+    const textBefore = text.substring(Math.max(0, start - 10), start)
+    const textAfter = text.substring(end, Math.min(text.length, end + 10))
+
+    // Жирный: **текст**
+    if (textBefore.endsWith('**') && textAfter.startsWith('**')) {
+      formats.bold = true
+    }
+
+    // Курсив: *текст* (но не **текст**)
+    if (textBefore.endsWith('*') && textAfter.startsWith('*') && 
+        !textBefore.endsWith('**') && !textAfter.startsWith('**')) {
+      formats.italic = true
+    }
+
+    // Зачеркнутый: ~~текст~~
+    if (textBefore.endsWith('~~') && textAfter.startsWith('~~')) {
+      formats.strikethrough = true
+    }
+
+    // Подчеркнутый: <u>текст</u>
+    if (textBefore.endsWith('<u>') && textAfter.startsWith('</u>')) {
+      formats.underline = true
+    }
+
+    return formats
+  }
+
   // Обработчики форматирования текста
   const handleFormat = (format: string) => {
     const textarea = questionTextareaRef.current
@@ -114,44 +154,127 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
     const end = textarea.selectionEnd
     const selectedText = questionText.substring(start, end)
 
-    let formattedText = ''
-    let newCursorPos = start
+    // Для формул используем старую логику (без toggle)
+    if (format === 'inline-formula' || format === 'block-formula') {
+      let formattedText = ''
+      
+      // Проверяем, что находится перед курсором (для добавления пробела между формулами)
+      const textBefore = questionText.substring(0, start)
+      const endsWithFormula = textBefore.length > 0 && 
+        (textBefore.endsWith('$$') || textBefore.endsWith('$'))
+      const needsSpace = endsWithFormula && 
+        !textBefore.endsWith(' ') && 
+        !textBefore.endsWith('\n')
+
+      switch (format) {
+        case 'inline-formula':
+          formattedText = `${needsSpace ? ' ' : ''}$${selectedText || 'x^2'}$`
+          break
+        case 'block-formula':
+          formattedText = `${needsSpace ? ' ' : ''}$$${selectedText || '\\int_{-\\infty}^{\\infty} e^{-x^2} dx = \\sqrt{\\pi}'}$$`
+          break
+      }
+
+      const newText = 
+        questionText.substring(0, start) + 
+        formattedText + 
+        questionText.substring(end)
+      
+      setQuestionText(newText)
+      
+      setTimeout(() => {
+        textarea.focus()
+        const newPosition = start + formattedText.length
+        textarea.setSelectionRange(newPosition, newPosition)
+      }, 0)
+      return
+    }
+
+    // Для текстового форматирования используем toggle-логику
+    const activeFormats = getActiveFormats(questionText, start, end)
+    let newText = questionText
+    let newStart = start
+    let newEnd = end
 
     switch (format) {
       case 'bold':
-        formattedText = `**${selectedText}**`
-        newCursorPos = start + 2
+        if (activeFormats.bold) {
+          // Убираем форматирование: удаляем ** с обеих сторон
+          const beforeMarker = questionText.substring(0, start - 2)
+          const afterMarker = questionText.substring(end + 2)
+          newText = beforeMarker + selectedText + afterMarker
+          newStart = start - 2
+          newEnd = end - 2
+        } else {
+          // Добавляем форматирование
+          const formattedText = `**${selectedText || 'текст'}**`
+          newText = questionText.substring(0, start) + formattedText + questionText.substring(end)
+          newStart = start + 2
+          newEnd = start + 2 + (selectedText || 'текст').length
+        }
         break
+
       case 'italic':
-        formattedText = `*${selectedText}*`
-        newCursorPos = start + 1
+        if (activeFormats.italic) {
+          // Убираем форматирование: удаляем * с обеих сторон
+          const beforeMarker = questionText.substring(0, start - 1)
+          const afterMarker = questionText.substring(end + 1)
+          newText = beforeMarker + selectedText + afterMarker
+          newStart = start - 1
+          newEnd = end - 1
+        } else {
+          // Добавляем форматирование
+          const formattedText = `*${selectedText || 'текст'}*`
+          newText = questionText.substring(0, start) + formattedText + questionText.substring(end)
+          newStart = start + 1
+          newEnd = start + 1 + (selectedText || 'текст').length
+        }
         break
-      case 'underline':
-        formattedText = `<u>${selectedText}</u>`
-        newCursorPos = start + 3
-        break
+
       case 'strikethrough':
-        formattedText = `~~${selectedText}~~`
-        newCursorPos = start + 2
+        if (activeFormats.strikethrough) {
+          // Убираем форматирование: удаляем ~~ с обеих сторон
+          const beforeMarker = questionText.substring(0, start - 2)
+          const afterMarker = questionText.substring(end + 2)
+          newText = beforeMarker + selectedText + afterMarker
+          newStart = start - 2
+          newEnd = end - 2
+        } else {
+          // Добавляем форматирование
+          const formattedText = `~~${selectedText || 'текст'}~~`
+          newText = questionText.substring(0, start) + formattedText + questionText.substring(end)
+          newStart = start + 2
+          newEnd = start + 2 + (selectedText || 'текст').length
+        }
         break
-      case 'inline-formula':
-        formattedText = `$${selectedText}$`
-        newCursorPos = start + 1
+
+      case 'underline':
+        if (activeFormats.underline) {
+          // Убираем форматирование: удаляем <u> и </u>
+          const beforeMarker = questionText.substring(0, start - 3)
+          const afterMarker = questionText.substring(end + 4)
+          newText = beforeMarker + selectedText + afterMarker
+          newStart = start - 3
+          newEnd = end - 3
+        } else {
+          // Добавляем форматирование
+          const formattedText = `<u>${selectedText || 'текст'}</u>`
+          newText = questionText.substring(0, start) + formattedText + questionText.substring(end)
+          newStart = start + 3
+          newEnd = start + 3 + (selectedText || 'текст').length
+        }
         break
-      case 'block-formula':
-        formattedText = `$$${selectedText}$$`
-        newCursorPos = start + 2
-        break
+
       default:
         return
     }
 
-    const newText = questionText.substring(0, start) + formattedText + questionText.substring(end)
     setQuestionText(newText)
-
+    
+    // Восстанавливаем фокус и выделение
     setTimeout(() => {
       textarea.focus()
-      textarea.setSelectionRange(newCursorPos, newCursorPos + selectedText.length)
+      textarea.setSelectionRange(newStart, newEnd)
     }, 0)
   }
 
@@ -203,28 +326,44 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
 
   // AI улучшение текста
   const handleMagicWand = async () => {
-    if (!improveText) {
-      alert(getText('testEditor.errors.aiNotAvailable', 'AI функция недоступна'))
-      return
-    }
-
+    // Улучшает выделенный текст с помощью AI
     const textarea = questionTextareaRef.current
     if (!textarea) return
 
     const start = textarea.selectionStart
     const end = textarea.selectionEnd
-    const selectedText = questionText.substring(start, end)
+    const selectedText = questionText.substring(start, end).trim()
 
-    if (!selectedText.trim()) {
-      alert(getText('testEditor.errors.selectTextToImprove', 'Выделите текст для улучшения'))
+    if (!selectedText) {
+      // Если ничего не выделено, показываем подсказку
+      alert(getText('testEditor.errors.selectTextToImprove', 'Выделите текст, который нужно улучшить'))
+      return
+    }
+
+    if (!improveText) {
+      alert(getText('testEditor.errors.aiNotAvailable', 'AI функция недоступна'))
       return
     }
 
     setAiLoading(true)
     try {
+      // Вызываем AI для улучшения текста
       const improvedText = await improveText(selectedText, testLanguage)
-      const newText = questionText.substring(0, start) + improvedText + questionText.substring(end)
+
+      // Заменяем выделенный текст на улучшенный
+      const newText = 
+        questionText.substring(0, start) + 
+        improvedText + 
+        questionText.substring(end)
+      
       setQuestionText(newText)
+      
+      // Восстанавливаем фокус и позицию курсора
+      setTimeout(() => {
+        textarea.focus()
+        const newPosition = start + improvedText.length
+        textarea.setSelectionRange(newPosition, newPosition)
+      }, 0)
     } catch (error) {
       console.error('Ошибка улучшения текста:', error)
       alert(getText('testEditor.errors.improvementError', 'Ошибка при улучшении текста'))
@@ -235,40 +374,62 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
 
   // Конвертация изображения в LaTeX
   const handleImageToLatex = () => {
-    if (!convertImageToLatex) {
-      alert(getText('testEditor.errors.aiNotAvailable', 'AI функция недоступна'))
-      return
-    }
+    // Открываем диалог выбора файла
     imageToLatexInputRef.current?.click()
   }
 
   const handleImageToLatexFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!convertImageToLatex) return
-
     const file = e.target.files?.[0]
     if (!file) return
 
+    // Проверка типа файла
+    if (!file.type.startsWith('image/')) {
+      alert(getText('questions.form.invalidImageType', 'Выберите изображение'))
+      return
+    }
+    
+    // Проверка размера (максимум 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert(getText('questions.form.imageTooLarge', 'Размер файла превышает 5MB'))
+      return
+    }
+
+    const textarea = questionTextareaRef.current
+    if (!textarea) return
+
+    if (!convertImageToLatex) {
+      alert(getText('testEditor.errors.aiNotAvailable', 'AI функция недоступна'))
+      return
+    }
+
     setAiLoading(true)
     try {
+      // Конвертируем изображение в LaTeX
       const latexCode = await convertImageToLatex(file)
-      const textarea = questionTextareaRef.current
-      if (!textarea) return
-
+      
+      // Вставляем LaTeX код в позицию курсора
       const start = textarea.selectionStart
       const end = textarea.selectionEnd
-      const newText = questionText.substring(0, start) + latexCode + questionText.substring(end)
+      
+      const newText = 
+        questionText.substring(0, start) + 
+        latexCode + 
+        questionText.substring(end)
+      
       setQuestionText(newText)
-
+      
+      // Восстанавливаем фокус и позицию курсора
       setTimeout(() => {
         textarea.focus()
-        const newCursorPos = start + latexCode.length
-        textarea.setSelectionRange(newCursorPos, newCursorPos)
+        const newPosition = start + latexCode.length
+        textarea.setSelectionRange(newPosition, newPosition)
       }, 0)
-    } catch (error: any) {
+    } catch (error) {
       console.error('Ошибка конвертации изображения:', error)
-      alert(getText('questions.form.imageConversionError', 'Ошибка конвертации изображения') + ': ' + (error?.message || ''))
+      alert(getText('questions.form.imageConversionError', 'Ошибка при конвертации изображения'))
     } finally {
       setAiLoading(false)
+      // Очищаем input для возможности повторной загрузки того же файла
       if (imageToLatexInputRef.current) {
         imageToLatexInputRef.current.value = ''
       }
@@ -282,7 +443,15 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
 
   const handleRemoveAnswer = (index: number) => {
     if (answers.length > 2) {
-      setAnswers(answers.filter((_, i) => i !== index))
+      const wasCorrect = answers[index].isCorrect
+      const newAnswers = answers.filter((_, i) => i !== index)
+      
+      // Если удалили правильный ответ, делаем первый ответ правильным
+      if (wasCorrect && newAnswers.length > 0) {
+        newAnswers[0].isCorrect = true
+      }
+      
+      setAnswers(newAnswers)
     }
   }
 
@@ -314,7 +483,7 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
               onClick={() => setIsPreviewMode(!isPreviewMode)}
               className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                 isPreviewMode
-                  ? 'bg-[var(--accent-primary)] text-white'
+                  ? 'bg-[#1A1A1A] text-[var(--text-secondary)] hover:text-white'
                   : 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]'
               }`}
             >
@@ -329,78 +498,50 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
 
       {/* Контент редактора */}
       <div className="flex-1 overflow-y-auto p-6 space-y-6">
-        {/* Тип вопроса */}
-        <div>
-          <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
-            {getText('tests.questionType', 'Тип вопроса')} <span className="text-red-400">*</span>
-          </label>
-          <select
-            value={questionType}
-            onChange={(e) => setQuestionType(e.target.value as QuestionType)}
-            className="w-full px-3 py-2 rounded-lg border border-[var(--border-primary)] bg-[var(--bg-tertiary)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent-primary)] text-sm"
-          >
-            <option value="standard">{getText('tests.types.standardFull', 'Стандартный')}</option>
-            <option value="analogy">{getText('tests.types.analogyFull', 'Аналогия')}</option>
-            <option value="grammar">{getText('tests.types.grammarFull', 'Грамматика')}</option>
-            <option value="math1">{getText('tests.types.math1Full', 'Математика 1')}</option>
-            <option value="math2">{getText('tests.types.math2Full', 'Математика 2')}</option>
-            <option value="rac">{getText('tests.types.racFull', 'Чтение и понимание')}</option>
-          </select>
-        </div>
-
         {/* Текст вопроса */}
         <div>
           <div className="flex items-center justify-between mb-2">
             <label className="block text-sm font-medium text-[var(--text-secondary)]">
               {getText('tests.questionText', 'Текст вопроса')} <span className="text-red-400">*</span>
             </label>
-            {!isPreviewMode && (
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={handleMagicWand}
-                  disabled={aiLoading}
-                  className="p-1.5 rounded-lg hover:bg-[var(--bg-hover)] transition-colors disabled:opacity-50"
-                  title={getText('tests.improveText', 'Улучшить текст с помощью AI')}
-                >
-                  {aiLoading ? (
-                    <Icons.Loader2 className="h-4 w-4 animate-spin text-[var(--accent-primary)]" />
-                  ) : (
-                    <Icons.Zap className="h-4 w-4 text-[var(--accent-primary)]" />
-                  )}
-                </button>
-                <button
-                  onClick={handleImageToLatex}
-                  disabled={aiLoading}
-                  className="p-1.5 rounded-lg hover:bg-[var(--bg-hover)] transition-colors disabled:opacity-50"
-                  title={getText('tests.imageToLatex', 'Картинка → LaTeX')}
-                >
-                  <Icons.Image className="h-4 w-4 text-[var(--accent-primary)]" />
-                </button>
-              </div>
-            )}
           </div>
 
           {!isPreviewMode ? (
             <>
               <TestToolbar
                 onFormat={handleFormat}
-                onImageClick={() => fileInputRef.current?.click()}
+                isPreviewMode={isPreviewMode}
+                onImageToLatex={handleImageToLatex}
+                onMagicWand={handleMagicWand}
+                onTogglePreview={() => setIsPreviewMode(!isPreviewMode)}
+                activeFormats={getActiveFormats(questionText, cursorPosition.start, cursorPosition.end)}
               />
               <textarea
                 ref={questionTextareaRef}
                 value={questionText}
                 onChange={(e) => setQuestionText(e.target.value)}
+                onSelect={(e) => {
+                  const target = e.target as HTMLTextAreaElement
+                  setCursorPosition({ start: target.selectionStart, end: target.selectionEnd })
+                }}
+                onKeyUp={(e) => {
+                  const target = e.target as HTMLTextAreaElement
+                  setCursorPosition({ start: target.selectionStart, end: target.selectionEnd })
+                }}
+                onClick={(e) => {
+                  const target = e.target as HTMLTextAreaElement
+                  setCursorPosition({ start: target.selectionStart, end: target.selectionEnd })
+                }}
                 placeholder={getText('tests.questionPlaceholder', 'Введите текст вопроса...')}
                 rows={8}
                 className="w-full px-3 py-2 rounded-lg border border-[var(--border-primary)] bg-[var(--bg-tertiary)] text-[var(--text-primary)] placeholder-[var(--text-tertiary)] focus:outline-none focus:border-[var(--accent-primary)] resize-none text-sm font-mono"
               />
             </>
           ) : (
-            <div className="p-4 rounded-lg border border-[var(--border-primary)] bg-[var(--bg-tertiary)] min-h-[200px]">
+            <div className="p-4 rounded-lg border border-[var(--border-primary)] bg-[var(--bg-tertiary)] min-h-[200px] prose prose-sm max-w-none dark:prose-invert">
               <ReactMarkdown
                 remarkPlugins={[remarkMath, remarkGfm]}
                 rehypePlugins={[rehypeKatex, rehypeRaw]}
-                className="prose prose-sm max-w-none dark:prose-invert"
               >
                 {questionText || getText('tests.emptyQuestion', 'Текст вопроса отсутствует')}
               </ReactMarkdown>
@@ -431,14 +572,6 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
             <label className="block text-sm font-medium text-[var(--text-secondary)]">
               {getText('tests.answers', 'Варианты ответов')} <span className="text-red-400">*</span>
             </label>
-            {questionType === 'standard' && (
-              <button
-                onClick={handleAddAnswer}
-                className="text-xs text-[var(--accent-primary)] hover:underline"
-              >
-                + {getText('tests.addAnswer', 'Добавить вариант')}
-              </button>
-            )}
           </div>
 
           <div className="space-y-2">
@@ -457,10 +590,12 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
                   placeholder={`${getText('tests.answer', 'Ответ')} ${index + 1}`}
                   className="flex-1 px-3 py-2 rounded-lg border border-[var(--border-primary)] bg-[var(--bg-tertiary)] text-[var(--text-primary)] placeholder-[var(--text-tertiary)] focus:outline-none focus:border-[var(--accent-primary)] text-sm"
                 />
-                {questionType === 'standard' && answers.length > 2 && (
+                {/* Кнопка удаления - показываем если больше минимального количества */}
+                {answers.length > 2 && (
                   <button
                     onClick={() => handleRemoveAnswer(index)}
                     className="p-2 text-red-400 hover:bg-red-500/10 rounded-lg transition-colors flex-shrink-0"
+                    title={getText('tests.removeAnswer', 'Удалить вариант')}
                   >
                     <Icons.Trash2 className="h-4 w-4" />
                   </button>
@@ -468,6 +603,15 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
               </div>
             ))}
           </div>
+
+          {/* Кнопка добавления ответа */}
+          <button
+            onClick={handleAddAnswer}
+            className="mt-3 w-full px-4 py-2.5 border-2 border-dashed border-[var(--border-primary)] rounded-lg hover:border-[var(--accent-primary)] hover:bg-[var(--bg-hover)] transition-colors flex items-center justify-center gap-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+          >
+            <Icons.Plus className="h-5 w-5" />
+            <span>{getText('tests.addAnswer', 'Добавить вариант')}</span>
+          </button>
         </div>
 
         {/* Баллы и время */}
@@ -513,6 +657,7 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
         onChange={handleImageToLatexFileSelect}
         accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
         className="hidden"
+        disabled={aiLoading}
       />
     </div>
   )

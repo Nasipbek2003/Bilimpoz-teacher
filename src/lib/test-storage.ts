@@ -12,6 +12,7 @@ export interface DraftTest {
   createdAt: string
   updatedAt: string
   teacherId: string
+  section?: 'math1' | 'math2' | 'analogy' | 'rac' | 'grammar' | 'standard'
 }
 
 export interface QuestionData {
@@ -26,6 +27,7 @@ export interface QuestionData {
   textRac?: string // Для типа RAC
   answerA?: string // Для типа Math1
   answerB?: string // Для типа Math1
+  explanation_ai?: string // AI объяснение
 }
 
 export type QuestionType = 'standard' | 'analogy' | 'grammar' | 'math1' | 'math2' | 'rac'
@@ -343,6 +345,15 @@ export class TestLocalStorage {
 
   static removeTestQuestions(testId: string): void {
     removeTestQuestions(testId)
+  }
+
+  static saveTestQuestions(testId: string, questionIds: Array<{ id: string; type: QuestionType }>): void {
+    try {
+      const key = `${TEST_QUESTIONS_PREFIX}${testId}`
+      localStorage.setItem(key, JSON.stringify(questionIds))
+    } catch (error) {
+      console.error('Ошибка сохранения списка вопросов теста:', error)
+    }
   }
 }
 
