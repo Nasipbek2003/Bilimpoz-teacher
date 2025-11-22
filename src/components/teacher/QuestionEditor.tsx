@@ -483,7 +483,7 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
               onClick={() => setIsPreviewMode(!isPreviewMode)}
               className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                 isPreviewMode
-                  ? 'bg-[#1A1A1A] text-[var(--text-secondary)] hover:text-white'
+                  ? 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)]'
                   : 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]'
               }`}
             >
@@ -515,6 +515,7 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
                 onMagicWand={handleMagicWand}
                 onTogglePreview={() => setIsPreviewMode(!isPreviewMode)}
                 activeFormats={getActiveFormats(questionText, cursorPosition.start, cursorPosition.end)}
+                isAiLoading={aiLoading}
               />
               <textarea
                 ref={questionTextareaRef}
@@ -534,7 +535,7 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
                 }}
                 placeholder={getText('tests.questionPlaceholder', 'Введите текст вопроса...')}
                 rows={8}
-                className="w-full px-3 py-2 rounded-lg border border-[var(--border-primary)] bg-[var(--bg-tertiary)] text-[var(--text-primary)] placeholder-[var(--text-tertiary)] focus:outline-none focus:border-[var(--accent-primary)] resize-none text-sm font-mono"
+                className="w-full px-3 py-2 rounded-lg border border-[var(--border-primary)] bg-[var(--bg-tertiary)] text-[var(--text-primary)] placeholder-[var(--text-tertiary)] focus:outline-none focus:border-[var(--text-primary)] resize-none text-sm font-mono"
               />
             </>
           ) : (
@@ -583,12 +584,12 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
                   onChange={() => handleCorrectAnswerChange(index)}
                   className="flex-shrink-0"
                 />
-                <input
-                  type="text"
+                <textarea
                   value={answer.value}
                   onChange={(e) => handleAnswerChange(index, e.target.value)}
                   placeholder={`${getText('tests.answer', 'Ответ')} ${index + 1}`}
-                  className="flex-1 px-3 py-2 rounded-lg border border-[var(--border-primary)] bg-[var(--bg-tertiary)] text-[var(--text-primary)] placeholder-[var(--text-tertiary)] focus:outline-none focus:border-[var(--accent-primary)] text-sm"
+                  rows={2}
+                  className="flex-1 px-3 py-2 rounded-lg border border-[var(--border-primary)] bg-[var(--bg-tertiary)] text-[var(--text-primary)] placeholder-[var(--text-tertiary)] focus:outline-none focus:border-[var(--text-primary)] text-sm resize-none overflow-y-auto"
                 />
                 {/* Кнопка удаления - показываем если больше минимального количества */}
                 {answers.length > 2 && (
@@ -607,7 +608,7 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
           {/* Кнопка добавления ответа */}
           <button
             onClick={handleAddAnswer}
-            className="mt-3 w-full px-4 py-2.5 border-2 border-dashed border-[var(--border-primary)] rounded-lg hover:border-[var(--accent-primary)] hover:bg-[var(--bg-hover)] transition-colors flex items-center justify-center gap-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+            className="mt-3 w-full px-4 py-2.5 border-2 border-dashed border-[var(--border-primary)] rounded-lg hover:border-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-colors flex items-center justify-center gap-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
           >
             <Icons.Plus className="h-5 w-5" />
             <span>{getText('tests.addAnswer', 'Добавить вариант')}</span>
@@ -622,11 +623,31 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
             </label>
             <input
               type="number"
-              value={points}
-              onChange={(e) => setPoints(Math.max(1, parseInt(e.target.value) || 1))}
+              value={points || ''}
+              onChange={(e) => {
+                const inputValue = e.target.value
+                if (inputValue === '') {
+                  setPoints(0)
+                  return
+                }
+                const value = parseInt(inputValue) || 0
+                if (value >= 1 && value <= 5) {
+                  setPoints(value)
+                } else if (value === 0 && inputValue === '0') {
+                  setPoints(0)
+                }
+              }}
+              onBlur={(e) => {
+                const value = parseInt(e.target.value) || 1
+                setPoints(Math.min(Math.max(1, value), 5))
+              }}
               min="1"
-              className="w-full px-3 py-2 rounded-lg border border-[var(--border-primary)] bg-[var(--bg-tertiary)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent-primary)] text-sm"
+              max="5"
+              className="w-full px-3 py-2 rounded-lg border border-[var(--border-primary)] bg-[var(--bg-tertiary)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--text-primary)] text-sm"
             />
+            <p className="text-xs text-[var(--text-tertiary)] mt-1">
+              {getText('tests.pointsHint', 'Максимум 5 баллов')}
+            </p>
           </div>
           <div>
             <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
@@ -634,11 +655,31 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
             </label>
             <input
               type="number"
-              value={timeLimit}
-              onChange={(e) => setTimeLimit(Math.max(10, parseInt(e.target.value) || 60))}
-              min="10"
-              className="w-full px-3 py-2 rounded-lg border border-[var(--border-primary)] bg-[var(--bg-tertiary)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent-primary)] text-sm"
+              value={timeLimit || ''}
+              onChange={(e) => {
+                const inputValue = e.target.value
+                if (inputValue === '') {
+                  setTimeLimit(0)
+                  return
+                }
+                const value = parseInt(inputValue) || 0
+                if (value >= 1 && value <= 120) {
+                  setTimeLimit(value)
+                } else if (value === 0 && inputValue === '0') {
+                  setTimeLimit(0)
+                }
+              }}
+              onBlur={(e) => {
+                const value = parseInt(e.target.value) || 60
+                setTimeLimit(Math.min(Math.max(1, value), 120))
+              }}
+              min="1"
+              max="120"
+              className="w-full px-3 py-2 rounded-lg border border-[var(--border-primary)] bg-[var(--bg-tertiary)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--text-primary)] text-sm"
             />
+            <p className="text-xs text-[var(--text-tertiary)] mt-1">
+              {getText('tests.timeLimitHint', 'Максимум 120 секунд')}
+            </p>
           </div>
         </div>
       </div>

@@ -34,7 +34,7 @@ const QuestionEditor = dynamic(() => import('@/components/teacher/QuestionEditor
   loading: () => (
     <div className="flex items-center justify-center h-full">
       <div className="text-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--accent-primary)] mx-auto mb-4"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--text-primary)] mx-auto mb-4"></div>
         <p className="text-sm text-[var(--text-tertiary)]">Загрузка редактора...</p>
       </div>
     </div>
@@ -1103,7 +1103,7 @@ export default function TestEditorPage() {
                 onClick={() => setActiveTab('questions')}
                 className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
                   activeTab === 'questions'
-                    ? 'text-[var(--accent-primary)] border-b-2 border-[var(--accent-primary)]'
+                    ? 'text-[var(--text-primary)] border-b-2 border-[var(--text-primary)]'
                     : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'
                 }`}
               >
@@ -1113,7 +1113,7 @@ export default function TestEditorPage() {
                 onClick={() => setActiveTab('settings')}
                 className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
                   activeTab === 'settings'
-                    ? 'text-[var(--accent-primary)] border-b-2 border-[var(--accent-primary)]'
+                    ? 'text-[var(--text-primary)] border-b-2 border-[var(--text-primary)]'
                     : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'
                 }`}
               >
@@ -1128,7 +1128,7 @@ export default function TestEditorPage() {
                   {/* Кнопка добавления вопроса */}
                   <button
                     onClick={handleAddQuestion}
-                    className="w-full p-4 border-2 border-dashed border-[var(--border-primary)] rounded-lg hover:border-[var(--accent-primary)] hover:bg-[var(--bg-hover)] transition-colors flex items-center justify-center gap-2 text-[var(--text-secondary)]"
+                    className="w-full p-4 border-2 border-dashed border-[var(--border-primary)] rounded-lg hover:border-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-colors flex items-center justify-center gap-2 text-[var(--text-secondary)]"
                   >
                     <Icons.Plus className="h-5 w-5" />
                     <span>{getText('tests.addQuestion', 'Добавить вопрос')}</span>
@@ -1147,8 +1147,8 @@ export default function TestEditorPage() {
                         onClick={() => setSelectedQuestionId(q.id)}
                         className={`p-3 rounded-lg border cursor-pointer transition-all ${
                           selectedQuestionId === q.id
-                            ? 'border-[var(--accent-primary)] bg-[var(--accent-primary)]/10'
-                            : 'border-[var(--border-primary)] hover:border-[var(--accent-primary)]/50 hover:bg-[var(--bg-hover)]'
+                            ? 'border-[var(--text-primary)] bg-[var(--text-primary)]/10'
+                            : 'border-[var(--border-primary)] hover:border-[var(--text-primary)]/50 hover:bg-[var(--bg-hover)]'
                         }`}
                       >
                         <div className="flex items-start justify-between gap-2">
@@ -1210,7 +1210,7 @@ export default function TestEditorPage() {
                       value={testName}
                       onChange={(e) => setTestName(e.target.value)}
                       placeholder={getText('tests.testNamePlaceholder', 'Введите название теста')}
-                      className="w-full px-3 py-2 rounded-lg border border-[var(--border-primary)] bg-[var(--bg-tertiary)] text-[var(--text-primary)] placeholder-[var(--text-tertiary)] focus:outline-none focus:border-[var(--accent-primary)] text-sm"
+                      className="w-full px-3 py-2 rounded-lg border border-[var(--border-primary)] bg-[var(--bg-tertiary)] text-[var(--text-primary)] placeholder-[var(--text-tertiary)] focus:outline-none focus:border-[var(--text-primary)] text-sm"
                     />
                   </div>
 

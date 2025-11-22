@@ -33,7 +33,7 @@ const QuickActions: React.FC<QuickActionsProps> = ({ teacherId, onTabChange }) =
         if (onTabChange) {
           onTabChange('tests')
         } else {
-          router.push('/questions')
+          router.push('/tests')
         }
       }
     },

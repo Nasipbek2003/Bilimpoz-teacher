@@ -28,7 +28,7 @@ interface Test {
 
 export default function TestsPage() {
   const { t, ready } = useTranslation()
-  const { user } = useAuth()
+  const { user, loading: authLoading } = useAuth()
   const router = useRouter()
   const [mounted, setMounted] = useState(false)
   const [tests, setTests] = useState<Test[]>([])
@@ -49,6 +49,13 @@ export default function TestsPage() {
   useEffect(() => {
     setMounted(true)
   }, [])
+
+  // Редирект на страницу входа, если пользователь не авторизован
+  useEffect(() => {
+    if (mounted && !authLoading && !user) {
+      router.push('/login')
+    }
+  }, [mounted, authLoading, user, router])
 
   // Загрузка тестов
   useEffect(() => {
@@ -333,7 +340,13 @@ export default function TestsPage() {
     }
   }
 
-  if (!mounted) {
+  // Показываем загрузку, пока не загрузились данные или идет проверка авторизации
+  if (!mounted || authLoading) {
+    return null
+  }
+
+  // Если пользователь не авторизован, не показываем контент (будет редирект)
+  if (!user) {
     return null
   }
 
@@ -375,7 +388,7 @@ export default function TestsPage() {
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder={getText('tests.searchPlaceholder', 'Поиск по названию или описанию...')}
-                  className="w-full pl-10 pr-4 py-2 rounded-lg border border-[var(--border-primary)] bg-[var(--bg-tertiary)] text-[var(--text-primary)] placeholder-[var(--text-tertiary)] focus:outline-none focus:border-[var(--accent-primary)]"
+                  className="w-full pl-10 pr-4 py-2 rounded-lg border border-[var(--border-primary)] bg-[var(--bg-tertiary)] text-[var(--text-primary)] placeholder-[var(--text-tertiary)] focus:outline-none focus:border-[var(--text-primary)]"
                 />
               </div>
             </div>
@@ -424,8 +437,8 @@ export default function TestsPage() {
                   onClick={() => handlePeriodChange(option.value)}
                   className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
                     period === option.value
-                      ? 'bg-[var(--accent-primary)]/20 text-[var(--accent-primary)]'
-                      : 'bg-[var(--bg-tertiary)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)]'
+                      ? 'bg-[var(--bg-active)] text-[var(--text-primary)]'
+                      : 'bg-[var(--bg-select)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)]'
                   }`}
                 >
                   {option.label}
@@ -511,7 +524,7 @@ export default function TestsPage() {
               <div
                 key={test.id}
                 onClick={() => handleOpenTest(test.id)}
-                className="bg-[var(--bg-card)] rounded-2xl p-6 cursor-pointer hover:shadow-lg transition-all border border-[var(--border-primary)] hover:border-[var(--accent-primary)]"
+                className="bg-[var(--bg-card)] rounded-2xl p-6 cursor-pointer hover:shadow-lg transition-all border border-[var(--border-primary)] hover:border-[var(--text-primary)]"
               >
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex-1">

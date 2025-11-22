@@ -10,7 +10,20 @@ export async function register() {
       const botToken = await getTeacherBotToken()
       if (botToken) {
         console.log('🔧 Telegram bot token найден')
-        console.log('💡 Для запуска polling используйте: POST /api/telegram/polling-control с action: "start"')
+        
+        // Автоматический запуск polling в development режиме
+        if (process.env.NODE_ENV === 'development') {
+          console.log('🚀 Автоматический запуск Telegram polling...')
+          const startResult = await telegramPolling.start()
+          if (startResult) {
+            console.log('✅ Telegram polling запущен автоматически')
+          } else {
+            console.log('❌ Ошибка автоматического запуска polling')
+            console.log('💡 Для ручного запуска используйте: POST /api/telegram/polling-control с action: "start"')
+          }
+        } else {
+          console.log('💡 Для запуска polling используйте: POST /api/telegram/polling-control с action: "start"')
+        }
         console.log('💡 Для остановки polling используйте: POST /api/telegram/polling-control с action: "stop"')
       } else {
         console.warn('⚠️ TEACHER_BOT_TOKEN не установлен в БД')

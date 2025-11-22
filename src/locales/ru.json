@@ -314,7 +314,14 @@
     "changePhoto": "Изменить фото",
     "name": "Имя",
     "namePlaceholder": "Введите имя",
+    "interface": "Настройки интерфейса",
     "interfaceLanguage": "Язык интерфейса",
+    "theme": "Тема",
+    "lightTheme": "Светлая тема",
+    "darkTheme": "Темная тема",
+    "currentTheme": "Текущая",
+    "light": "Светлая",
+    "dark": "Темная",
     "socialNetworks": "Социальные сети",
     "telegram": "Telegram",
     "telegramPlaceholder": "@username",
@@ -335,7 +342,11 @@
     "logoutDescription": "Завершить текущую сессию и выйти из аккаунта",
     "logoutButton": "Выйти",
     "settingsSaved": "Настройки сохранены",
-    "passwordChanged": "Пароль изменен"
+    "passwordChanged": "Пароль успешно изменен",
+    "saveSuccess": "Настройки успешно сохранены",
+    "saveError": "Ошибка сохранения",
+    "passwordTooShort": "Пароль должен содержать минимум 6 символов",
+    "passwordChangeError": "Ошибка смены пароля"
   },
   "app": {
     "platformForTeachers": "Платформа для преподавателей"

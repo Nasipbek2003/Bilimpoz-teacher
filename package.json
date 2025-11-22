@@ -10,7 +10,8 @@
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:studio": "prisma studio",
-    "init:verification-messages": "npx tsx src/scripts/init-verification-messages.ts"
+    "init:verification-messages": "npx tsx src/scripts/init-verification-messages.ts",
+    "seed:discussions": "npx tsx src/scripts/seed-discussions.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.933.0",

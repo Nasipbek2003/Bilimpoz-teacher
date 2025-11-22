@@ -279,11 +279,11 @@ export default function RegisterForm() {
           variant="primary"
           size="lg"
           disabled={isLoading}
-          className="w-full !bg-[var(--bg-tertiary)] !text-[var(--text-primary)] !border-2 !border-[var(--border-primary)] hover:!bg-[var(--bg-hover)] focus:!ring-0 focus:!border-[var(--border-primary)] focus:!outline-none"
+          className="w-full"
         >
           {isLoading ? (
             <div className="flex items-center justify-center gap-2">
-              <div className="w-4 h-4 border-2 border-[var(--text-tertiary)]/30 border-t-[var(--text-primary)] rounded-full animate-spin" />
+              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
               {getText('auth.register.registering', 'Регистрация...')}
             </div>
           ) : (

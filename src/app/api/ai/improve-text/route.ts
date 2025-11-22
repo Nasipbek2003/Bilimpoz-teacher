@@ -53,6 +53,12 @@ export async function POST(request: NextRequest) {
             { status: 503 }
           )
         }
+        if (error.message.includes('Неверная модель') || error.message.includes('invalid model') || error.message.includes('model ID')) {
+          return NextResponse.json(
+            { error: error.message },
+            { status: 503 }
+          )
+        }
         throw error
       }
       throw new Error('Ошибка при улучшении текста')
@@ -75,6 +81,8 @@ export async function POST(request: NextRequest) {
       
       if (error.message.includes('OpenAI API key')) {
         statusCode = 503 // Service Unavailable
+      } else if (error.message.includes('Неверная модель') || error.message.includes('invalid model') || error.message.includes('model ID')) {
+        statusCode = 503
       } else if (error.message.includes('промпты')) {
         statusCode = 503
       }

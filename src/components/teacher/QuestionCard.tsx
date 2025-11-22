@@ -101,7 +101,7 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
                 ⚠️ {getText('questions.tooltips.problematic', 'Проблемный')}
               </span>
             )}
-            <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20 flex-shrink-0">
+            <span className="px-2 py-1 rounded-full text-xs font-medium bg-[var(--text-primary)]/10 text-[var(--text-primary)] border border-[var(--text-primary)]/20 flex-shrink-0">
               {getQuestionTypeLabel(question.type_question)}
             </span>
             <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-500/10 text-gray-400 border border-gray-500/20 flex-shrink-0">

@@ -6,7 +6,7 @@ import { getTokenFromRequest, verifyToken } from '@/lib/jwt-middleware'
 const publicRoutes = ['/register', '/login', '/verify-telegram']
 
 // Маршруты, которые требуют аутентификации
-const protectedRoutes = ['/', '/questions', '/discussions', '/settings', '/students']
+const protectedRoutes = ['/', '/discussions', '/settings', '/students', '/tests']
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
@@ -44,8 +44,10 @@ export async function middleware(request: NextRequest) {
   
   // Если пользователь пытается попасть на защищенный маршрут без валидного токена
   if (isProtectedRoute && !payload) {
-    const registerUrl = new URL('/register', request.url)
-    return NextResponse.redirect(registerUrl)
+    // Для страницы тестов редиректим на логин, для остальных - на регистрацию
+    const redirectUrl = pathname.startsWith('/tests') ? '/login' : '/register'
+    const authUrl = new URL(redirectUrl, request.url)
+    return NextResponse.redirect(authUrl)
   }
   
   // Если пользователь с валидным токеном пытается попасть на публичные страницы

@@ -134,19 +134,52 @@ export async function getOpenAIApiKey(): Promise<string | null> {
 }
 
 /**
- * Получение модели OpenAI из БД
+ * Получение модели OpenAI из БД для конкретной функции
  */
-export async function getOpenAIModel(): Promise<string> {
+export async function getOpenAIModel(functionName: string = 'improveText'): Promise<string> {
   const model = await getSetting('OPENAI_API_MODELS', 'gpt-4o-mini')
-  // Если в БД хранится JSON массив, парсим его
+  
+  // Если значение пустое или null, возвращаем дефолт
+  if (!model || model.trim().length === 0) {
+    return 'gpt-4o-mini'
+  }
+
+  // Пытаемся парсить как JSON объект с разными моделями для разных функций
   try {
-    const parsed = JSON.parse(model || '')
+    const parsed = JSON.parse(model.trim())
+    
+    // Если это объект с функциями
+    if (typeof parsed === 'object' && !Array.isArray(parsed)) {
+      // Ищем модель для конкретной функции
+      if (parsed[functionName] && typeof parsed[functionName] === 'string') {
+        return parsed[functionName].trim()
+      }
+      
+      // Если нет модели для конкретной функции, ищем общую модель
+      if (parsed.default && typeof parsed.default === 'string') {
+        return parsed.default.trim()
+      }
+      
+      // Берем первую доступную модель
+      const firstKey = Object.keys(parsed)[0]
+      if (firstKey && typeof parsed[firstKey] === 'string') {
+        return parsed[firstKey].trim()
+      }
+    }
+    
+    // Если это массив, берем первую модель
     if (Array.isArray(parsed) && parsed.length > 0) {
-      return parsed[0] // Берем первую модель из списка
+      const firstModel = parsed[0]
+      if (firstModel && typeof firstModel === 'string' && firstModel.trim().length > 0) {
+        return firstModel.trim()
+      }
     }
   } catch {
-    // Если не JSON, возвращаем как есть
+    // Если не JSON, возвращаем как есть (если это валидная строка)
   }
-  return model || 'gpt-4o-mini'
+  
+  // Возвращаем модель, обрезав пробелы
+  const trimmedModel = model.trim()
+  return trimmedModel || 'gpt-4o-mini'
 }
 

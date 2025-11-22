@@ -9,11 +9,17 @@ interface Discussion {
   id: string
   name: string
   student: string
+  studentId: string
+  lessonId: string
+  lessonTitle: string
   messageCount: number
   lastMessage: string
   lastMessageTime: string
   status: 'active' | 'closed'
   unreadCount?: number
+  summarizedChat?: string
+  createdAt: string
+  updatedAt: string
 }
 
 interface DiscussionCardProps {

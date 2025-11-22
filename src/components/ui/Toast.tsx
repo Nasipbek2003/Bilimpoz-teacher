@@ -52,9 +52,9 @@ const Toast: React.FC<ToastProps> = ({
       icon: Icons.AlertTriangle
     },
     info: {
-      bg: 'bg-blue-500/10',
-      border: 'border-blue-500/20',
-      text: 'text-blue-400',
+      bg: 'bg-[var(--accent-primary)]/10',
+      border: 'border-[var(--accent-primary)]/20',
+      text: 'text-[var(--accent-primary)]',
       icon: Icons.Info
     }
   }
@@ -65,7 +65,7 @@ const Toast: React.FC<ToastProps> = ({
   return (
     <div className="fixed top-4 right-4 z-[100]">
       <div
-        className={`${style.bg} ${style.border} border rounded-xl px-4 py-3 shadow-lg backdrop-blur-sm flex items-center gap-3 min-w-[300px] max-w-[500px] transform transition-all duration-300 ease-in-out ${
+        className={`${style.bg} ${style.border} border rounded-xl px-4 py-3 shadow-lg backdrop-blur-sm bg-[var(--bg-card)] flex items-center gap-3 min-w-[300px] max-w-[500px] transform transition-all duration-300 ease-in-out ${
           isOpen ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0 pointer-events-none'
         }`}
       >

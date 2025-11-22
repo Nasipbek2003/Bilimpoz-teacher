@@ -9,94 +9,89 @@ import { Icons } from '@/components/ui/Icons'
 import { useTranslation } from '@/hooks/useTranslation'
 import { DiscussionsPageSkeleton } from '@/components/ui/PageSkeletons'
 
-// Моковые данные
-const mockDiscussions = [
-  {
-    id: '1',
-    name: 'Урок 5: Квадратные уравнения',
-    student: 'Айжан Мамбетова',
-    messageCount: 12,
-    lastMessage: 'Спасибо за объяснение! Теперь понятно как решать через дискриминант.',
-    lastMessageTime: '2024-11-12T15:30:00Z',
-    status: 'active' as const,
-    unreadCount: 2,
-  },
-  {
-    id: '2',
-    name: 'Урок 3: Производные функций',
-    student: 'Бекжан Токтогулов',
-    messageCount: 8,
-    lastMessage: 'Можете еще раз объяснить правило произведения?',
-    lastMessageTime: '2024-11-12T10:15:00Z',
-    status: 'active' as const,
-    unreadCount: 1,
-  },
-  {
-    id: '3',
-    name: 'Урок 1: Основы алгебры',
-    student: 'Гульнара Асанова',
-    messageCount: 15,
-    lastMessage: 'Все понятно, спасибо за урок!',
-    lastMessageTime: '2024-11-10T14:20:00Z',
-    status: 'closed' as const,
-  },
-]
+interface Discussion {
+  id: string
+  name: string
+  student: string
+  studentId: string
+  lessonId: string
+  lessonTitle: string
+  messageCount: number
+  lastMessage: string
+  lastMessageTime: string
+  status: 'active' | 'closed'
+  unreadCount?: number
+  summarizedChat?: string
+  createdAt: string
+  updatedAt: string
+}
 
-const mockMessages = [
-  {
-    id: '1',
-    text: 'Здравствуйте! У меня вопрос по квадратным уравнениям.',
-    companion: 'student' as const,
-    timestamp: '2024-11-12T14:00:00Z',
-  },
-  {
-    id: '2',
-    text: 'Здравствуйте! Конечно, задавайте вопрос.',
-    companion: 'teacher' as const,
-    timestamp: '2024-11-12T14:05:00Z',
-  },
-  {
-    id: '3',
-    text: 'Как решить уравнение x² + 5x + 6 = 0? Не понимаю как найти корни.',
-    companion: 'student' as const,
-    timestamp: '2024-11-12T14:10:00Z',
-  },
-  {
-    id: '4',
-    text: 'Это уравнение можно решить несколькими способами. Попробуем через разложение на множители. Нужно найти два числа, которые в произведении дают 6, а в сумме 5.',
-    companion: 'teacher' as const,
-    timestamp: '2024-11-12T14:15:00Z',
-  },
-  {
-    id: '5',
-    text: 'Это числа 2 и 3! Значит (x + 2)(x + 3) = 0?',
-    companion: 'student' as const,
-    timestamp: '2024-11-12T14:20:00Z',
-  },
-  {
-    id: '6',
-    text: 'Совершенно верно! Теперь каждый множитель приравниваем к нулю: x + 2 = 0 или x + 3 = 0. Отсюда x = -2 или x = -3.',
-    companion: 'teacher' as const,
-    timestamp: '2024-11-12T14:25:00Z',
-  },
-]
+interface ChatMessage {
+  id: string
+  text: string
+  companion: 'student' | 'teacher'
+  timestamp: string
+}
 
 export default function DiscussionsPage() {
   const { t, ready } = useTranslation()
   const [mounted, setMounted] = useState(false)
-  const [discussions, setDiscussions] = useState(mockDiscussions)
+  const [discussions, setDiscussions] = useState<Discussion[]>([])
   const [selectedDiscussion, setSelectedDiscussion] = useState<string | null>(null)
-  const [chatMessages, setChatMessages] = useState(mockMessages)
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([])
   const [isChatOpen, setIsChatOpen] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+  const [filter, setFilter] = useState<'all' | 'active' | 'closed' | 'unread'>('all')
 
   useEffect(() => {
     setMounted(true)
   }, [])
 
+  // Загрузка обсуждений из API
+  useEffect(() => {
+    const fetchDiscussions = async () => {
+      if (!mounted) return
+      
+      setIsLoading(true)
+      try {
+        const response = await fetch('/api/teacher/discussions')
+        const result = await response.json()
+        
+        if (result.success && result.data) {
+          setDiscussions(result.data)
+        } else {
+          console.error('Ошибка загрузки обсуждений:', result.error)
+          setDiscussions([])
+        }
+      } catch (error) {
+        console.error('Ошибка при загрузке обсуждений:', error)
+        setDiscussions([])
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchDiscussions()
+  }, [mounted])
+
   const getText = (key: string, fallback: string) => {
     if (!mounted || !ready) return fallback
     return t(key)
   }
+
+  // Фильтрация обсуждений
+  const filteredDiscussions = discussions.filter(discussion => {
+    switch (filter) {
+      case 'active':
+        return discussion.status === 'active'
+      case 'closed':
+        return discussion.status === 'closed'
+      case 'unread':
+        return (discussion.unreadCount || 0) > 0
+      default:
+        return true
+    }
+  })
 
   // Статистика
   const stats = {
@@ -106,9 +101,25 @@ export default function DiscussionsPage() {
     unread: discussions.reduce((sum, d) => sum + (d.unreadCount || 0), 0),
   }
 
-  const handleOpenChat = (discussionId: string) => {
+  const handleOpenChat = async (discussionId: string) => {
     setSelectedDiscussion(discussionId)
     setIsChatOpen(true)
+    
+    // Загружаем сообщения для этого обсуждения
+    try {
+      const response = await fetch(`/api/teacher/discussions/${discussionId}/messages`)
+      const result = await response.json()
+      
+      if (result.success && result.data) {
+        setChatMessages(result.data)
+      } else {
+        console.error('Ошибка загрузки сообщений:', result.error)
+        setChatMessages([])
+      }
+    } catch (error) {
+      console.error('Ошибка при загрузке сообщений:', error)
+      setChatMessages([])
+    }
     
     // Сбрасываем счетчик непрочитанных сообщений
     setDiscussions(prev =>
@@ -125,44 +136,111 @@ export default function DiscussionsPage() {
     setSelectedDiscussion(null)
   }
 
-  const handleSendMessage = (message: string) => {
-    const newMessage = {
-      id: Date.now().toString(),
-      text: message,
-      companion: 'teacher' as const,
-      timestamp: new Date().toISOString(),
+  const handleSendMessage = async (message: string) => {
+    if (!selectedDiscussion) return
+    
+    try {
+      const response = await fetch(`/api/teacher/discussions/${selectedDiscussion}/messages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: message })
+      })
+      
+      const result = await response.json()
+      
+      if (result.success && result.data) {
+        // Добавляем новое сообщение в чат
+        setChatMessages(prev => [...prev, result.data])
+        
+        // Обновляем последнее сообщение в обсуждении
+        setDiscussions(prev =>
+          prev.map(d =>
+            d.id === selectedDiscussion
+              ? {
+                  ...d,
+                  lastMessage: message,
+                  lastMessageTime: result.data.timestamp,
+                  messageCount: d.messageCount + 1,
+                }
+              : d
+          )
+        )
+      } else {
+        console.error('Ошибка отправки сообщения:', result.error)
+        alert('Ошибка при отправке сообщения. Попробуйте снова.')
+      }
+    } catch (error) {
+      console.error('Ошибка при отправке сообщения:', error)
+      alert('Ошибка при отправке сообщения. Попробуйте снова.')
     }
-    
-    setChatMessages(prev => [...prev, newMessage])
-    
-    // Обновляем последнее сообщение в обсуждении
-    setDiscussions(prev =>
-      prev.map(d =>
-        d.id === selectedDiscussion
-          ? {
-              ...d,
-              lastMessage: message,
-              lastMessageTime: new Date().toISOString(),
-              messageCount: d.messageCount + 1,
-            }
-          : d
-      )
-    )
   }
 
-  const handleCloseDiscussion = (discussionId: string) => {
-    setDiscussions(prev =>
-      prev.map(d =>
-        d.id === discussionId
-          ? { ...d, status: 'closed' as const }
-          : d
-      )
-    )
+  const handleCloseDiscussion = async (discussionId: string) => {
+    try {
+      const response = await fetch(`/api/teacher/discussions/${discussionId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          action: 'close',
+          summarizedChat: 'Обсуждение закрыто учителем'
+        })
+      })
+      
+      const result = await response.json()
+      
+      if (result.success && result.data) {
+        // Обновляем статус обсуждения
+        setDiscussions(prev =>
+          prev.map(d =>
+            d.id === discussionId
+              ? { ...d, status: 'closed' as const, summarizedChat: result.data.summarizedChat }
+              : d
+          )
+        )
+      } else {
+        console.error('Ошибка закрытия обсуждения:', result.error)
+        alert('Ошибка при закрытии обсуждения. Попробуйте снова.')
+      }
+    } catch (error) {
+      console.error('Ошибка при закрытии обсуждения:', error)
+      alert('Ошибка при закрытии обсуждения. Попробуйте снова.')
+    }
   }
 
-  const handleSummarize = (discussionId: string) => {
-    console.log('Суммировать обсуждение:', discussionId)
-    // Здесь можно реализовать AI суммаризацию
+  const handleSummarize = async (discussionId: string) => {
+    try {
+      // В будущем здесь можно добавить AI суммаризацию
+      const summary = 'Обсуждение суммировано учителем'
+      
+      const response = await fetch(`/api/teacher/discussions/${discussionId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          action: 'summarize',
+          summarizedChat: summary
+        })
+      })
+      
+      const result = await response.json()
+      
+      if (result.success && result.data) {
+        // Обновляем суммаризацию обсуждения
+        setDiscussions(prev =>
+          prev.map(d =>
+            d.id === discussionId
+              ? { ...d, summarizedChat: result.data.summarizedChat }
+              : d
+          )
+        )
+        alert('Обсуждение суммировано!')
+      } else {
+        console.error('Ошибка суммирования обсуждения:', result.error)
+        alert('Ошибка при суммировании обсуждения. Попробуйте снова.')
+      }
+    } catch (error) {
+      console.error('Ошибка при суммировании обсуждения:', error)
+      alert('Ошибка при суммировании обсуждения. Попробуйте снова.')
+    }
   }
 
   const selectedDiscussionData = discussions.find(d => d.id === selectedDiscussion)
@@ -220,16 +298,44 @@ export default function DiscussionsPage() {
           </div>
           
           <div className="flex flex-wrap gap-2">
-            <button className="px-4 py-2 rounded-xl text-sm font-medium bg-[var(--bg-active-button)] text-[var(--text-active-button)]">
+            <button 
+              onClick={() => setFilter('all')}
+              className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+                filter === 'all'
+                  ? 'bg-[var(--bg-active-button)] text-[var(--text-active-button)]'
+                  : 'bg-[var(--bg-tertiary)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)]'
+              }`}
+            >
               {t('discussions.filters.all')}
             </button>
-            <button className="px-4 py-2 rounded-xl text-sm font-medium bg-[var(--bg-tertiary)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-all">
+            <button 
+              onClick={() => setFilter('active')}
+              className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+                filter === 'active'
+                  ? 'bg-[var(--bg-active-button)] text-[var(--text-active-button)]'
+                  : 'bg-[var(--bg-tertiary)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)]'
+              }`}
+            >
               {t('discussions.filters.active')}
             </button>
-            <button className="px-4 py-2 rounded-xl text-sm font-medium bg-[var(--bg-tertiary)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-all">
+            <button 
+              onClick={() => setFilter('closed')}
+              className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+                filter === 'closed'
+                  ? 'bg-[var(--bg-active-button)] text-[var(--text-active-button)]'
+                  : 'bg-[var(--bg-tertiary)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)]'
+              }`}
+            >
               {t('discussions.filters.closed')}
             </button>
-            <button className="px-4 py-2 rounded-xl text-sm font-medium bg-[var(--bg-tertiary)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-all">
+            <button 
+              onClick={() => setFilter('unread')}
+              className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+                filter === 'unread'
+                  ? 'bg-[var(--bg-active-button)] text-[var(--text-active-button)]'
+                  : 'bg-[var(--bg-tertiary)] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)]'
+              }`}
+            >
               {t('discussions.filters.withUnread')}
             </button>
           </div>
@@ -237,7 +343,9 @@ export default function DiscussionsPage() {
 
         {/* Список обсуждений */}
         <div className="space-y-4">
-          {discussions.length === 0 ? (
+          {isLoading ? (
+            <DiscussionsPageSkeleton />
+          ) : filteredDiscussions.length === 0 ? (
             <div className="bg-[var(--bg-card)] rounded-2xl p-12 text-center">
               <Icons.MessageCircle className="mx-auto h-12 w-12 text-[var(--text-tertiary)] mb-4" />
               <h3 className="text-lg font-medium text-[var(--text-primary)] mb-2">
@@ -248,7 +356,7 @@ export default function DiscussionsPage() {
               </p>
             </div>
           ) : (
-            discussions.map((discussion) => (
+            filteredDiscussions.map((discussion) => (
               <DiscussionCard
                 key={discussion.id}
                 discussion={discussion}

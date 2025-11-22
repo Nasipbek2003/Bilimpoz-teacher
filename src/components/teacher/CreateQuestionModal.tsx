@@ -598,6 +598,7 @@ const CreateQuestionModal: React.FC<CreateQuestionModalProps> = ({
             
             {/* Toolbar для форматирования */}
             <TestToolbar
+              isAiLoading={aiLoading}
               onFormat={handleFormat}
               isPreviewMode={isPreviewMode}
               onImageToLatex={handleImageToLatex}
@@ -712,18 +713,40 @@ const CreateQuestionModal: React.FC<CreateQuestionModalProps> = ({
               <Input
                 type="number"
                 min="1"
-                value={formData.points}
+                max="5"
+                value={formData.points || ''}
                 onChange={(e) => {
-                  setFormData({ ...formData, points: parseInt(e.target.value) || 1 })
-                  if (errors.points) {
-                    setErrors({ ...errors, points: '' })
+                  const inputValue = e.target.value
+                  if (inputValue === '') {
+                    setFormData({ ...formData, points: 0 })
+                    if (errors.points) {
+                      setErrors({ ...errors, points: '' })
+                    }
+                    return
                   }
+                  const value = parseInt(inputValue) || 0
+                  if (value >= 1 && value <= 5) {
+                    setFormData({ ...formData, points: value })
+                    if (errors.points) {
+                      setErrors({ ...errors, points: '' })
+                    }
+                  } else if (value === 0 && inputValue === '0') {
+                    setFormData({ ...formData, points: 0 })
+                  }
+                }}
+                onBlur={(e) => {
+                  const value = parseInt(e.target.value) || 1
+                  setFormData({ ...formData, points: Math.min(Math.max(1, value), 5) })
                 }}
                 placeholder="1"
                 error={!!errors.points}
               />
-              {errors.points && (
+              {errors.points ? (
                 <p className="text-sm text-red-400 mt-1">{errors.points}</p>
+              ) : (
+                <p className="text-xs text-[var(--text-tertiary)] mt-1">
+                  {getText('tests.pointsHint', 'Максимум 5 баллов')}
+                </p>
               )}
             </div>
 
@@ -734,18 +757,40 @@ const CreateQuestionModal: React.FC<CreateQuestionModalProps> = ({
               <Input
                 type="number"
                 min="1"
-                value={formData.time_limit}
+                max="120"
+                value={formData.time_limit || ''}
                 onChange={(e) => {
-                  setFormData({ ...formData, time_limit: parseInt(e.target.value) || 60 })
-                  if (errors.time_limit) {
-                    setErrors({ ...errors, time_limit: '' })
+                  const inputValue = e.target.value
+                  if (inputValue === '') {
+                    setFormData({ ...formData, time_limit: 0 })
+                    if (errors.time_limit) {
+                      setErrors({ ...errors, time_limit: '' })
+                    }
+                    return
                   }
+                  const value = parseInt(inputValue) || 0
+                  if (value >= 1 && value <= 120) {
+                    setFormData({ ...formData, time_limit: value })
+                    if (errors.time_limit) {
+                      setErrors({ ...errors, time_limit: '' })
+                    }
+                  } else if (value === 0 && inputValue === '0') {
+                    setFormData({ ...formData, time_limit: 0 })
+                  }
+                }}
+                onBlur={(e) => {
+                  const value = parseInt(e.target.value) || 60
+                  setFormData({ ...formData, time_limit: Math.min(Math.max(1, value), 120) })
                 }}
                 placeholder="60"
                 error={!!errors.time_limit}
               />
-              {errors.time_limit && (
+              {errors.time_limit ? (
                 <p className="text-sm text-red-400 mt-1">{errors.time_limit}</p>
+              ) : (
+                <p className="text-xs text-[var(--text-tertiary)] mt-1">
+                  {getText('tests.timeLimitHint', 'Максимум 120 секунд')}
+                </p>
               )}
             </div>
           </div>
@@ -889,12 +934,12 @@ const CreateQuestionModal: React.FC<CreateQuestionModalProps> = ({
                         ? 'bg-green-500/10 border border-green-500/20'
                         : 'bg-[var(--bg-card)]'
                     }`}>
-                      <input
-                      type="text"
+                      <textarea
                       value={variant.value}
                       onChange={(e) => handleAnswerVariantChange(index, e.target.value)}
                         placeholder={getText('questions.form.answerVariantPlaceholder', 'Вариант ответа') + ' ' + (index + 1)}
-                        className={`w-full bg-transparent border-none outline-none placeholder-[var(--text-tertiary)] ${
+                        rows={2}
+                        className={`w-full bg-transparent border-none outline-none placeholder-[var(--text-tertiary)] resize-none overflow-y-auto ${
                           isSelected ? 'text-green-400' : 'text-[var(--text-primary)]'
                         }`}
                     />
