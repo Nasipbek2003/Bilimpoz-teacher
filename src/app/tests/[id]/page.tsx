@@ -1,10 +1,13 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import dynamic from 'next/dynamic'
 import TeacherLayout from '@/components/teacher/TeacherLayout'
 import Button from '@/components/ui/Button'
+import Input from '@/components/ui/Input'
+import Select, { SelectOption } from '@/components/ui/Select'
+import Breadcrumbs from '@/components/ui/Breadcrumbs'
 import { Icons } from '@/components/ui/Icons'
 import { useTranslation } from '@/hooks/useTranslation'
 import { useAuth } from '@/contexts/AuthContext'
@@ -21,12 +24,21 @@ import {
   getTestStatus,
   removeTestStatus,
   removeDraftTest,
+  removeTestQuestions,
+  loadQuestionDraft,
+  removeDuplicateQuestions,
+  removeQuestionFromTest,
+  clearTestFromLocalStorage,
   type QuestionType,
   type QuestionData
 } from '@/lib/test-storage'
 import { TestLocalStorage } from '@/lib/test-storage'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import Toast, { ToastVariant } from '@/components/ui/Toast'
+import TestTypeSelectorMenu from '@/components/teacher/TestTypeSelectorMenu'
+import TestSettingsModal from '@/components/teacher/TestSettingsModal'
+import TestToolbar from '@/components/teacher/TestToolbar'
+import TestAIExplainButton from '@/components/teacher/TestAIExplainButton'
 
 // Динамический импорт для избежания SSR проблем
 const QuestionEditor = dynamic(() => import('@/components/teacher/QuestionEditor'), {
@@ -34,7 +46,7 @@ const QuestionEditor = dynamic(() => import('@/components/teacher/QuestionEditor
   loading: () => (
     <div className="flex items-center justify-center h-full">
       <div className="text-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--text-primary)] mx-auto mb-4"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-4"></div>
         <p className="text-sm text-[var(--text-tertiary)]">Загрузка редактора...</p>
       </div>
     </div>
@@ -60,6 +72,12 @@ interface Question {
   order?: number
 }
 
+interface TestFormErrors {
+  name?: string
+  description?: string
+  language?: string
+}
+
 export default function TestEditorPage() {
   const { t, ready } = useTranslation()
   const { user } = useAuth()
@@ -67,50 +85,192 @@ export default function TestEditorPage() {
   const params = useParams()
   const testId = params.id as string
 
+  // Refs для прокрутки к ошибкам
+  const nameRef = useRef<HTMLDivElement>(null)
+  const descriptionRef = useRef<HTMLDivElement>(null)
+  const languageRef = useRef<HTMLDivElement>(null)
+  const questionsRef = useRef<HTMLDivElement>(null)
+
   const [mounted, setMounted] = useState(false)
   const [test, setTest] = useState<Test | null>(null)
   const [isLoading, setIsLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState<'questions' | 'settings'>('questions')
+  // Убрали переключатель табов, всегда показываем "Вопросы"
   const [questions, setQuestions] = useState<Question[]>([])
+  const [originalQuestionsFromDB, setOriginalQuestionsFromDB] = useState<Question[]>([]) // Исходные вопросы из БД
   const [selectedQuestionId, setSelectedQuestionId] = useState<string | null>(null)
-  const [testName, setTestName] = useState('')
-  const [testDescription, setTestDescription] = useState('')
-  const [testLanguage, setTestLanguage] = useState<'ru' | 'kg'>('ru')
-  const [testSection, setTestSection] = useState<QuestionType>('standard')
-  const [saving, setSaving] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
-  const [showPublishConfirm, setShowPublishConfirm] = useState(false)
-  const [showDeleteQuestionConfirm, setShowDeleteQuestionConfirm] = useState(false)
-  const [questionToDelete, setQuestionToDelete] = useState<string | null>(null)
+  const [errors, setErrors] = useState<TestFormErrors>({})
+  const [showAIExplanation, setShowAIExplanation] = useState<Record<string, boolean>>({})
+  const [aiExplanations, setAiExplanations] = useState<Record<string, string>>({})
+  const [isPreviewMode, setIsPreviewMode] = useState(false)
+  const formatHandlersRef = useRef<Record<string, (format: string) => void>>({})
   const [toast, setToast] = useState<{ isOpen: boolean; message: string; variant: ToastVariant }>({
     isOpen: false,
     message: '',
     variant: 'success'
+  })
+  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false)
+
+  // Данные формы
+  const [formData, setFormData] = useState({
+    name: '',
+    description: '',
+    language: 'ru' as 'ru' | 'kg'
   })
 
   useEffect(() => {
     setMounted(true)
   }, [])
 
+  // Fallback значения для предотвращения ошибок гидратации
+  const getText = (key: string, fallback: string) => {
+    if (!mounted || !ready) return fallback
+    const translation = t(key)
+    return translation === key ? fallback : translation
+  }
+
+  // Функция для получения названия типа теста
+  const getTestTypeName = (type: string) => {
+    const typeNames: Record<string, string> = {
+      math1: getText('sections.math1', 'Математика 1'),
+      math2: getText('sections.math2', 'Математика 2'),
+      analogy: getText('sections.analogy', 'Аналогии'),
+      rac: getText('sections.rac', 'Чтение и понимание'),
+      grammar: getText('sections.grammar', 'Грамматика'),
+      standard: getText('sections.standard', 'Стандарт')
+    }
+    return typeNames[type] || 'Стандарт'
+  }
+
+  // Обработчики для TestToolbar
+  const handleFormat = (action: string) => {
+    // Находим активный QuestionEditor и применяем форматирование
+    const activeQuestionId = Object.keys(formatHandlersRef.current)[0]
+    if (activeQuestionId && formatHandlersRef.current[activeQuestionId]) {
+      formatHandlersRef.current[activeQuestionId](action)
+    }
+  }
+
+  const handleTogglePreview = () => {
+    setIsPreviewMode(prev => !prev)
+  }
+
+  const handleRegisterFormat = (questionId: string, handler: (format: string) => void) => {
+    formatHandlersRef.current[questionId] = handler
+  }
+
+  const handleUnregisterFormat = (questionId: string) => {
+    delete formatHandlersRef.current[questionId]
+  }
+
+  const handleOpenImageLatex = () => {
+    // Обработка конвертации изображения в LaTeX
+    console.log('Open image to LaTeX')
+  }
+
+  const handleMagicWand = () => {
+    // Находим активный textarea и вызываем улучшение текста
+    const activeElement = document.activeElement
+    if (activeElement && activeElement.tagName === 'TEXTAREA') {
+      const textarea = activeElement as HTMLTextAreaElement
+      const questionId = textarea.closest('[data-question-id]')?.getAttribute('data-question-id')
+      const answerIndex = textarea.getAttribute('data-answer-index')
+      
+      if (questionId && formatHandlersRef.current[questionId]) {
+        // Вызываем улучшение через форматтер
+        // Форматтер определит, это вопрос или ответ, и вызовет handleMagicWand
+        formatHandlersRef.current[questionId]('magic-wand')
+      }
+    }
+  }
+
+  // Обработчики изменения полей формы
+  const handleInputChange = (field: keyof typeof formData, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }))
+    setHasUnsavedChanges(true)
+    // Очищаем ошибку для этого поля
+    if (errors[field as keyof TestFormErrors]) {
+      setErrors(prev => ({ ...prev, [field]: undefined }))
+    }
+  }
+
+  // Валидация формы
+  const validateForm = (): boolean => {
+    const newErrors: TestFormErrors = {}
+
+    if (!formData.name.trim()) {
+      newErrors.name = 'Название теста обязательно'
+    }
+
+    if (!formData.description.trim()) {
+      newErrors.description = 'Описание теста обязательно'
+    }
+
+    setErrors(newErrors)
+
+    // Прокрутка к первой ошибке
+    if (Object.keys(newErrors).length > 0) {
+      scrollToError(newErrors)
+      return false
+    }
+
+    return true
+  }
+
+  // Прокрутка к ошибке
+  const scrollToError = (errors: TestFormErrors) => {
+    const errorFieldMap = {
+      name: nameRef,
+      description: descriptionRef,
+      language: languageRef
+    }
+
+    const errorFields = ['name', 'description', 'language'] as const
+
+    for (const field of errorFields) {
+      if (errors[field]) {
+        const ref = errorFieldMap[field]
+        if (ref?.current) {
+          ref.current.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'center' 
+          })
+          setTimeout(() => {
+            const input = ref.current?.querySelector('input, textarea, select')
+            if (input) {
+              (input as HTMLElement).focus()
+            }
+          }, 500)
+          break
+        }
+      }
+    }
+  }
+
   // Загрузка теста
   useEffect(() => {
     const loadTest = async () => {
-      if (!mounted || !testId) return
+      if (!mounted || !testId || !user?.id) return
 
       setIsLoading(true)
       try {
+        // Очищаем дубликаты вопросов перед загрузкой
+        if (!isTempId(testId)) {
+          removeDuplicateQuestions(testId)
+        }
         if (isTempId(testId)) {
-          // Сначала проверяем localStorage (если тест уже был сохранен)
+          // Проверяем localStorage
           const draftTest = getDraftTest(testId)
           if (draftTest) {
             setTest(draftTest)
-            setTestName(draftTest.name)
-            setTestDescription(draftTest.description)
-            setTestLanguage(draftTest.language)
-            setTestSection(draftTest.section || 'standard')
+            setFormData({
+              name: draftTest.name,
+              description: draftTest.description,
+              language: draftTest.language
+            })
           } else {
-            // Если черновик не найден в localStorage, проверяем sessionStorage
-            // Это данные из CreateTestModal, которые еще не сохранены
+            // Проверяем sessionStorage
             const sessionDataKey = `temp_test_${testId}`
             const sessionData = sessionStorage.getItem(sessionDataKey)
             
@@ -129,902 +289,608 @@ export default function TestEditorPage() {
                   section: testData.section || 'standard'
                 }
                 setTest(newTest)
-                setTestName(newTest.name)
-                setTestDescription(newTest.description)
-                setTestLanguage(newTest.language)
-                setTestSection(newTest.section || 'standard')
+                setFormData({
+                  name: newTest.name,
+                  description: newTest.description,
+                  language: newTest.language
+                })
                 
-                // Удаляем данные из sessionStorage после загрузки
                 sessionStorage.removeItem(sessionDataKey)
               } catch (error) {
                 console.error('Ошибка парсинга данных из sessionStorage:', error)
-                // Если ошибка, создаем пустой тест
-                if (user?.id) {
-                  const newTest: Test = {
-                    id: testId,
-                    name: getText('tests.newTestName', 'Новый тест'),
-                    description: '',
-                    language: 'ru',
-                    status: 'draft',
-                    teacherId: user.id,
-                    createdAt: new Date().toISOString(),
-                    updatedAt: new Date().toISOString(),
-                    section: 'standard'
-                  }
-                  setTest(newTest)
-                  setTestName(newTest.name)
-                  setTestDescription(newTest.description)
-                  setTestLanguage(newTest.language)
-                  setTestSection('standard')
-                }
+                createEmptyTest()
               }
             } else {
-              // Если данных нет ни в localStorage, ни в sessionStorage, создаем пустой тест
-              if (user?.id) {
-                const newTest: Test = {
-                  id: testId,
-                  name: getText('tests.newTestName', 'Новый тест'),
-                  description: '',
-                  language: 'ru',
-                  status: 'draft',
-                  teacherId: user.id,
-                  createdAt: new Date().toISOString(),
-                  updatedAt: new Date().toISOString(),
-                  section: 'standard'
-                }
-                setTest(newTest)
-                setTestName(newTest.name)
-                setTestDescription(newTest.description)
-                setTestLanguage(newTest.language)
-                setTestSection('standard')
-              }
+              createEmptyTest()
             }
           }
 
-          // Загрузка вопросов из localStorage
+          // Загрузка вопросов из localStorage (только для временных тестов)
           const localQuestions = getTestQuestions(testId)
           setQuestions(localQuestions)
+          setOriginalQuestionsFromDB([]) // Для временных тестов нет исходных вопросов из БД
           if (localQuestions.length > 0 && !selectedQuestionId) {
             setSelectedQuestionId(localQuestions[0].id)
           }
         } else {
           // Загрузка из БД
+          // Сначала очищаем localStorage от возможных устаревших данных
+          clearTestFromLocalStorage(testId)
+          
           const response = await fetch(`/api/teacher/tests/${testId}`)
           const result = await response.json()
-
+          
           if (result.success && result.data) {
-            const testData = result.data
+            setTest(result.data)
+            setFormData({
+              name: result.data.name,
+              description: result.data.description,
+              language: result.data.language
+            })
             
-            // Проверяем есть ли черновик в localStorage для получения section
-            const draftFromStorage = getDraftTest(testId)
-            const section = draftFromStorage?.section || testData.section || 'standard'
+            // Загружаем вопросы из БД
+            const questionsResponse = await fetch(`/api/teacher/tests/${testId}/questions`)
+            const questionsResult = await questionsResponse.json()
             
-            // Проверяем статус из localStorage
-            const storedStatus = getTestStatus(testId)
-            const finalStatus = storedStatus || 'published'
-            
-            setTest({ ...testData, section, status: finalStatus })
-            setTestName(testData.name)
-            setTestDescription(testData.description)
-            setTestLanguage(testData.language)
-            setTestSection(section)
+            if (questionsResult.success && questionsResult.data && questionsResult.data.length > 0) {
+              console.log(`Начальная загрузка: ${questionsResult.data.length} вопросов из БД для теста ${testId}`)
+              
+              // ПОЛНОСТЬЮ очищаем localStorage для этого теста перед загрузкой из БД
+              clearTestFromLocalStorage(testId)
+              
+              const dbQuestions: Question[] = []
+              
+              // Сохраняем каждый вопрос в localStorage и добавляем в список
+              for (const dbQuestion of questionsResult.data) {
+                // Сохраняем данные вопроса в localStorage (теперь localStorage очищен)
+                saveQuestionDraft(dbQuestion.id, dbQuestion.type, {
+                  question: dbQuestion.question,
+                  answers: dbQuestion.answerVariants.map((v: any) => ({
+                    value: v.value,
+                    isCorrect: v.isCorrect
+                  })),
+                  points: dbQuestion.points,
+                  timeLimit: dbQuestion.timeLimit,
+                  imageUrl: dbQuestion.photoUrl,
+                  language: dbQuestion.language
+                })
 
-            // Загрузка вопросов из БД
-            try {
-              const questionsResponse = await fetch(`/api/teacher/tests/${testId}/questions`)
-              const questionsResult = await questionsResponse.json()
-              if (questionsResult.success && questionsResult.data && Array.isArray(questionsResult.data)) {
-                // Преобразуем вопросы в нужный формат
-                const formattedQuestions = questionsResult.data.map((q: any, index: number) => ({
-                  id: q.id,
-                  type: q.type || q.type_question || 'standard',
-                  question: q.question,
-                  order: q.order !== undefined ? q.order : index
-                }))
-                
-                setQuestions(formattedQuestions)
-                
-                // Если section не был определен из теста или равен 'standard', определяем его из типа вопросов
-                const currentSection = section || 'standard'
-                if (currentSection === 'standard' && formattedQuestions.length > 0) {
-                  // Определяем наиболее распространенный тип вопроса
-                  const typeCounts: Record<string, number> = {}
-                  formattedQuestions.forEach((q: Question) => {
-                    const qType = q.type || 'standard'
-                    if (qType && qType !== 'standard') {
-                      typeCounts[qType] = (typeCounts[qType] || 0) + 1
-                    }
-                  })
-                  
-                  // Находим наиболее распространенный тип (игнорируя 'standard')
-                  let mostCommonType = 'standard'
-                  let maxCount = 0
-                  Object.entries(typeCounts).forEach(([type, count]) => {
-                    if (count > maxCount) {
-                      maxCount = count
-                      mostCommonType = type
-                    }
-                  })
-                  
-                  // Если нашли тип отличный от standard, используем его
-                  if (mostCommonType !== 'standard' && maxCount > 0) {
-                    const determinedSection = mostCommonType as QuestionType
-                    setTestSection(determinedSection)
-                    // Обновляем test с правильным section
-                    setTest({ ...testData, section: determinedSection, status: finalStatus })
-                    // НЕ сохраняем в localStorage при загрузке из БД
-                    // localStorage используется только для черновиков, не для опубликованных тестов
-                  }
-                }
-                
-                // Сохраняем вопросы в localStorage ТОЛЬКО если их еще нет
-                // Это нужно для возможности редактирования, но избегаем дубликатов
-                const existingQuestionIds = getTestQuestions(testId)
-                const needsSave = !existingQuestionIds || existingQuestionIds.length === 0
-                
-                if (needsSave) {
-                  const questionIds: Array<{ id: string; type: QuestionType }> = formattedQuestions.map((q: Question) => ({
-                    id: q.id,
-                    type: q.type
-                  }))
-                  TestLocalStorage.saveTestQuestions(testId, questionIds)
-                  
-                  // Загружаем данные вопросов из БД в localStorage для редактирования
-                  // Только если их еще нет в localStorage
-                  for (const q of questionsResult.data) {
-                    const questionType = q.type || q.type_question || 'standard'
-                    const existingData = TestLocalStorage.load(q.id, questionType)
-                    
-                    // Сохраняем только если данных нет в localStorage
-                    if (!existingData) {
-                      const questionData: QuestionData = {
-                        question: q.question || '',
-                        answers: (q.answerVariants || []).map((av: any) => ({
-                          value: av.value || '',
-                          isCorrect: av.isCorrect || false
-                        })),
-                        points: q.points || 1,
-                        timeLimit: q.timeLimit || 60,
-                        imageUrl: q.photoUrl,
-                        language: q.language || testData.language,
-                        textRac: q.textRac,
-                        explanation_ai: q.explanationAi
-                      }
-                      TestLocalStorage.save(q.id, questionData, questionType)
-                    }
-                  }
-                }
-                
-                if (formattedQuestions.length > 0 && !selectedQuestionId) {
-                  setSelectedQuestionId(formattedQuestions[0].id)
-                }
-              } else {
-                // Если вопросов нет, устанавливаем пустой массив
-                setQuestions([])
+                // Добавляем в список вопросов
+                dbQuestions.push({
+                  id: dbQuestion.id,
+                  type: dbQuestion.type,
+                  question: dbQuestion.question
+                })
+
+                // Добавляем вопрос в список вопросов теста
+                addQuestionToTestDraft(testId, dbQuestion.id, dbQuestion.type)
               }
-            } catch (questionsError) {
-              console.error('Ошибка загрузки вопросов:', questionsError)
-              // Не прерываем загрузку теста из-за ошибки загрузки вопросов
+
+              setQuestions(dbQuestions)
+              setOriginalQuestionsFromDB([...dbQuestions]) // Сохраняем исходные вопросы из БД
+              if (dbQuestions.length > 0 && !selectedQuestionId) {
+                setSelectedQuestionId(dbQuestions[0].id)
+              }
+            } else {
+              // Если вопросов в БД нет, очищаем состояние
               setQuestions([])
+              setOriginalQuestionsFromDB([])
+              setSelectedQuestionId(null)
+              
+              // Также очищаем localStorage от устаревших данных
+              clearTestFromLocalStorage(testId)
             }
           } else {
             console.error('Ошибка загрузки теста:', result.error)
-            const errorMessage = result.error || 'Тест не найден'
-            setToast({
-              isOpen: true,
-              message: getText('tests.loadError', 'Ошибка загрузки теста') + ': ' + errorMessage,
-              variant: 'error'
-            })
-            // Небольшая задержка перед редиректом чтобы показать уведомление
-            setTimeout(() => {
-              router.push('/tests')
-            }, 2000)
-            return
+            showToast('Ошибка загрузки теста', 'error')
           }
         }
       } catch (error) {
         console.error('Ошибка при загрузке теста:', error)
-        const errorMessage = error instanceof Error ? error.message : String(error)
-        setToast({
-          isOpen: true,
-          message: getText('tests.loadError', 'Ошибка загрузки теста') + ': ' + errorMessage,
-          variant: 'error'
-        })
-        // Небольшая задержка перед редиректом чтобы показать уведомление
-        setTimeout(() => {
-          router.push('/tests')
-        }, 2000)
+        showToast('Ошибка при загрузке теста', 'error')
       } finally {
         setIsLoading(false)
       }
     }
 
-    if (mounted && testId) {
+    if (mounted && user?.id && testId) {
       loadTest()
     }
   }, [mounted, testId, user?.id])
 
-  const getText = (key: string, fallback: string) => {
-    if (!mounted || !ready) return fallback
-    const translation = t(key)
-    return translation === key ? fallback : translation
+  const createEmptyTest = () => {
+    if (user?.id) {
+      const newTest: Test = {
+        id: testId,
+        name: getText('tests.newTestName', 'Новый тест'),
+        description: '',
+        language: 'ru',
+        status: 'draft',
+        teacherId: user.id,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        section: 'standard'
+      }
+      setTest(newTest)
+      setFormData({
+        name: newTest.name,
+        description: newTest.description,
+        language: newTest.language
+      })
+    }
   }
 
-  // Сохранение теста (черновик в localStorage или обновление в БД)
-  const handleSaveTest = async () => {
-    if (!test || !user?.id) return
+  const showToast = (message: string, variant: ToastVariant) => {
+    setToast({ isOpen: true, message, variant })
+  }
 
-    setSaving(true)
+  // Сохранение теста (для модального окна настроек)
+  const handleSaveTestSettings = async (data: { name: string; description: string; language: 'ru' | 'kg' }) => {
+    setIsSubmitting(true)
     try {
-      const isTempTest = isTempId(test.id)
-      // Проверяем статус из localStorage для определения черновика из БД
-      const storedStatus = getTestStatus(test.id)
-      const isDraftFromDB = (storedStatus === 'draft' || test.status === 'draft') && !isTempTest
-      let currentTestId = test.id
-
-      // Если это новый тест с temp-id, генерируем новый ID
-      if (isTempTest && !test.id) {
-        currentTestId = generateTempId()
-      }
-
-      const updatedName = testName.trim() || getText('tests.newTestName', 'Новый тест')
-      const updatedDescription = testDescription.trim() || ''
-      const updatedSection = testSection || 'standard'
-
-      // Если черновик из БД - обновляем через API
-      if (isDraftFromDB) {
-        const response = await fetch(`/api/teacher/tests/${test.id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            name: updatedName,
-            description: updatedDescription,
-            language: testLanguage
-          })
-        })
-
-        const result = await response.json()
-        if (!result.success) {
-          throw new Error(result.error || 'Ошибка обновления теста')
-        }
-
-        // Сохраняем section в localStorage для черновиков из БД
-        const draftTestForStorage = {
-          id: test.id,
-          name: updatedName,
-          description: updatedDescription,
-          language: testLanguage,
+      if (isTempId(testId)) {
+        // Сохранение в localStorage
+        const updatedTest = {
+          id: test!.id,
+          name: data.name,
+          description: data.description,
+          language: data.language,
           status: 'draft' as const,
-          createdAt: test.createdAt || new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          teacherId: user.id,
-          section: updatedSection
-        }
-        saveDraftTest(draftTestForStorage)
-
-        // Обновляем состояние теста
-        setTest({
-          ...test,
-          name: updatedName,
-          description: updatedDescription,
-          language: testLanguage,
-          section: updatedSection,
+          teacherId: test!.teacherId || user?.id || '',
+          createdAt: test!.createdAt || new Date().toISOString(),
           updatedAt: new Date().toISOString()
+        }
+        
+        saveDraftTest(updatedTest)
+        setTest(updatedTest)
+        setFormData({
+          name: data.name,
+          description: data.description,
+          language: data.language
         })
-        setTestSection(updatedSection)
-      } else {
-        // Сохранение теста в localStorage (temp-id черновик)
-        const draftTest = {
-          id: currentTestId,
-          name: updatedName,
-          description: updatedDescription,
-          language: testLanguage,
-          status: 'draft' as const,
-          createdAt: test.createdAt || new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          teacherId: user.id,
-          section: updatedSection
-        }
-
-        saveDraftTest(draftTest)
-        setTestStatus(currentTestId, 'draft')
-
-        // Обновление состояния теста
-        if (isTempTest && currentTestId !== test.id) {
-          // Переносим вопросы из старого ID в новый
-          const oldQuestions = getTestQuestions(test.id)
-          if (oldQuestions.length > 0) {
-            TestLocalStorage.saveTestQuestions(currentTestId, oldQuestions)
-          }
-          
-          setTest(draftTest)
-          setTestSection(updatedSection)
-          router.replace(`/tests/${currentTestId}`)
-        } else {
-          setTest({ ...test, ...draftTest })
-          setTestSection(updatedSection)
-        }
-      }
-
-      // Синхронизация вопросов (задержка для сохранения данных из компонентов)
-      await new Promise(resolve => setTimeout(resolve, 100))
-
-      let savedQuestionsCount = 0
-      const questionIds: Array<{ id: string; type: QuestionType }> = []
-
-      // Проверяем является ли тест опубликованным (не temp-id и не черновик)
-      const isPublishedTest = !isTempTest && storedStatus !== 'draft' && test.status !== 'draft'
-
-      // Обработка каждого вопроса
-      for (const question of questions) {
-        // Используем тип вопроса
-        const questionType = question.type
-
-        // Загрузка данных из localStorage
-        const questionData = TestLocalStorage.load(question.id, questionType) || 
-          (question.question ? { question: question.question, answers: [], points: 1, timeLimit: 60 } : null)
-
-        if (!questionData) continue
-
-        // Проверка на пустоту вопроса
-        const hasText = questionData.question && questionData.question.trim()
-        const hasAnswers = questionData.answers && questionData.answers.some((a: any) => a.value && a.value.trim())
-        const hasImage = questionData.imageUrl
-
-        const isEmpty = !hasText && !hasAnswers && !hasImage
-
-        if (isEmpty) {
-          // Удаляем пустой вопрос
-          TestLocalStorage.remove(question.id, questionType)
-          continue
-        }
-
-        // Проверка на частичное заполнение
-        const isPartiallyFilled = hasText || hasAnswers || hasImage
-
-        if (isPartiallyFilled) {
-          // Сохранение вопроса
-          const dataToSave: QuestionData = {
-            question: questionData.question || '',
-            answers: questionData.answers || [],
-            points: questionData.points || 1,
-            timeLimit: questionData.timeLimit || 60,
-            imageUrl: questionData.imageUrl,
-            language: questionData.language || testLanguage,
-            textRac: questionData.textRac,
-            answerA: questionData.answerA,
-            answerB: questionData.answerB,
-            explanation_ai: questionData.explanation_ai
-          }
-
-          TestLocalStorage.save(question.id, dataToSave, questionType)
-          questionIds.push({ id: question.id, type: questionType })
-          savedQuestionsCount++
-        }
-      }
-
-      // Удаление пустых вопросов из state
-      const validQuestions = questions.filter(q => {
-        const questionData = TestLocalStorage.load(q.id, q.type)
-        return questionData !== null
-      })
-      setQuestions(validQuestions)
-
-      // Сохранение списка вопросов теста в localStorage
-      // Это нужно даже для опубликованных тестов для возможности редактирования
-      TestLocalStorage.saveTestQuestions(currentTestId, questionIds)
-
-      // Сброс флага несохраненных изменений
-      const savedTest = getDraftTest(currentTestId)
-      if (savedTest) {
         setHasUnsavedChanges(false)
-      }
-
-      // Уведомление пользователя
-      if (savedQuestionsCount > 0) {
-        const message = getText('tests.savedWithQuestions', 'Тест и {count} вопросов сохранены').replace('{count}', String(savedQuestionsCount))
-        setToast({
-          isOpen: true,
-          message,
-          variant: 'success'
-        })
       } else {
-        setToast({
-          isOpen: true,
-          message: getText('tests.saved', 'Тест сохранен'),
-          variant: 'success'
-        })
-      }
-    } catch (error) {
-      console.error('Ошибка сохранения теста:', error)
-      setToast({
-        isOpen: true,
-        message: getText('tests.saveError', 'Ошибка при сохранении теста') + ': ' + (error instanceof Error ? error.message : String(error)),
-        variant: 'error'
-      })
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  // Валидация всех вопросов перед публикацией
-  const validateAllQuestions = (): string[] => {
-    const errors: string[] = []
-
-    // Проверка 0: Количество вопросов
-    if (questions.length === 0) {
-      errors.push(getText('tests.publish.noQuestions', 'Добавьте вопросы перед публикацией'))
-      return errors
-    }
-
-    // Ограничение на 30 вопросов убрано
-
-    // Проверка каждого вопроса
-    questions.forEach((question, index) => {
-      const questionNum = index + 1
-      const questionData = TestLocalStorage.load(question.id, question.type)
-
-      if (!questionData) {
-        const message = getText('tests.publish.questionNotFilled', 'Вопрос {num}: Заполните текст или добавьте фото').replace('{num}', String(questionNum))
-        errors.push(message)
-        return
-      }
-
-      // Проверка 1: Заполненность вопроса
-      const hasText = questionData.question && questionData.question.trim()
-      const hasImage = questionData.imageUrl
-      const hasTextRac = questionData.textRac && questionData.textRac.trim()
-
-      if (!hasText && !hasImage && !hasTextRac) {
-        const message = getText('tests.publish.questionNotFilled', 'Вопрос {num}: Заполните текст или добавьте фото').replace('{num}', String(questionNum))
-        errors.push(message)
-        return
-      }
-
-      // Проверка 2: Количество вариантов ответов
-      const answers = questionData.answers || []
-      if (answers.length < 2) {
-        const message = getText('tests.publish.minAnswers', 'Вопрос {num}: Минимум 2 варианта ответа').replace('{num}', String(questionNum))
-        errors.push(message)
-        return
-      }
-
-      // Проверка 3: Заполненность всех вариантов
-      const filledAnswers = answers.filter((a: any) => a.value && a.value.trim())
-      if (filledAnswers.length < 2) {
-        const message = getText('tests.publish.allAnswersRequired', 'Вопрос {num}: Все варианты должны быть заполнены').replace('{num}', String(questionNum))
-        errors.push(message)
-        return
-      }
-
-      // Проверка 4: Правильный ответ
-      const hasCorrectAnswer = filledAnswers.some((a: any) => a.isCorrect)
-      if (!hasCorrectAnswer) {
-        const message = getText('tests.publish.correctAnswerRequired', 'Вопрос {num}: Выберите правильный ответ').replace('{num}', String(questionNum))
-        errors.push(message)
-      }
-    })
-
-    return errors
-  }
-
-  // Обработчик публикации (первичная проверка и модальное окно)
-  const handlePublishTest = () => {
-    if (!test || !user?.id) return
-
-    // Базовая валидация
-    if (questions.length === 0) {
-      setToast({
-        isOpen: true,
-        message: getText('tests.publish.noQuestions', 'Добавьте вопросы перед публикацией'),
-        variant: 'warning'
-      })
-      return
-    }
-
-    // Валидация всех вопросов
-    const validationErrors = validateAllQuestions()
-    if (validationErrors.length > 0) {
-      setToast({
-        isOpen: true,
-        message: validationErrors.join('\n'),
-        variant: 'warning'
-      })
-      return
-    }
-
-    // Показываем модальное окно подтверждения
-    setShowPublishConfirm(true)
-  }
-
-  // Основной процесс публикации
-  const executePublishTest = async () => {
-    if (!test || !user?.id) return
-
-    setSaving(true)
-    setShowPublishConfirm(false)
-
-    try {
-      // Задержка перед началом публикации
-      await new Promise(resolve => setTimeout(resolve, 100))
-
-      // Определение типа теста
-      // КРИТИЧНО: isDraftOnly = true ТОЛЬКО если тест имеет temp-id (новый черновик)
-      // Для ВСЕХ тестов с реальным ID из БД (включая опубликованные) ВСЕГДА используем PUT
-      const isDraftOnly = isTempId(test.id)
-      const oldTestId = test.id
-
-      // КРИТИЧНО: savedTestId должен оставаться тем же для уже существующих тестов
-      // НЕ создаем новый тест, а обновляем существующий
-      let savedTestId = test.id
-
-      // Сохранение/обновление теста в БД
-      // КРИТИЧНО: для уже существующих тестов (не temp-id) ВСЕГДА используем PUT, а не POST
-      // Это предотвращает клонирование теста при повторной публикации
-      if (isDraftOnly) {
-        // POST - создание нового теста (ТОЛЬКО для temp-id черновиков)
-        const response = await fetch('/api/teacher/tests', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            name: testName.trim() || getText('tests.newTestName', 'Новый тест'),
-            description: testDescription.trim() || '',
-            teacherId: user.id,
-            language: testLanguage,
-            section: testSection
-          })
-        })
-
-        const result = await response.json()
-        if (!result.success) {
-          throw new Error(result.error || 'Ошибка создания теста')
-        }
-
-        savedTestId = result.data.id
-      } else {
-        // PUT - обновление существующего теста
-        // Это применяется для ВСЕХ тестов с реальным ID из БД, включая уже опубликованные
-        // КРИТИЧНО: НЕ создаем новый тест, а обновляем существующий по его ID
-        // Это предотвращает клонирование теста при повторной публикации
-        
-        if (!test.id) {
-          throw new Error('Некорректный ID теста для обновления')
-        }
-        
-        const response = await fetch(`/api/teacher/tests/${test.id}`, {
+        // Сохранение в БД
+        const response = await fetch(`/api/teacher/tests/${testId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            name: testName.trim() || test.name,
-            description: testDescription.trim() || test.description,
-            language: testLanguage
-            // section хранится только в localStorage, не в БД
+            name: data.name,
+            description: data.description,
+            language: data.language
           })
         })
 
         const result = await response.json()
-        if (!result.success) {
-          throw new Error(result.error || 'Ошибка обновления теста')
-        }
-        
-        // КРИТИЧНО: для уже существующего теста savedTestId ВСЕГДА остается тем же
-        // НЕ меняем ID, чтобы не создавать клон теста
-        savedTestId = test.id
-      }
-
-      // Сохранение вопросов в БД
-      const oldQuestionIds: string[] = []
-      let savedCount = 0
-      let failedCount = 0
-      let lastError = ''
-
-      for (const question of questions) {
-        oldQuestionIds.push(question.id)
-
-        // Синхронизация данных из localStorage
-        const questionType = question.type
-
-        const questionData = TestLocalStorage.load(question.id, questionType)
-        if (!questionData) {
-          failedCount++
-          continue
-        }
-
-        // Валидация перед сохранением в БД
-        const hasText = questionData.question && questionData.question.trim()
-        const filledAnswers = (questionData.answers || []).filter((a: any) => a.value && a.value.trim())
-        const hasCorrectAnswer = filledAnswers.some((a: any) => a.isCorrect)
-
-        if (!hasText || filledAnswers.length < 2 || !hasCorrectAnswer) {
-          failedCount++
-          const questionNum = questions.indexOf(question) + 1
-          const message = getText('tests.publish.questionInvalid', 'Вопрос {num} не прошел валидацию').replace('{num}', String(questionNum))
-          lastError = message
-          continue
-        }
-
-        // Формирование данных для отправки
-        const questionPayload: any = {
-          question: questionData.question,
-          answerVariants: filledAnswers.map((a: any) => ({
-            value: a.value,
-            isCorrect: a.isCorrect
-          })),
-          photoUrl: questionData.imageUrl,
-          points: questionData.points || 1,
-          timeLimit: questionData.timeLimit || 60,
-          language: questionData.language || testLanguage,
-          type: questionType
-        }
-
-        // Добавляем опциональные поля если они есть
-        if (questionData.textRac) {
-          questionPayload.textRac = questionData.textRac
-        }
-        if (questionData.explanation_ai) {
-          questionPayload.explanationAi = questionData.explanation_ai
-        }
-
-        try {
-          if (isTempId(question.id)) {
-            // POST - создание нового вопроса
-            const response = await fetch(`/api/teacher/tests/${savedTestId}/questions?teacherId=${user.id}`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(questionPayload)
-            })
-
-            const result = await response.json()
-            if (result.success) {
-              savedCount++
-              // Обновляем ID вопроса в state
-              setQuestions(prev => prev.map(q => 
-                q.id === question.id ? { ...q, id: result.data.id } : q
-              ))
-            } else {
-              failedCount++
-              lastError = result.error || 'Ошибка сохранения вопроса'
-            }
-          } else {
-            // PUT - обновление существующего вопроса
-            const response = await fetch(`/api/teacher/tests/${savedTestId}/questions/${question.id}?teacherId=${user.id}`, {
-              method: 'PUT',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(questionPayload)
-            })
-
-            const result = await response.json()
-            if (result.success) {
-              savedCount++
-            } else {
-              failedCount++
-              lastError = result.error || 'Ошибка обновления вопроса'
-            }
-          }
-        } catch (error) {
-          failedCount++
-          lastError = error instanceof Error ? error.message : String(error)
-        }
-      }
-
-      // Проверка результата сохранения вопросов
-      if (failedCount > 0) {
-        if (savedCount === 0) {
-          throw new Error(lastError || 'Не удалось сохранить вопросы')
+        if (result.success) {
+          setTest(result.data)
+          setFormData({
+            name: data.name,
+            description: data.description,
+            language: data.language
+          })
+          setHasUnsavedChanges(false)
         } else {
-          const message = getText('tests.publish.partialSave', 'Сохранено {saved} из {total} вопросов')
-            .replace('{saved}', String(savedCount))
-            .replace('{total}', String(questions.length))
-          throw new Error(message + '. ' + lastError)
+          throw new Error(result.error || 'Ошибка сохранения')
         }
       }
-
-      // Обновление статуса теста в БД
-      const statusResponse = await fetch(`/api/teacher/tests/${savedTestId}/status?teacherId=${user.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'published' })
-      })
-
-      const statusResult = await statusResponse.json()
-      if (!statusResult.success) {
-        throw new Error(statusResult.error || 'Ошибка изменения статуса теста')
-      }
-
-      // Обновление состояния теста
-      const updatedTest = {
-        ...test,
-        id: savedTestId,
-        status: 'published' as const,
-        name: testName.trim() || test.name,
-        description: testDescription.trim() || test.description,
-        language: testLanguage,
-        section: testSection
-      }
-      
-      setTest(updatedTest)
-      
-      // Обновляем список вопросов с актуальными ID из БД
-      // Вопросы уже обновлены в state через setQuestions в цикле сохранения
-      // Получаем актуальный список вопросов из state
-      const currentQuestions = questions
-      
-      // Обновляем выбранный вопрос если нужно
-      if (currentQuestions.length > 0) {
-        // Если текущий выбранный вопрос больше не существует, выбираем первый
-        const currentSelectedExists = currentQuestions.some((q: Question) => q.id === selectedQuestionId)
-        if (!currentSelectedExists) {
-          setSelectedQuestionId(currentQuestions[0].id)
-        }
-      } else {
-        setSelectedQuestionId(null)
-      }
-      
-      // Очистка localStorage после публикации
-      // После публикации тест хранится в БД, не нужно дублировать в localStorage
-      // Это предотвращает дубликаты при повторной публикации или создании теста
-      
-      if (isDraftOnly) {
-        // Для новых тестов (черновиков) удаляем все данные из localStorage
-        removeDraftTest(oldTestId)
-        TestLocalStorage.removeTestQuestions(oldTestId)
-        if (savedTestId !== oldTestId) {
-          removeDraftTest(savedTestId)
-          TestLocalStorage.removeTestQuestions(savedTestId)
-        }
-        
-        // Удаление данных всех вопросов
-        for (const questionId of oldQuestionIds) {
-          const question = questions.find(q => q.id === questionId)
-          if (question) {
-            TestLocalStorage.remove(questionId, question.type)
-          }
-        }
-        
-        // Удаление статуса теста
-        removeTestStatus(oldTestId)
-        if (savedTestId !== oldTestId) {
-          removeTestStatus(savedTestId)
-        }
-      } else {
-        // Для уже опубликованных тестов удаляем из localStorage после публикации
-        // чтобы избежать дубликатов и конфликтов данных
-        removeDraftTest(savedTestId)
-        removeTestStatus(savedTestId)
-        TestLocalStorage.removeTestQuestions(savedTestId)
-        
-        // Удаляем temp-id вопросы из localStorage, которые были сохранены в БД
-        for (const questionId of oldQuestionIds) {
-          const question = questions.find(q => q.id === questionId)
-          if (question && isTempId(questionId)) {
-            // Удаляем старый temp-id вопрос, так как он теперь в БД
-            TestLocalStorage.remove(questionId, question.type)
-          }
-        }
-      }
-
-      // Обновление URL только если ID изменился (для новых тестов)
-      // Для уже опубликованных тестов ID не меняется, поэтому редирект не нужен
-      if (savedTestId !== oldTestId && isDraftOnly) {
-        router.replace(`/tests/${savedTestId}`)
-      }
-
-      // Уведомление пользователя
-      setToast({
-        isOpen: true,
-        message: getText('tests.published', 'Тест опубликован'),
-        variant: 'success'
-      })
     } catch (error) {
-      console.error('Ошибка публикации теста:', error)
-      setToast({
-        isOpen: true,
-        message: getText('tests.publishError', 'Ошибка при публикации теста') + ': ' + (error instanceof Error ? error.message : String(error)),
-        variant: 'error'
-      })
+      console.error('Ошибка сохранения:', error)
+      throw error
     } finally {
-      setSaving(false)
+      setIsSubmitting(false)
     }
   }
 
-  // Добавление нового вопроса
-  const handleAddQuestion = () => {
-    if (!test) return
-
-    // Тип вопроса определяется из раздела теста
-    // Используем test.section если testSection не установлен
-    const questionType = testSection || test.section || 'standard'
-
-    const newQuestionId = generateTempId()
-    const newQuestion: Question = {
-      id: newQuestionId,
-      type: questionType,
-      question: '',
-      order: questions.length
-    }
-
-    // Сохраняем в localStorage
-    addQuestionToTestDraft(test.id, newQuestionId, questionType)
-    saveQuestionDraft(newQuestionId, questionType, {
-      question: '',
-      answers: [{ value: '', isCorrect: false }, { value: '', isCorrect: false }],
-      points: 1,
-      timeLimit: 60,
-      language: test.language
-    })
-
-    setQuestions([...questions, newQuestion])
-    setSelectedQuestionId(newQuestionId)
-  }
-
-  // Удаление вопроса
-  const handleDeleteQuestion = (questionId: string) => {
-    setQuestionToDelete(questionId)
-    setShowDeleteQuestionConfirm(true)
-  }
-
-  const executeDeleteQuestion = () => {
-    if (!questionToDelete) return
-
-    const question = questions.find(q => q.id === questionToDelete)
-    if (question) {
-      removeQuestionDraft(questionToDelete, question.type)
-    }
-
-    const updatedQuestions = questions.filter(q => q.id !== questionToDelete)
-    setQuestions(updatedQuestions)
-
-    if (selectedQuestionId === questionToDelete) {
-      setSelectedQuestionId(updatedQuestions.length > 0 ? updatedQuestions[0].id : null)
-    }
-
-    setShowDeleteQuestionConfirm(false)
-    setQuestionToDelete(null)
-  }
-
-  // Возврат к списку тестов
-  const handleBack = () => {
+  // Отмена изменений
+  const handleCancel = () => {
     router.push('/tests')
   }
 
-  // Получаем название типа вопроса
-  const getQuestionTypeName = (type: QuestionType) => {
-    const typeNames = {
-      standard: getText('tests.types.standard', 'С'),
-      analogy: getText('tests.types.analogy', 'А'),
-      grammar: getText('tests.types.grammar', 'Г'),
-      math1: getText('tests.types.math1', 'М1'),
-      math2: getText('tests.types.math2', 'М2'),
-      rac: getText('tests.types.rac', 'Р')
+  // Перезагрузка вопросов из БД (после сохранения/удаления)
+  const reloadQuestionsFromDB = async () => {
+    if (!testId || isTempId(testId) || !user?.id) return
+
+    try {
+      console.log('Перезагружаем вопросы из БД...')
+      const response = await fetch(`/api/teacher/tests/${testId}/questions`)
+      const result = await response.json()
+
+      if (result.success && result.data) {
+        console.log(`Перезагружено ${result.data.length} вопросов из БД для теста ${testId}`)
+        
+        // ПОЛНОСТЬЮ очищаем localStorage для этого теста
+        clearTestFromLocalStorage(testId)
+        
+        const dbQuestions: Question[] = []
+        
+        // Сохраняем каждый вопрос в localStorage и добавляем в список
+        for (const dbQuestion of result.data) {
+          // Сохраняем данные вопроса в localStorage
+          saveQuestionDraft(dbQuestion.id, dbQuestion.type, {
+            question: dbQuestion.question,
+            answers: dbQuestion.answerVariants.map((v: any) => ({
+              value: v.value,
+              isCorrect: v.isCorrect
+            })),
+            points: dbQuestion.points,
+            timeLimit: dbQuestion.timeLimit,
+            imageUrl: dbQuestion.photoUrl,
+            language: dbQuestion.language
+          })
+
+          // Добавляем в список вопросов
+          dbQuestions.push({
+            id: dbQuestion.id,
+            type: dbQuestion.type,
+            question: dbQuestion.question
+          })
+
+          // Добавляем вопрос в список вопросов теста
+          addQuestionToTestDraft(testId, dbQuestion.id, dbQuestion.type)
+        }
+
+        setQuestions(dbQuestions)
+        setOriginalQuestionsFromDB([...dbQuestions]) // Обновляем исходные вопросы
+        
+        // Если был выбранный вопрос, но его больше нет, сбрасываем выбор
+        if (selectedQuestionId && !dbQuestions.find(q => q.id === selectedQuestionId)) {
+          setSelectedQuestionId(dbQuestions.length > 0 ? dbQuestions[0].id : null)
+        }
+      } else {
+        // Если вопросов нет в БД, очищаем все
+        setQuestions([])
+        setOriginalQuestionsFromDB([])
+        setSelectedQuestionId(null)
+        clearTestFromLocalStorage(testId)
+      }
+    } catch (error) {
+      console.error('Ошибка перезагрузки вопросов из БД:', error)
     }
-    return typeNames[type] || type
   }
 
-  // Получаем цвет для типа вопроса
-  const getQuestionTypeColor = (type: QuestionType) => {
-    const typeColors = {
-      standard: 'bg-gray-500',
-      analogy: 'bg-green-500',
-      grammar: 'bg-red-500',
-      math1: 'bg-blue-500',
-      math2: 'bg-purple-500',
-      rac: 'bg-orange-500'
+  // Загрузка вопросов из БД и сохранение в localStorage
+  const loadQuestionsFromDB = async () => {
+    if (!testId || isTempId(testId) || !user?.id) return
+
+    try {
+      // Очищаем дубликаты перед загрузкой
+      removeDuplicateQuestions(testId)
+      const response = await fetch(`/api/teacher/tests/${testId}/questions`)
+      const result = await response.json()
+
+      if (result.success && result.data) {
+        console.log(`Загружаем ${result.data.length} вопросов из БД для теста ${testId}`)
+        
+        // ПОЛНОСТЬЮ очищаем localStorage для этого теста
+        clearTestFromLocalStorage(testId)
+        
+        const dbQuestions: Question[] = []
+        
+        // Сохраняем каждый вопрос в localStorage и добавляем в список
+        for (const dbQuestion of result.data) {
+          // Сохраняем данные вопроса в localStorage
+          saveQuestionDraft(dbQuestion.id, dbQuestion.type, {
+            question: dbQuestion.question,
+            answers: dbQuestion.answerVariants.map((v: any) => ({
+              value: v.value,
+              isCorrect: v.isCorrect
+            })),
+            points: dbQuestion.points,
+            timeLimit: dbQuestion.timeLimit,
+            imageUrl: dbQuestion.photoUrl,
+            language: dbQuestion.language
+          })
+
+          // Добавляем в список вопросов
+          dbQuestions.push({
+            id: dbQuestion.id,
+            type: dbQuestion.type,
+            question: dbQuestion.question
+          })
+
+          // Добавляем вопрос в список вопросов теста
+          addQuestionToTestDraft(testId, dbQuestion.id, dbQuestion.type)
+        }
+
+        setQuestions(dbQuestions)
+        setOriginalQuestionsFromDB([...dbQuestions]) // Сохраняем исходные вопросы из БД
+        if (dbQuestions.length > 0 && !selectedQuestionId) {
+          setSelectedQuestionId(dbQuestions[0].id)
+        }
+      }
+    } catch (error) {
+      console.error('Ошибка загрузки вопросов из БД:', error)
     }
-    return typeColors[type] || 'bg-gray-500'
   }
 
-  if (!mounted) {
-    return null
+  // Сохранение всех вопросов в БД
+  const handleSaveQuestions = async () => {
+    if (!test || !user?.id || questions.length === 0) {
+      showToast(getText('tests.noQuestionsToSave', 'Нет вопросов для сохранения'), 'error')
+      return
+    }
+
+    // Проверяем, что тест не временный (должен быть сохранен в БД)
+    if (isTempId(testId)) {
+      showToast(getText('tests.saveTestFirst', 'Сначала сохраните тест в настройках'), 'error')
+      return
+    }
+
+    setIsSubmitting(true)
+    let successCount = 0
+    let errorCount = 0
+
+    try {
+      // Сначала удаляем вопросы, которые были удалены из интерфейса
+      const currentQuestionIds = new Set(questions.map(q => q.id))
+      const questionsToDelete = originalQuestionsFromDB.filter(
+        originalQ => !isTempId(originalQ.id) && !currentQuestionIds.has(originalQ.id)
+      )
+
+      console.log(`Найдено ${questionsToDelete.length} вопросов для удаления из БД`)
+
+      // Удаляем вопросы из БД
+      for (const questionToDelete of questionsToDelete) {
+        try {
+          console.log(`Удаляем вопрос ${questionToDelete.id} из БД`)
+          const deleteResponse = await fetch(`/api/teacher/tests/${testId}/questions/${questionToDelete.id}`, {
+            method: 'DELETE'
+          })
+
+          const deleteResult = await deleteResponse.json()
+          if (deleteResult.success) {
+            console.log(`Вопрос ${questionToDelete.id} успешно удален из БД`)
+            // Удаляем из localStorage
+            removeQuestionDraft(questionToDelete.id, questionToDelete.type)
+            removeQuestionFromTest(testId, questionToDelete.id)
+          } else {
+            console.error(`Ошибка удаления вопроса ${questionToDelete.id}:`, deleteResult.error)
+            errorCount++
+          }
+        } catch (error) {
+          console.error(`Ошибка при удалении вопроса ${questionToDelete.id}:`, error)
+          errorCount++
+        }
+      }
+
+      // Сохраняем каждый вопрос
+      for (const question of questions) {
+        try {
+          // Получаем данные вопроса из localStorage
+          const questionData = loadQuestionDraft(question.id, question.type)
+          
+          if (!questionData) {
+            console.warn(`Данные вопроса ${question.id} не найдены`)
+            errorCount++
+            continue
+          }
+
+          // Валидация данных вопроса
+          if (!questionData.question || !questionData.question.trim()) {
+            console.warn(`Вопрос ${question.id} не заполнен`)
+            errorCount++
+            continue
+          }
+
+          const validAnswers = questionData.answers?.filter(a => a.value && a.value.trim()) || []
+          if (validAnswers.length < 2) {
+            console.warn(`Вопрос ${question.id} имеет менее 2 вариантов ответа`)
+            errorCount++
+            continue
+          }
+
+          const hasCorrectAnswer = validAnswers.some(a => a.isCorrect)
+          if (!hasCorrectAnswer) {
+            console.warn(`Вопрос ${question.id} не имеет правильного ответа`)
+            errorCount++
+            continue
+          }
+
+          // Определяем, новый это вопрос или существующий
+          const isNewQuestion = isTempId(question.id)
+          console.log(`Сохраняем вопрос ${question.id}, новый: ${isNewQuestion}`)
+          
+          // Сохраняем вопрос через API
+          const response = await fetch(
+            isNewQuestion 
+              ? `/api/teacher/tests/${testId}/questions?teacherId=${user.id}`
+              : `/api/teacher/tests/${testId}/questions/${question.id}`,
+            {
+              method: isNewQuestion ? 'POST' : 'PUT',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                question: questionData.question.trim(),
+                answerVariants: validAnswers,
+                photoUrl: questionData.imageUrl || null,
+                points: questionData.points || 1,
+                timeLimit: questionData.timeLimit || 60,
+                type: question.type,
+                language: formData.language
+              })
+            }
+          )
+
+          const result = await response.json()
+
+          if (result.success) {
+            successCount++
+            console.log(`Вопрос ${question.id} успешно ${isNewQuestion ? 'создан' : 'обновлен'}`)
+            
+            if (isNewQuestion) {
+              // Для новых вопросов удаляем временный черновик
+              removeQuestionDraft(question.id, question.type)
+              
+              // Если сервер вернул новый ID, обновляем вопрос в списке и localStorage
+              if (result.data && result.data.id && result.data.id !== question.id) {
+                console.log(`Обновляем ID вопроса с ${question.id} на ${result.data.id}`)
+                
+                // Удаляем старый вопрос из списка вопросов теста в localStorage
+                removeQuestionFromTest(testId, question.id)
+                
+                // Добавляем новый ID в список вопросов теста
+                addQuestionToTestDraft(testId, result.data.id, question.type)
+                
+                // Обновляем ID вопроса в состоянии React
+                setQuestions(prev => prev.map(q => 
+                  q.id === question.id 
+                    ? { ...q, id: result.data.id }
+                    : q
+                ))
+                
+                // Если это был выбранный вопрос, обновляем выбор
+                if (selectedQuestionId === question.id) {
+                  setSelectedQuestionId(result.data.id)
+                }
+              }
+            } else {
+              // Для существующих вопросов просто удаляем черновик после успешного обновления
+              removeQuestionDraft(question.id, question.type)
+            }
+          } else {
+            console.error(`Ошибка сохранения вопроса ${question.id}:`, result.error)
+            errorCount++
+          }
+        } catch (error) {
+          console.error(`Ошибка при сохранении вопроса ${question.id}:`, error)
+          errorCount++
+        }
+      }
+
+      const deletedCount = questionsToDelete.length - questionsToDelete.filter((_, index) => {
+        // Считаем только успешно удаленные (те, для которых не было ошибок)
+        return index < questionsToDelete.length
+      }).length
+
+      if (successCount > 0 || questionsToDelete.length > 0) {
+        let message = ''
+        if (successCount > 0 && questionsToDelete.length > 0) {
+          message = getText('tests.questionsSavedAndDeleted', `Сохранено: ${successCount}, удалено: ${questionsToDelete.length}${errorCount > 0 ? `, ошибок: ${errorCount}` : ''}`)
+        } else if (successCount > 0) {
+          message = getText('tests.questionsSaved', `Сохранено вопросов: ${successCount}${errorCount > 0 ? `, ошибок: ${errorCount}` : ''}`)
+        } else if (questionsToDelete.length > 0) {
+          message = getText('tests.questionsDeleted', `Удалено вопросов: ${questionsToDelete.length}${errorCount > 0 ? `, ошибок: ${errorCount}` : ''}`)
+        }
+        
+        showToast(message, errorCount > 0 ? 'warning' : 'success')
+        setHasUnsavedChanges(false)
+        
+        // Перезагружаем актуальные данные из БД после успешного сохранения
+        console.log('Вопросы успешно сохранены/удалены, перезагружаем из БД')
+        await reloadQuestionsFromDB()
+      } else if (errorCount > 0) {
+        showToast(
+          getText('tests.saveQuestionsError', `Ошибка при сохранении вопросов: ${errorCount}`),
+          'error'
+        )
+      }
+    } catch (error) {
+      console.error('Ошибка при сохранении вопросов:', error)
+      showToast(getText('tests.saveQuestionsError', 'Ошибка при сохранении вопросов'), 'error')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
-  if (isLoading) {
+  // Навигация по breadcrumbs
+  const handleBreadcrumbNavigation = (href: string) => {
+    router.push(href)
+  }
+
+
+  // Добавление нового вопроса
+  const handleAddQuestion = (type: QuestionType) => {
+    const newQuestionId = generateTempId()
+    const newQuestion: Question = {
+      id: newQuestionId,
+      type,
+      order: questions.length + 1
+    }
+    
+    // Сохраняем вопрос в localStorage
+    addQuestionToTestDraft(testId, newQuestionId, type)
+    
+    setQuestions(prev => [...prev, newQuestion])
+    setSelectedQuestionId(newQuestionId)
+    setHasUnsavedChanges(true)
+    
+    // Новые вопросы НЕ добавляются в originalQuestionsFromDB, так как они еще не в БД
+  }
+
+  // Удаление вопроса
+  const handleDeleteQuestion = async (questionId: string) => {
+    // Найдем тип вопроса для правильного удаления
+    const question = questions.find(q => q.id === questionId)
+    if (!question) return
+
+    // Если это не временный вопрос и тест не временный, удаляем сразу из БД
+    if (!isTempId(questionId) && !isTempId(testId)) {
+      try {
+        console.log(`Немедленно удаляем вопрос ${questionId} из БД`)
+        const deleteResponse = await fetch(`/api/teacher/tests/${testId}/questions/${questionId}`, {
+          method: 'DELETE'
+        })
+
+        const deleteResult = await deleteResponse.json()
+        if (deleteResult.success) {
+          console.log(`Вопрос ${questionId} успешно удален из БД`)
+          
+          // Удаляем из originalQuestionsFromDB
+          setOriginalQuestionsFromDB(prev => prev.filter(q => q.id !== questionId))
+        } else {
+          console.error(`Ошибка удаления вопроса ${questionId}:`, deleteResult.error)
+          showToast(`Ошибка удаления вопроса: ${deleteResult.error}`, 'error')
+          return // Не удаляем из интерфейса, если не удалось удалить из БД
+        }
+      } catch (error) {
+        console.error(`Ошибка при удалении вопроса ${questionId}:`, error)
+        showToast('Ошибка при удалении вопроса', 'error')
+        return // Не удаляем из интерфейса, если не удалось удалить из БД
+      }
+    }
+    
+    // Удаляем из localStorage
+    removeQuestionDraft(questionId, question.type)
+    removeQuestionFromTest(testId, questionId)
+    
+    // Удаляем из списка текущих вопросов
+    setQuestions(prev => prev.filter(q => q.id !== questionId))
+    
+    // Если удаленный вопрос был выбран, выбираем первый доступный
+    if (selectedQuestionId === questionId) {
+      const remainingQuestions = questions.filter(q => q.id !== questionId)
+      setSelectedQuestionId(remainingQuestions.length > 0 ? remainingQuestions[0].id : null)
+    }
+    
+    // Для временных вопросов отмечаем несохраненные изменения
+    if (isTempId(questionId) || isTempId(testId)) {
+      setHasUnsavedChanges(true)
+    }
+  }
+
+  // Опции для селектов
+  const languageOptions: SelectOption[] = [
+    { value: 'ru', label: 'Русский' },
+    { value: 'kg', label: 'Кыргызский' }
+  ]
+
+
+  // Breadcrumbs
+  const breadcrumbs = [
+    { title: 'Редактировать', type: 'edit' as const }
+  ]
+
+  // Показываем загрузку
+  if (!mounted || isLoading) {
     return (
       <TeacherLayout>
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="text-center">
             <Icons.Loader2 className="h-8 w-8 animate-spin mx-auto text-[var(--text-tertiary)] mb-4" />
             <p className="text-sm text-[var(--text-tertiary)]">
-              {getText('tests.loading', 'Загрузка теста...')}
+              {getText('tests.loadingTest', 'Загрузка теста...')}
             </p>
           </div>
         </div>
@@ -1039,7 +905,7 @@ export default function TestEditorPage() {
           <p className="text-[var(--text-tertiary)] mb-4">
             {getText('tests.testNotFound', 'Тест не найден')}
           </p>
-          <Button onClick={handleBack} variant="primary">
+          <Button onClick={handleCancel} variant="primary">
             {getText('tests.backToList', 'Вернуться к списку тестов')}
           </Button>
         </div>
@@ -1049,291 +915,240 @@ export default function TestEditorPage() {
 
   return (
     <TeacherLayout>
-      <div className="flex flex-col h-screen">
+      <div className="space-y-6">
+        {/* Breadcrumbs */}
+        <Breadcrumbs 
+          items={breadcrumbs} 
+          onNavigate={handleBreadcrumbNavigation}
+          onSettingsClick={() => setIsSettingsModalOpen(true)}
+        />
+
         {/* Заголовок */}
-        <div className="flex items-center justify-between px-6 py-4 bg-[var(--bg-card)] border-b border-[var(--border-primary)]">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={handleBack}
-              className="p-2 hover:bg-[var(--bg-hover)] rounded-lg transition-colors"
-            >
-              <Icons.ArrowLeft className="h-5 w-5 text-[var(--text-primary)]" />
-            </button>
-            <div>
-              <h1 className="text-xl font-bold text-[var(--text-primary)]">
-                {testName || getText('tests.editTest', 'Редактирование теста')}
-              </h1>
-              <p className="text-sm text-[var(--text-tertiary)] mt-1">
-                {test.status === 'draft' 
-                  ? getText('tests.draft', 'Черновик')
-                  : getText('tests.published', 'Опубликован')
-                }
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button 
-              onClick={handleSaveTest} 
-              variant="primary" 
-              disabled={saving || !test}
-              isLoading={saving}
-            >
-              {saving ? getText('tests.saving', 'Saving...') : getText('tests.save', 'Сохранить')}
-            </Button>
-            {test?.status === 'draft' && questions.length > 0 && (
-              <Button 
-                onClick={handlePublishTest} 
-                variant="primary"
-                disabled={saving}
-                className="bg-green-600 hover:bg-green-700 text-white"
-              >
-                {saving ? getText('tests.publishing', 'Publishing...') : getText('tests.publish', 'Опубликовать')}
-              </Button>
-            )}
-          </div>
+        <div>
+          <h1 className="text-2xl font-bold text-[var(--text-primary)]">
+            {getText('tests.editTestTitle', 'Редактировать тест')}
+          </h1>
         </div>
 
-        {/* Основной контент: 2 колонки */}
-        <div className="flex flex-1 overflow-hidden">
-          {/* Левая панель - Список вопросов */}
-          <div className="w-80 bg-[var(--bg-card)] border-r border-[var(--border-primary)] flex flex-col">
-            {/* Вкладки */}
-            <div className="flex border-b border-[var(--border-primary)]">
-              <button
-                onClick={() => setActiveTab('questions')}
-                className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
-                  activeTab === 'questions'
-                    ? 'text-[var(--text-primary)] border-b-2 border-[var(--text-primary)]'
-                    : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'
-                }`}
-              >
-                {getText('tests.tabs.questions', 'Вопросы')}
-              </button>
-              <button
-                onClick={() => setActiveTab('settings')}
-                className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
-                  activeTab === 'settings'
-                    ? 'text-[var(--text-primary)] border-b-2 border-[var(--text-primary)]'
-                    : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)]'
-                }`}
-              >
-                {getText('tests.tabs.settings', 'Настройки')}
-              </button>
-            </div>
-
-            {/* Контент вкладок */}
-            <div className="flex-1 overflow-y-auto">
-              {activeTab === 'questions' ? (
-                <div className="p-4 space-y-2">
-                  {/* Кнопка добавления вопроса */}
-                  <button
-                    onClick={handleAddQuestion}
-                    className="w-full p-4 border-2 border-dashed border-[var(--border-primary)] rounded-lg hover:border-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-colors flex items-center justify-center gap-2 text-[var(--text-secondary)]"
-                  >
-                    <Icons.Plus className="h-5 w-5" />
-                    <span>{getText('tests.addQuestion', 'Добавить вопрос')}</span>
-                  </button>
-
-                  {/* Список вопросов */}
-                  {questions.length === 0 ? (
-                    <div className="text-center py-12 text-[var(--text-tertiary)]">
-                      <Icons.HelpCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                      <p className="text-sm">{getText('tests.noQuestions', 'Вопросы пока не добавлены')}</p>
-                    </div>
-                  ) : (
-                    questions.map((q, index) => (
-                      <div
-                        key={q.id}
-                        onClick={() => setSelectedQuestionId(q.id)}
-                        className={`p-3 rounded-lg border cursor-pointer transition-all ${
-                          selectedQuestionId === q.id
-                            ? 'border-[var(--text-primary)] bg-[var(--text-primary)]/10'
-                            : 'border-[var(--border-primary)] hover:border-[var(--text-primary)]/50 hover:bg-[var(--bg-hover)]'
-                        }`}
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex items-start gap-3 flex-1 min-w-0">
-                            {/* Номер вопроса */}
-                            <div className="flex items-center justify-center w-8 h-8 rounded-full bg-[var(--bg-tertiary)] text-[var(--text-primary)] font-semibold text-sm flex-shrink-0">
-                              {index + 1}
-                            </div>
-                            
-                            <div className="flex-1 min-w-0 overflow-hidden">
-                              {/* Тип вопроса */}
-                              <div className="flex items-center gap-2 mb-1">
-                                <span className={`px-2 py-0.5 rounded text-xs font-medium text-white ${getQuestionTypeColor(q.type)}`}>
-                                  {getQuestionTypeName(q.type)}
-                                </span>
-                                <span className="text-xs text-[var(--text-tertiary)]">
-                                  {getText(`tests.types.${q.type}Full`, q.type)}
-                                </span>
-                              </div>
-                              
-                              {/* Текст вопроса (если есть) */}
-                              {q.question && (
-                                <p className="text-sm text-[var(--text-secondary)] truncate">
-                                  {q.question}
-                                </p>
-                              )}
-                              {!q.question && (
-                                <p className="text-sm text-[var(--text-tertiary)] italic">
-                                  {getText('tests.newQuestion', 'Новый вопрос')}
-                                </p>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Кнопка удаления */}
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              handleDeleteQuestion(q.id)
-                            }}
-                            className="p-1 hover:bg-red-500/10 rounded transition-colors flex-shrink-0"
-                          >
-                            <Icons.Trash2 className="h-4 w-4 text-red-400" />
-                          </button>
-                        </div>
-                      </div>
-                    ))
-                  )}
+        {/* Вопросы */}
+        <div className="bg-[var(--bg-card)] rounded-2xl transition-colors">
+          <div className="p-8 space-y-8" ref={questionsRef}>
+            {questions.length === 0 ? (
+              <div className="flex flex-col items-center justify-center gap-4 py-12">
+                <div className="w-16 h-16 rounded-full bg-gray-800 flex items-center justify-center flex-shrink-0">
+                  <Icons.HelpCircle className="h-8 w-8 text-gray-400" />
                 </div>
-              ) : (
-                // Вкладка настроек
-                <div className="p-4 space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
-                      {getText('tests.testName', 'Название теста')} <span className="text-red-400">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={testName}
-                      onChange={(e) => setTestName(e.target.value)}
-                      placeholder={getText('tests.testNamePlaceholder', 'Введите название теста')}
-                      className="w-full px-3 py-2 rounded-lg border border-[var(--border-primary)] bg-[var(--bg-tertiary)] text-[var(--text-primary)] placeholder-[var(--text-tertiary)] focus:outline-none focus:border-[var(--text-primary)] text-sm"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
-                      {getText('tests.testDescription', 'Описание теста')}
-                    </label>
-                    <textarea
-                      value={testDescription}
-                      onChange={(e) => setTestDescription(e.target.value)}
-                      placeholder={getText('tests.testDescriptionPlaceholder', 'Введите описание теста')}
-                      rows={4}
-                      className="w-full px-3 py-2 rounded-lg border border-[var(--border-primary)] bg-[var(--bg-tertiary)] text-[var(--text-primary)] placeholder-[var(--text-tertiary)] focus:outline-none focus:border-[var(--accent-primary)] resize-none text-sm"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
-                      {getText('tests.createModal.section', 'Раздел теста')}
-                    </label>
-                    <select
-                      value={testSection}
-                      onChange={(e) => setTestSection(e.target.value as QuestionType)}
-                      className="w-full px-3 py-2 rounded-lg border border-[var(--border-primary)] bg-[var(--bg-tertiary)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent-primary)] text-sm"
-                    >
-                      <option value="math1">{getText('tests.types.math1Full', 'Математика 1')}</option>
-                      <option value="math2">{getText('tests.types.math2Full', 'Математика 2')}</option>
-                      <option value="analogy">{getText('tests.types.analogyFull', 'Аналогия')}</option>
-                      <option value="rac">{getText('tests.types.racFull', 'Чтение и понимание')}</option>
-                      <option value="grammar">{getText('tests.types.grammarFull', 'Грамматика')}</option>
-                      <option value="standard">{getText('tests.types.standardFull', 'Стандартный')}</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
-                      {getText('tests.language', 'Язык')} <span className="text-red-400">*</span>
-                    </label>
-                    <select
-                      value={testLanguage}
-                      onChange={(e) => setTestLanguage(e.target.value as 'ru' | 'kg')}
-                      className="w-full px-3 py-2 rounded-lg border border-[var(--border-primary)] bg-[var(--bg-tertiary)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent-primary)] text-sm"
-                    >
-                      <option value="ru">{getText('tests.russian', 'Русский')}</option>
-                      <option value="kg">{getText('tests.kyrgyz', 'Кыргызский')}</option>
-                    </select>
-                  </div>
-
-                  <Button onClick={handleSaveTest} variant="primary" className="w-full" disabled={saving} isLoading={saving}>
-                    {saving ? getText('tests.saving', 'Saving...') : getText('tests.save', 'Сохранить')}
-                  </Button>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Правая панель - Редактор вопроса */}
-          <div className="flex-1 overflow-y-auto bg-[var(--bg-primary)]">
-            {selectedQuestionId ? (() => {
-              const selectedQuestion = questions.find(q => q.id === selectedQuestionId)
-              const questionType: QuestionType = (selectedQuestion?.type || testSection || 'standard') as QuestionType
-              return (
-                <QuestionEditor
-                  questionId={selectedQuestionId}
-                  testId={testId}
-                  testLanguage={testLanguage}
-                  questionType={questionType}
-                  onQuestionUpdate={(questionId, data) => {
-                    // Обновляем текст вопроса в списке
-                    setQuestions(prev => prev.map(q => 
-                      q.id === questionId ? { ...q, question: data.question, type: data.type } : q
-                    ))
-                  }}
-                />
-              )
-            })() : (
-              <div className="flex items-center justify-center h-full text-[var(--text-tertiary)]">
                 <div className="text-center">
-                  <Icons.HelpCircle className="h-16 w-16 mx-auto mb-4 opacity-50" />
-                  <p>{getText('tests.selectQuestion', 'Выберите вопрос для редактирования')}</p>
+                  <h3 className="text-[var(--text-primary)] font-medium mb-2">
+                  {getText('tests.noQuestionsTitle', 'Нет вопросов')}
+                </h3>
+                  <p className="text-[var(--text-tertiary)] text-sm">
+                  {getText('tests.noQuestionsHint1', 'Нажмите на кнопку + чтобы добавить вопрос')}
+                </p>
                 </div>
               </div>
+            ) : (
+              <div className="space-y-6 pb-24">
+                {questions.map((question, index) => (
+                  <div key={question.id} className="bg-[var(--bg-tertiary)] rounded-xl p-6 space-y-6 transition-colors">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                          question.type === 'math1' ? 'bg-blue-500/10' :
+                          question.type === 'math2' ? 'bg-purple-500/10' :
+                          question.type === 'analogy' ? 'bg-green-500/10' :
+                          question.type === 'rac' ? 'bg-yellow-500/10' :
+                          question.type === 'grammar' ? 'bg-red-500/10' :
+                          'bg-gray-500/10'
+                        }`}>
+                          <span className={`font-bold ${
+                            question.type === 'math1' ? 'text-blue-400' :
+                            question.type === 'math2' ? 'text-purple-400' :
+                            question.type === 'analogy' ? 'text-green-400' :
+                            question.type === 'rac' ? 'text-yellow-400' :
+                            question.type === 'grammar' ? 'text-red-400' :
+                            'text-gray-400'
+                        }`}>
+                          {question.type === 'math1' ? 'М1' :
+                           question.type === 'math2' ? 'М2' :
+                           question.type === 'analogy' ? 'А' :
+                           question.type === 'rac' ? 'Ч' :
+                           question.type === 'grammar' ? 'Г' : 'С'}
+                        </span>
+                      </div>
+                        <div>
+                          <h3 className="text-[var(--text-primary)] font-medium">{getTestTypeName(question.type)}</h3>
+                          <p className="text-[var(--text-tertiary)] text-sm">{getText('testEditor.questionBlock', 'Блок вопроса')}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <TestAIExplainButton
+                          blockId={question.id}
+                          courseLanguage={formData.language}
+                          isShowingExplanation={showAIExplanation[question.id] || false}
+                          onToggleExplanation={() => {
+                            setShowAIExplanation(prev => ({
+                              ...prev,
+                              [question.id]: !prev[question.id]
+                            }))
+                          }}
+                          onRegenerateSuccess={(explanation) => {
+                            setAiExplanations(prev => ({
+                              ...prev,
+                              [question.id]: explanation
+                            }))
+                            setShowAIExplanation(prev => ({
+                              ...prev,
+                              [question.id]: true
+                            }))
+                          }}
+                          storageKeyPrefix="testQuestion"
+                          testType={question.type}
+                        />
+                      <button
+                        onClick={() => handleDeleteQuestion(question.id)}
+                          className="p-2 hover:bg-[var(--bg-hover)] rounded-lg transition-colors group"
+                        title="Удалить вопрос"
+                      >
+                          <Icons.Trash2 className="h-5 w-5 text-gray-400 group-hover:text-red-400 transition-colors" />
+                      </button>
+                      </div>
+                    </div>
+                    <QuestionEditor
+                      questionId={question.id}
+                      testId={testId}
+                      testLanguage={formData.language}
+                      questionType={question.type}
+                      questionNumber={index + 1}
+                      isShowingExplanation={showAIExplanation[question.id] || false}
+                      aiExplanation={aiExplanations[question.id] || ''}
+                      isPreviewMode={isPreviewMode}
+                      onFormatRegister={(handler) => handleRegisterFormat(question.id, handler)}
+                      onRegenerateExplanation={async () => {
+                        // Вызываем регенерацию через TestAIExplainButton
+                        // Для этого нужно найти кнопку и вызвать её метод генерации
+                        // Пока просто вызываем API напрямую
+                        try {
+                          const questionData = loadQuestionDraft(question.id, question.type)
+                          if (!questionData || !questionData.question) {
+                            alert('Заполните вопрос и варианты ответов')
+                            return
+                          }
+                          
+                          const response = await fetch('/api/ai/explain-question', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                              questionData: {
+                                question: questionData.question,
+                                answers: questionData.answers || [],
+                                imageUrl: questionData.imageUrl
+                              },
+                              courseLanguage: formData.language,
+                              testType: question.type
+                            })
+                          })
+                          
+                          if (!response.ok) {
+                            const error = await response.json()
+                            alert(error.error || 'Ошибка при генерации объяснения')
+                            return
+                          }
+                          
+                          const data = await response.json()
+                          const newExplanation = data.explanation
+                          
+                          // Обновляем состояние
+                          setAiExplanations(prev => ({
+                            ...prev,
+                            [question.id]: newExplanation
+                          }))
+                          
+                          // Сохраняем в localStorage
+                          if (questionData) {
+                            questionData.explanation_ai = newExplanation
+                            saveQuestionDraft(question.id, question.type, questionData)
+                          }
+                        } catch (error) {
+                          console.error('Ошибка регенерации объяснения:', error)
+                          alert('Ошибка при генерации объяснения')
+                        }
+                      }}
+                    />
+                  </div>
+                ))}
+              </div>
             )}
+
+            {/* Меню выбора типа теста */}
+            <TestTypeSelectorMenu
+              onAddQuestion={handleAddQuestion}
+              disabled={!formData.name.trim() || !formData.description.trim()}
+              currentQuestionsCount={questions.length}
+            />
           </div>
         </div>
+
+        {/* Кнопки сохранения и отмены */}
+        {questions.length > 0 && (
+          <div className="bg-[var(--bg-card)] rounded-2xl p-6 mt-6 transition-colors">
+            <div className="flex justify-end gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleCancel}
+                disabled={isSubmitting}
+              >
+                {getText('common.cancel', 'Отмена')}
+              </Button>
+              <Button
+                type="button"
+                variant="primary"
+                onClick={handleSaveQuestions}
+                disabled={isSubmitting || isTempId(testId)}
+                isLoading={isSubmitting}
+              >
+                {getText('tests.saveQuestions', 'Сохранить вопросы')}
+              </Button>
+            </div>
+            {isTempId(testId) && (
+              <p className="text-sm text-gray-400 mt-2 text-center">
+                {getText('tests.saveTestFirstHint', 'Сначала сохраните тест в настройках, затем сохраните вопросы')}
+              </p>
+            )}
+          </div>
+        )}
       </div>
-
-      {/* Модальное окно подтверждения публикации */}
-      <ConfirmDialog
-        isOpen={showPublishConfirm}
-        onClose={() => setShowPublishConfirm(false)}
-        onConfirm={executePublishTest}
-        title={getText('tests.publishConfirmTitle', 'Подтвердите публикацию')}
-        message={getText('tests.publishConfirmMessage', 'Вы уверены, что хотите опубликовать этот тест? После публикации тест станет доступен для прохождения.')}
-        confirmText={getText('tests.publish', 'Опубликовать')}
-        cancelText={getText('common.cancel', 'Отмена')}
-        variant="warning"
-        isLoading={saving}
-      />
-
-      {/* Модальное окно подтверждения удаления вопроса */}
-      <ConfirmDialog
-        isOpen={showDeleteQuestionConfirm}
-        onClose={() => {
-          setShowDeleteQuestionConfirm(false)
-          setQuestionToDelete(null)
-        }}
-        onConfirm={executeDeleteQuestion}
-        title={getText('tests.deleteQuestionConfirmTitle', 'Удалить вопрос?')}
-        message={getText('tests.deleteQuestionConfirmMessage', 'Вы уверены, что хотите удалить этот вопрос? Это действие нельзя отменить.')}
-        confirmText={getText('common.delete', 'Удалить')}
-        cancelText={getText('common.cancel', 'Отмена')}
-        variant="danger"
-      />
 
       {/* Toast уведомления */}
       <Toast
         isOpen={toast.isOpen}
-        onClose={() => setToast({ ...toast, isOpen: false })}
         message={toast.message}
         variant={toast.variant}
-        duration={4000}
+        onClose={() => setToast(prev => ({ ...prev, isOpen: false }))}
       />
+
+      {/* Модальное окно настроек теста */}
+      <TestSettingsModal
+        isOpen={isSettingsModalOpen}
+        onClose={() => setIsSettingsModalOpen(false)}
+        test={test}
+        onSave={handleSaveTestSettings}
+        isSubmitting={isSubmitting}
+      />
+
+      {/* Плавающая панель инструментов */}
+      {questions.length > 0 && (
+        <div className="hidden lg:block fixed bottom-4 left-[50%] lg:left-[calc(50%+80px)] -translate-x-1/2 z-50">
+          <TestToolbar 
+            onFormat={handleFormat} 
+            isPreviewMode={isPreviewMode} 
+            onTogglePreview={handleTogglePreview}
+            onImageToLatex={handleOpenImageLatex}
+            onMagicWand={handleMagicWand}
+          />
+        </div>
+      )}
     </TeacherLayout>
   )
 }

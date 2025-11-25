@@ -522,4 +522,107 @@ export const DiscussionsPageSkeleton: React.FC = () => {
   )
 }
 
+/**
+ * Skeleton для карточки теста
+ */
+export const SkeletonTestCard: React.FC<{ className?: string }> = ({ className = '' }) => {
+  return (
+    <div className={`bg-[var(--bg-card)] rounded-2xl p-6 border border-[var(--border-primary)] ${className}`}>
+      <div className="flex items-start justify-between mb-4">
+        <div className="flex-1">
+          <Skeleton variant="text" width="70%" height={24} className="mb-2" />
+          <Skeleton variant="text" width="100%" height={16} className="mb-1" />
+          <Skeleton variant="text" width="80%" height={16} />
+        </div>
+        <Skeleton variant="rectangular" width={36} height={36} rounded />
+      </div>
+
+      <div className="flex items-center gap-4 mb-4">
+        <div className="flex items-center gap-2">
+          <Skeleton variant="circular" width={16} height={16} />
+          <Skeleton variant="text" width={80} height={16} />
+        </div>
+        <div className="flex items-center gap-2">
+          <Skeleton variant="circular" width={16} height={16} />
+          <Skeleton variant="text" width={100} height={16} />
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between">
+        <Skeleton variant="rectangular" width={80} height={20} rounded />
+        <Skeleton variant="text" width={100} height={14} />
+      </div>
+    </div>
+  )
+}
+
+/**
+ * Skeleton для страницы Tests
+ */
+export const TestsPageSkeleton: React.FC = () => {
+  return (
+    <div className="space-y-6">
+      {/* Заголовок страницы */}
+      <div className="flex items-center justify-between">
+        <div className="flex-1">
+          <Skeleton variant="text" width="25%" height={32} className="mb-2" />
+          <Skeleton variant="text" width="50%" height={20} />
+        </div>
+        <Skeleton variant="rectangular" width={180} height={40} rounded />
+      </div>
+
+      {/* Фильтры */}
+      <div className="bg-[var(--bg-card)] rounded-2xl p-6 space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {/* Поиск */}
+          <div>
+            <Skeleton variant="text" width="30%" height={16} className="mb-2" />
+            <Skeleton variant="rectangular" width="100%" height={40} rounded />
+          </div>
+          {/* Язык */}
+          <div>
+            <Skeleton variant="text" width="30%" height={16} className="mb-2" />
+            <Skeleton variant="rectangular" width="100%" height={40} rounded />
+          </div>
+          {/* Статус */}
+          <div>
+            <Skeleton variant="text" width="30%" height={16} className="mb-2" />
+            <Skeleton variant="rectangular" width="100%" height={40} rounded />
+          </div>
+        </div>
+
+        {/* Период */}
+        <div>
+          <Skeleton variant="text" width="20%" height={16} className="mb-3" />
+          <div className="flex flex-wrap gap-2">
+            {[...Array(4)].map((_, i) => (
+              <Skeleton key={i} variant="rectangular" width={100} height={36} rounded />
+            ))}
+          </div>
+        </div>
+
+        {/* Диапазон дат */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {[...Array(2)].map((_, i) => (
+            <div key={i}>
+              <Skeleton variant="text" width="30%" height={16} className="mb-3" />
+              <div className="space-y-3">
+                <Skeleton variant="rectangular" width="100%" height={40} rounded />
+                <Skeleton variant="rectangular" width="100%" height={40} rounded />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Список тестов */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {[...Array(6)].map((_, i) => (
+          <SkeletonTestCard key={i} />
+        ))}
+      </div>
+    </div>
+  )
+}
+
 

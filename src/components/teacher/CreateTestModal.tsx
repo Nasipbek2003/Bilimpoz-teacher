@@ -8,7 +8,6 @@ import Select, { SelectOption } from '@/components/ui/Select'
 import Button from '@/components/ui/Button'
 import Toast, { ToastVariant } from '@/components/ui/Toast'
 import { useTranslation } from '@/hooks/useTranslation'
-import { generateTempId } from '@/lib/test-storage'
 
 export type TestSectionType = 'math1' | 'math2' | 'analogy' | 'rac' | 'grammar' | 'standard'
 
@@ -16,27 +15,24 @@ interface CreateTestModalProps {
   isOpen: boolean
   onClose: () => void
   teacherId: string
-}
-
-interface TestSectionInfo {
-  value: TestSectionType
-  label: string
-  description: string
+  onTestCreated?: () => void
 }
 
 const CreateTestModal: React.FC<CreateTestModalProps> = ({
   isOpen,
   onClose,
-  teacherId
+  teacherId,
+  onTestCreated
 }) => {
   const { t, ready } = useTranslation()
   const router = useRouter()
   const [mounted, setMounted] = useState(false)
 
-  const [section, setSection] = useState<TestSectionType | ''>('')
+  const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [language, setLanguage] = useState<'ru' | 'kg'>('ru')
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [isLoading, setIsLoading] = useState(false)
   const [toast, setToast] = useState<{ isOpen: boolean; message: string; variant: ToastVariant }>({
     isOpen: false,
     message: '',
@@ -63,7 +59,7 @@ const CreateTestModal: React.FC<CreateTestModalProps> = ({
   useEffect(() => {
     if (!isOpen) {
       // При закрытии сбрасываем все кроме языка
-      setSection('')
+      setName('')
       setDescription('')
       setErrors({})
     }
@@ -75,43 +71,6 @@ const CreateTestModal: React.FC<CreateTestModalProps> = ({
     return translation === key ? fallback : translation
   }
 
-  // Опции разделов теста с описаниями
-  const sectionOptions: TestSectionInfo[] = useMemo(() => {
-    if (!mounted || !ready) return []
-    return [
-      {
-        value: 'math1',
-        label: getText('tests.types.math1Full', 'Математика 1'),
-        description: getText('tests.sections.math1Description', 'Сравнение величин. Варианты А и Б - поля ввода, В и Г - фиксированные.')
-      },
-      {
-        value: 'math2',
-        label: getText('tests.types.math2Full', 'Математика 2'),
-        description: getText('tests.sections.math2Description', 'Математические задачи. 4 фиксированных варианта ответа.')
-      },
-      {
-        value: 'analogy',
-        label: getText('tests.types.analogyFull', 'Аналогия'),
-        description: getText('tests.sections.analogyDescription', 'Логические тесты и закономерности. 4 фиксированных варианта (А, Б, В, Г).')
-      },
-      {
-        value: 'rac',
-        label: getText('tests.types.racFull', 'Чтение и понимание'),
-        description: getText('tests.sections.racDescription', 'Тесты на чтение и понимание текста. 4 фиксированных варианта ответа.')
-      },
-      {
-        value: 'grammar',
-        label: getText('tests.types.grammarFull', 'Грамматика'),
-        description: getText('tests.sections.grammarDescription', 'Тесты по языку и грамматике. 4 фиксированных варианта (А, Б, В, Г).')
-      },
-      {
-        value: 'standard',
-        label: getText('tests.types.standardFull', 'Стандартный'),
-        description: getText('tests.sections.standardDescription', 'Универсальные тесты. 2-10+ динамических вариантов ответа.')
-      }
-    ]
-  }, [t, mounted, ready, getText])
-
   const languageOptions: SelectOption[] = useMemo(() => {
     if (!mounted || !ready) return []
     return [
@@ -120,22 +79,18 @@ const CreateTestModal: React.FC<CreateTestModalProps> = ({
     ]
   }, [t, mounted, ready, getText])
 
-  const selectOptions: SelectOption[] = useMemo(() => {
-    return sectionOptions.map(opt => ({ value: opt.value, label: opt.label }))
-  }, [sectionOptions])
-
-  const selectedSectionInfo = sectionOptions.find(opt => opt.value === section)
-
   // Валидация
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {}
 
-    if (!section) {
-      newErrors.section = getText('tests.createModal.sectionRequired', 'Раздел теста обязателен для заполнения')
+    if (!name.trim()) {
+      newErrors.name = getText('tests.createModal.nameRequired', 'Название теста обязательно для заполнения')
     }
 
     if (!description.trim()) {
       newErrors.description = getText('tests.createModal.descriptionRequired', 'Описание обязательно для заполнения')
+    } else if (description.length > 600) {
+      newErrors.description = getText('testEditor.validation.descriptionTooLong', 'Описание не должно превышать 600 символов')
     }
 
     setErrors(newErrors)
@@ -151,7 +106,7 @@ const CreateTestModal: React.FC<CreateTestModalProps> = ({
   }
 
   // Обработка создания теста
-  const handleCreate = () => {
+  const handleCreate = async () => {
     if (!validate()) {
       return
     }
@@ -165,11 +120,29 @@ const CreateTestModal: React.FC<CreateTestModalProps> = ({
       return
     }
 
+    setIsLoading(true)
     try {
-      const tempTestId = generateTempId()
-      
-      // НЕ сохраняем в localStorage при создании
-      // Сохранение произойдет только после нажатия кнопки "Сохранить" в редакторе
+      // Сохраняем тест в базу данных
+      const response = await fetch('/api/teacher/tests', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          name: name.trim(),
+          description: description.trim(),
+          teacherId: teacherId,
+          language: language
+        })
+      })
+
+      const result = await response.json()
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || 'Ошибка при создании теста')
+      }
+
+      const testData = result.data
       
       // Показываем уведомление о создании теста
       setToast({
@@ -178,24 +151,17 @@ const CreateTestModal: React.FC<CreateTestModalProps> = ({
         variant: 'success'
       })
       
+      // Вызываем callback для обновления списка тестов
+      if (onTestCreated) {
+        onTestCreated()
+      }
+      
       // Закрываем модал
       onClose()
       
       // Переход в редактор с небольшой задержкой для показа уведомления
-      // Передаем параметры через URL или state для инициализации теста
       setTimeout(() => {
-        // Передаем данные теста через URL параметры или используем sessionStorage для временного хранения
-        const testData = {
-          id: tempTestId,
-          name: selectedSectionInfo?.label || getText('tests.newTestName', 'Новый тест'),
-          description: description.trim(),
-          language: language,
-          section: section as TestSectionType,
-          teacherId: teacherId
-        }
-        // Используем sessionStorage для передачи данных между страницами
-        sessionStorage.setItem(`temp_test_${tempTestId}`, JSON.stringify(testData))
-        router.push(`/tests/${tempTestId}`)
+        router.push(`/tests/${testData.id}`)
       }, 500)
     } catch (error) {
       console.error('Ошибка создания теста:', error)
@@ -204,22 +170,24 @@ const CreateTestModal: React.FC<CreateTestModalProps> = ({
         message: getText('tests.createError', 'Ошибка при создании теста') + ': ' + (error instanceof Error ? error.message : String(error)),
         variant: 'error'
       })
+    } finally {
+      setIsLoading(false)
     }
   }
 
   // Обработка отмены - сброс полей кроме языка
   const handleCancel = () => {
-    setSection('')
+    setName('')
     setDescription('')
     setErrors({})
     onClose()
   }
 
   // Очистка ошибок при изменении полей
-  const handleSectionChange = (value: string) => {
-    setSection(value as TestSectionType)
-    if (errors.section) {
-      setErrors({ ...errors, section: '' })
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setName(e.target.value)
+    if (errors.name) {
+      setErrors({ ...errors, name: '' })
     }
   }
 
@@ -257,53 +225,72 @@ const CreateTestModal: React.FC<CreateTestModalProps> = ({
 
         {/* Форма */}
         <div className="p-6 space-y-6">
-          {/* Раздел теста */}
+          {/* Название теста */}
           <div>
             <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
-              {getText('tests.createModal.section', 'Раздел теста')} <span className="text-red-400">*</span>
+              {getText('tests.createModal.name', 'Название теста')} <span className="text-red-400">*</span>
             </label>
-            <Select
-              value={section}
-              onChange={handleSectionChange}
-              options={selectOptions}
-              placeholder={getText('tests.createModal.sectionPlaceholder', 'Выберите раздел теста')}
-              error={!!errors.section}
+            <Input
+              type="text"
+              value={name}
+              onChange={handleNameChange}
+              placeholder={getText('tests.createModal.namePlaceholder', 'Введите название теста')}
+              error={!!errors.name}
             />
-            {errors.section && (
-              <p className="text-sm text-red-400 mt-1">{errors.section}</p>
-            )}
-            {/* Краткое описание при выборе */}
-            {selectedSectionInfo && (
-              <div className="mt-2 p-3 bg-[var(--bg-tertiary)] rounded-lg border border-[var(--border-primary)]">
-                <p className="text-sm text-[var(--text-secondary)]">
-                  {selectedSectionInfo.description}
-                </p>
-              </div>
+            {errors.name && (
+              <p className="text-sm text-red-400 mt-1">{errors.name}</p>
             )}
           </div>
 
           {/* Описание */}
           <div>
-            <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
-              {getText('tests.createModal.description', 'Описание')} <span className="text-red-400">*</span>
-            </label>
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-sm font-medium text-[var(--text-secondary)]">
+                {getText('tests.createModal.description', 'Описание')} <span className="text-red-400">*</span>
+              </label>
+              <span className={`text-xs ${
+                description.length > 600 
+                  ? 'text-red-400' 
+                  : description.length > 550 
+                    ? 'text-yellow-400' 
+                    : 'text-[var(--text-tertiary)]'
+              }`}>
+                {description.length} / 600
+              </span>
+            </div>
             <textarea
               value={description}
-              onChange={handleDescriptionChange}
+              onChange={(e) => {
+                const value = e.target.value
+                if (value.length <= 600) {
+                  setDescription(value)
+                  if (errors.description) {
+                    setErrors({ ...errors, description: '' })
+                  }
+                }
+              }}
               placeholder={getText('tests.createModal.descriptionPlaceholder', 'Введите описание теста')}
               rows={4}
+              maxLength={600}
               className={`
-                w-full px-4 py-3 rounded-xl border text-sm
-                bg-[var(--bg-tertiary)] text-[var(--text-primary)] placeholder-[var(--text-tertiary)]
-                focus:outline-none transition-all duration-300 ease-in-out resize-none
+                w-full px-5 py-4 rounded-xl text-white placeholder-gray-400 text-sm
+                bg-[#0B0B0B] border transition-all duration-300 ease-in-out resize-none
+                focus:outline-none focus:border-white hover:border-gray-500
                 ${errors.description 
-                  ? 'border-red-400 focus:border-red-400' 
-                  : 'border-[var(--border-primary)] hover:border-[var(--border-secondary)] focus:border-[var(--accent-primary)]'
+                  ? 'border-red-500 focus:border-red-400' 
+                  : description.length > 600
+                    ? 'border-red-500'
+                    : 'border-gray-600'
                 }
               `}
             />
             {errors.description && (
               <p className="text-sm text-red-400 mt-1">{errors.description}</p>
+            )}
+            {description.length > 600 && (
+              <p className="text-sm text-red-400 mt-1">
+                {getText('testEditor.descriptionTooLong', 'Описание не должно превышать 600 символов')}
+              </p>
             )}
           </div>
 
@@ -333,8 +320,12 @@ const CreateTestModal: React.FC<CreateTestModalProps> = ({
               type="button"
               variant="primary"
               onClick={handleCreate}
+              disabled={isLoading}
             >
-              {getText('tests.createModal.createButton', 'Создать')}
+              {isLoading 
+                ? getText('common.loading', 'Создание...') 
+                : getText('tests.createModal.createButton', 'Создать')
+              }
             </Button>
           </div>
         </div>

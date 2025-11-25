@@ -9,6 +9,7 @@ import { useTranslation } from '@/hooks/useTranslation'
 import { useAuth } from '@/contexts/AuthContext'
 import { generateTempId, saveDraftTest, setTestStatus, getDraftTests, getTestStatuses, getDraftTest } from '@/lib/test-storage'
 import CreateTestModal from '@/components/teacher/CreateTestModal'
+import { TestsPageSkeleton } from '@/components/ui/PageSkeletons'
 import CustomDatePicker from '@/components/ui/CustomDatePicker'
 import CustomTimePicker from '@/components/ui/CustomTimePicker'
 import Select, { SelectOption } from '@/components/ui/Select'
@@ -342,12 +343,20 @@ export default function TestsPage() {
 
   // Показываем загрузку, пока не загрузились данные или идет проверка авторизации
   if (!mounted || authLoading) {
-    return null
+    return (
+      <TeacherLayout>
+        <TestsPageSkeleton />
+      </TeacherLayout>
+    )
   }
 
   // Если пользователь не авторизован, не показываем контент (будет редирект)
   if (!user) {
-    return null
+    return (
+      <TeacherLayout>
+        <TestsPageSkeleton />
+      </TeacherLayout>
+    )
   }
 
   return (
@@ -499,12 +508,7 @@ export default function TestsPage() {
 
         {/* Список тестов */}
         {isLoading ? (
-          <div className="text-center py-12">
-            <Icons.Loader2 className="h-8 w-8 animate-spin mx-auto text-[var(--text-tertiary)]" />
-            <p className="text-sm text-[var(--text-tertiary)] mt-2">
-              {getText('tests.loading', 'Загрузка тестов...')}
-            </p>
-          </div>
+          <TestsPageSkeleton />
         ) : filteredTests.length === 0 ? (
           <div className="bg-[var(--bg-card)] rounded-2xl p-12 text-center">
             <Icons.FileText className="h-12 w-12 mx-auto text-[var(--text-tertiary)] mb-4" />
@@ -519,37 +523,37 @@ export default function TestsPage() {
             </Button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="space-y-4">
             {filteredTests.map((test) => (
               <div
                 key={test.id}
                 onClick={() => handleOpenTest(test.id)}
-                className="bg-[var(--bg-card)] rounded-2xl p-6 cursor-pointer hover:shadow-lg transition-all border border-[var(--border-primary)] hover:border-[var(--text-primary)]"
+                className="bg-[var(--bg-card)] rounded-xl p-4 cursor-pointer hover:shadow-lg transition-all border border-[var(--border-primary)] hover:border-[var(--text-primary)]"
               >
-                <div className="flex items-start justify-between mb-4">
+                <div className="flex items-start justify-between mb-3">
                   <div className="flex-1">
-                    <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-1 line-clamp-2">
+                    <h3 className="text-base font-semibold text-[var(--text-primary)] mb-1 line-clamp-2">
                       {test.name}
                     </h3>
-                    <p className="text-sm text-[var(--text-tertiary)] line-clamp-2">
+                    <p className="text-xs text-[var(--text-tertiary)] line-clamp-2">
                       {test.description}
                     </p>
                   </div>
                   <button
                     onClick={(e) => handleDeleteTest(test.id, e)}
-                    className="ml-2 p-2 hover:bg-[var(--bg-hover)] rounded-lg transition-colors text-[var(--text-tertiary)] hover:text-red-400"
+                    className="ml-2 p-1.5 hover:bg-[var(--bg-hover)] rounded-lg transition-colors text-[var(--text-tertiary)] hover:text-red-400"
                   >
-                    <Icons.Trash2 className="h-5 w-5" />
+                    <Icons.Trash2 className="h-4 w-4" />
                   </button>
                 </div>
 
-                <div className="flex items-center gap-4 text-sm text-[var(--text-tertiary)] mb-4">
+                <div className="flex items-center gap-4 text-xs text-[var(--text-tertiary)] mb-3">
                   <div className="flex items-center gap-1">
-                    <Icons.HelpCircle className="h-4 w-4" />
+                    <Icons.HelpCircle className="h-3.5 w-3.5" />
                     <span>{test.questionsCount} {getText('tests.questions', 'вопросов')}</span>
                   </div>
                   <div className="flex items-center gap-1">
-                    <Icons.Users className="h-4 w-4" />
+                    <Icons.Users className="h-3.5 w-3.5" />
                     <span>{test.completionsCount} {getText('tests.completions', 'прохождений')}</span>
                   </div>
                 </div>
@@ -577,6 +581,54 @@ export default function TestsPage() {
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
         teacherId={user?.id || ''}
+        onTestCreated={() => {
+          // Перезагружаем список тестов после создания
+          const fetchTests = async () => {
+            if (!user?.id) return
+
+            setIsLoading(true)
+            try {
+              const response = await fetch(`/api/teacher/tests?teacherId=${user.id}`)
+              const result = await response.json()
+
+              if (result.success && result.data) {
+                const draftTests = getDraftTests()
+                const statuses = getTestStatuses()
+                
+                const dbTests = result.data.map((test: Test) => ({
+                  ...test,
+                  status: statuses[test.id] || 'published'
+                }))
+
+                const localTests = Object.values(draftTests).map((draft: any) => ({
+                  id: draft.id,
+                  name: draft.name,
+                  description: draft.description,
+                  questionsCount: 0,
+                  completionsCount: 0,
+                  createdAt: draft.createdAt,
+                  updatedAt: draft.updatedAt,
+                  language: draft.language,
+                  status: 'draft'
+                }))
+
+                const { getTestQuestions } = await import('@/lib/test-storage')
+                localTests.forEach((test: any) => {
+                  const questions = getTestQuestions(test.id)
+                  test.questionsCount = questions.length
+                })
+
+                setTests([...dbTests, ...localTests])
+              }
+            } catch (error) {
+              console.error('Ошибка при загрузке тестов:', error)
+            } finally {
+              setIsLoading(false)
+            }
+          }
+
+          fetchTests()
+        }}
       />
 
       {/* Диалог подтверждения удаления теста */}

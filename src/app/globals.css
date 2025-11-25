@@ -14,6 +14,7 @@
   --bg-hover: #242424;
   --bg-active: #363636;
   --bg-active-button: #ffffff;
+  --bg-input: #0A0A0A;
   
   --text-primary: #ffffff;
   --text-secondary: #d1d5db;
@@ -41,6 +42,7 @@
   --bg-hover: #e5e7eb;
   --bg-active: #d1d5db;
   --bg-active-button: #f3f4f6;
+  --bg-input: #ffffff;
   
   --text-primary: #111827;
   --text-secondary: #374151;

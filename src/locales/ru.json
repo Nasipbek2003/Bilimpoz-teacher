@@ -108,6 +108,40 @@
       "sendHint": "Нажмите Enter для отправки, Shift+Enter для новой строки"
     }
   },
+  "testEditor": {
+    "editTest": "Редактировать тест",
+    "loading": "Загрузка теста...",
+    "testNotFound": "Тест не найден",
+    "backToList": "Вернуться к списку тестов",
+    "basicInfo": "Основная информация",
+    "testName": "Название теста",
+    "enterTestName": "Введите название теста",
+    "testDescription": "Описание теста",
+    "enterTestDescription": "Введите описание теста",
+    "language": "Язык",
+    "section": "Секция",
+    "russian": "Русский",
+    "kyrgyz": "Кыргызский",
+    "sections": {
+      "standard": "Стандартные",
+      "math1": "Математика 1",
+      "math2": "Математика 2",
+      "analogy": "Аналогии",
+      "rac": "RAC",
+      "grammar": "Грамматика"
+    },
+    "tabs": {
+      "test": "Тест",
+      "questions": "Вопросы"
+    },
+    "questionBlock": "Блок вопроса",
+    "errors": {
+      "nameRequired": "Название теста обязательно",
+      "descriptionRequired": "Описание теста обязательно"
+    },
+    "saveSuccess": "Тест сохранен",
+    "saving": "Сохранение..."
+  },
   "students": {
     "title": "Ученики",
     "description": "Управление учениками и приглашение новых через реферальную систему",
@@ -466,6 +500,17 @@
     "blockFormula": "Формула в блоке",
     "previewMode": "Режим предпросмотра",
     "editMode": "Режим редактирования",
+    "ai": {
+      "getExplanation": "Получить объяснение от AI",
+      "showExplanation": "Показать объяснение",
+      "backToQuestion": "Вернуться к вопросу",
+      "generating": "Генерация объяснения...",
+      "errorGenerating": "Ошибка при генерации объяснения",
+      "apiKeyError": "OpenAI API key не настроен. Обратитесь к администратору."
+    },
+    "validation": {
+      "fillQuestionAndAnswers": "Заполните вопрос и варианты ответов"
+    },
     "errors": {
       "selectTextToImprove": "Выделите текст, который нужно улучшить",
       "improvementError": "Ошибка при улучшении текста"
@@ -592,6 +637,13 @@
     "loadError": "Ошибка загрузки теста",
     "testNotFound": "Тест не найден",
     "backToList": "Вернуться к списку тестов",
+    "editTestTitle": "Редактировать тест",
+    "noQuestionsTitle": "Нет вопросов",
+    "noQuestionsHint1": "Нажмите на кнопку + чтобы добавить вопрос",
+    "noQuestionsHint2": "Нажмите на кнопку \"+\" чтобы добавить тестовые вопросы",
+    "questionNumber": "Вопрос",
+    "loadingTest": "Загрузка теста...",
+    "loadingEditor": "Загрузка редактора...",
     "authRequired": "Необходима авторизация",
     "createError": "Ошибка при создании теста",
     "testCreated": "Тест успешно создан",
@@ -670,6 +722,14 @@
       "racDescription": "Тесты на чтение и понимание текста. 4 фиксированных варианта ответа.",
       "grammarDescription": "Тесты по языку и грамматике. 4 фиксированных варианта (А, Б, В, Г).",
       "standardDescription": "Универсальные тесты. 2-10+ динамических вариантов ответа."
-    }
+    },
+    "noQuestionsToSave": "Нет вопросов для сохранения",
+    "saveTestFirst": "Сначала сохраните тест в настройках",
+    "questionsSaved": "Сохранено вопросов: {count}",
+    "questionsDeleted": "Удалено вопросов: {count}",
+    "questionsSavedAndDeleted": "Сохранено: {saved}, удалено: {deleted}",
+    "saveQuestions": "Сохранить вопросы",
+    "saveQuestionsError": "Ошибка при сохранении вопросов",
+    "saveTestFirstHint": "Сначала сохраните тест в настройках, затем сохраните вопросы"
   }
 }

@@ -186,6 +186,16 @@ enum VerificationCodeType {
   login
 }
 
+enum PromptLanguage {
+  ru
+  kg
+}
+
+enum BackupType {
+  manual
+  automatic
+}
+
 // ПРОФИЛЬ
 model Users {
   id                 String      @id @default(cuid())
@@ -250,6 +260,9 @@ model Users {
   
   // Verification codes
   verification_codes Verification_codes[]
+  
+  // Backups
+  created_backups Backups[]
 
   @@map("users")
 }
@@ -772,4 +785,30 @@ model Settings {
   updated_at DateTime @updatedAt
 
   @@map("settings")
+}
+
+model Prompts {
+  id         String         @id @default(cuid())
+  name       String
+  value      String
+  language   PromptLanguage
+  created_at DateTime       @default(now())
+  updated_at DateTime       @updatedAt
+
+  @@unique([name, language])
+  @@map("prompts")
+}
+
+model Backups {
+  id              String       @id @default(cuid())
+  filename        String
+  file_path       String
+  file_size       BigInt
+  type            BackupType
+  created_by      String?
+  created_at      DateTime     @default(now())
+
+  creator         Users?       @relation(fields: [created_by], references: [id], onDelete: SetNull)
+
+  @@map("backups")
 }

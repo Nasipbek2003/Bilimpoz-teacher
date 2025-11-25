@@ -17,6 +17,7 @@
     "@aws-sdk/client-s3": "^3.933.0",
     "@prisma/client": "^5.7.0",
     "@types/bcrypt": "^6.0.0",
+    "@uiw/react-md-editor": "^4.0.8",
     "bcrypt": "^6.0.0",
     "clsx": "^2.1.1",
     "daynitejs": "^1.0.0",

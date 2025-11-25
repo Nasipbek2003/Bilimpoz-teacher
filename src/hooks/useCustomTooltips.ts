@@ -46,25 +46,54 @@ export function useCustomTooltips(container?: HTMLElement | null, language: Lang
 
     const tooltips = new Map<Element, HTMLElement>()
 
+    const updateTooltip = (element: Element, tooltip: HTMLElement) => {
+      const text = element.getAttribute('data-tooltip')
+      if (text) {
+        tooltip.textContent = text
+      }
+    }
+
     tooltipElements.forEach((element) => {
       const text = element.getAttribute('data-tooltip')
       if (text) {
         const tooltip = createTooltip(element, text)
         tooltips.set(element, tooltip)
 
-        element.addEventListener('mouseenter', () => {
+        const handleMouseEnter = () => {
+          // Обновляем текст tooltip перед показом
+          updateTooltip(element, tooltip)
           showTooltip(element, tooltip)
-        })
+        }
+
+        element.addEventListener('mouseenter', handleMouseEnter)
 
         element.addEventListener('mouseleave', () => {
           hideTooltip(tooltip)
         })
+
+        // Отслеживаем изменения атрибута data-tooltip
+        const observer = new MutationObserver(() => {
+          updateTooltip(element, tooltip)
+        })
+        observer.observe(element, {
+          attributes: true,
+          attributeFilter: ['data-tooltip']
+        })
+
+        // Сохраняем observer для очистки
+        ;(element as any).__tooltipObserver = observer
       }
     })
 
     return () => {
-      tooltips.forEach((tooltip) => {
+      tooltips.forEach((tooltip, element) => {
         tooltip.remove()
+        // Удаляем observer
+        const observer = (element as any).__tooltipObserver
+        if (observer) {
+          observer.disconnect()
+          delete (element as any).__tooltipObserver
+        }
       })
       tooltips.clear()
     }

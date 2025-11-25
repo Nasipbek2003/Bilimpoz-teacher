@@ -28,6 +28,7 @@ export default function TestToolbar({ onFormat, isPreviewMode, onImageToLatex, o
   const { t, getCurrentLanguage } = useTranslation();
   const [showAiDropdown, setShowAiDropdown] = useState(false);
   const aiDropdownRef = useRef<HTMLDivElement>(null);
+  const previewButtonRef = useRef<HTMLButtonElement>(null);
   
   // Применяем кастомные подсказки с текущим языком
   useCustomTooltips(undefined, getCurrentLanguage());
@@ -48,7 +49,7 @@ export default function TestToolbar({ onFormat, isPreviewMode, onImageToLatex, o
   }, [showAiDropdown]);
 
   return (
-    <div className="bg-[var(--bg-card)] rounded-2xl">
+    <div className="bg-[var(--bg-card)] rounded-2xl border border-gray-700 transition-colors">
       <div className="flex items-center gap-2 p-4">
         {/* Жирный */}
         <button
@@ -114,7 +115,7 @@ export default function TestToolbar({ onFormat, isPreviewMode, onImageToLatex, o
           </svg>
         </button>
 
-        <div className="w-px h-6 bg-[var(--border-primary)] mx-1" />
+        <div className="w-px h-6 bg-gray-700 mx-1" />
 
         {/* Формула в строке */}
         <button
@@ -136,10 +137,10 @@ export default function TestToolbar({ onFormat, isPreviewMode, onImageToLatex, o
           <PiFunction className="text-[var(--text-tertiary)] group-hover:text-[var(--text-primary)] transition-colors" size={18} style={{ fontWeight: 'bold' }} />
         </button>
 
-        <div className="w-px h-6 bg-[var(--border-primary)] mx-1" />
+        <div className="w-px h-6 bg-gray-700 mx-1" />
 
         {/* AI кнопка с выпадающим меню */}
-        <div className="relative z-[100]" ref={aiDropdownRef}>
+        <div className="relative z-10" ref={aiDropdownRef}>
           <button
             type="button"
             onClick={() => setShowAiDropdown(!showAiDropdown)}
@@ -157,7 +158,7 @@ export default function TestToolbar({ onFormat, isPreviewMode, onImageToLatex, o
 
           {/* Выпадающее меню вверх */}
           {showAiDropdown && (
-            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-[var(--bg-tertiary)] border border-[var(--border-primary)] rounded-lg shadow-2xl overflow-hidden min-w-[200px] z-[9999]">
+            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-[var(--bg-tertiary)] border border-[var(--border-primary)] rounded-lg shadow-2xl overflow-hidden min-w-[200px] z-20">
               <button
                 type="button"
                 onClick={() => {
@@ -205,26 +206,29 @@ export default function TestToolbar({ onFormat, isPreviewMode, onImageToLatex, o
         )}
 
         {/* Кнопка превью */}
+        {onTogglePreview && (
         <button
+          ref={previewButtonRef}
           type="button"
-          onClick={() => onTogglePreview ? onTogglePreview() : onFormat('preview')}
+          onClick={onTogglePreview}
           className={`p-2.5 rounded-lg transition-colors group ${
-            isPreviewMode ? 'bg-[var(--text-primary)]/20' : 'hover:bg-[var(--bg-hover)]'
+            isPreviewMode ? 'bg-blue-500/20 text-blue-400' : 'hover:bg-[var(--bg-hover)] text-[var(--text-tertiary)]'
           }`}
-          data-tooltip={isPreviewMode ? t('testEditor.editMode') : t('testEditor.previewMode')}
+          data-tooltip={isPreviewMode ? 'Режим редактирования' : 'Режим предпросмотра'}
         >
           {isPreviewMode ? (
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="text-[var(--text-primary)] group-hover:text-[var(--text-primary)]/80 transition-colors" stroke="currentColor" strokeWidth="2">
-              <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
-              <line x1="1" y1="1" x2="23" y2="23"/>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="transition-colors">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+              <path d="m18.5 2.5 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
             </svg>
           ) : (
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="text-[var(--text-tertiary)] group-hover:text-[var(--text-primary)] transition-colors" stroke="currentColor" strokeWidth="2">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="group-hover:text-[var(--text-primary)] transition-colors">
               <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
               <circle cx="12" cy="12" r="3"/>
             </svg>
           )}
         </button>
+        )}
       </div>
     </div>
   );

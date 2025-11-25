@@ -28,6 +28,10 @@ export interface QuestionData {
   answerA?: string // Для типа Math1
   answerB?: string // Для типа Math1
   explanation_ai?: string // AI объяснение
+  textVersions?: {
+    question?: { original: string; improved: string; isShowingImproved: boolean }
+    answers?: Record<number, { original: string; improved: string; isShowingImproved: boolean }>
+  }
 }
 
 export type QuestionType = 'standard' | 'analogy' | 'grammar' | 'math1' | 'math2' | 'rac'
@@ -176,8 +180,17 @@ export function addQuestionToTestDraft(testId: string, questionId: string, quest
   try {
     const key = `${TEST_QUESTIONS_PREFIX}${testId}`
     const questions = getTestQuestions(testId)
+    
+    // Проверяем, есть ли уже такой вопрос в списке
+    const existingQuestion = questions.find(q => q.id === questionId)
+    if (existingQuestion) {
+      console.log(`Вопрос ${questionId} уже существует в тесте ${testId}, пропускаем добавление`)
+      return
+    }
+    
     questions.push({ id: questionId, type: questionType })
     localStorage.setItem(key, JSON.stringify(questions))
+    console.log(`Добавлен вопрос ${questionId} в тест ${testId}`)
   } catch (error) {
     console.error('Ошибка добавления вопроса к тесту:', error)
   }
@@ -227,6 +240,50 @@ export function removeTestQuestions(testId: string): void {
     localStorage.removeItem(key)
   } catch (error) {
     console.error('Ошибка удаления вопросов теста:', error)
+  }
+}
+
+/**
+ * Очистка дубликатов вопросов в тесте
+ */
+export function removeDuplicateQuestions(testId: string): void {
+  try {
+    const questions = getTestQuestions(testId)
+    const uniqueQuestions = questions.filter((question, index, self) => 
+      index === self.findIndex(q => q.id === question.id)
+    )
+    
+    if (uniqueQuestions.length !== questions.length) {
+      console.log(`Найдено ${questions.length - uniqueQuestions.length} дубликатов в тесте ${testId}, очищаем...`)
+      const key = `${TEST_QUESTIONS_PREFIX}${testId}`
+      localStorage.setItem(key, JSON.stringify(uniqueQuestions))
+    }
+  } catch (error) {
+    console.error('Ошибка очистки дубликатов вопросов:', error)
+  }
+}
+
+/**
+ * Полная очистка всех данных теста из localStorage
+ */
+export function clearTestFromLocalStorage(testId: string): void {
+  try {
+    console.log(`Полная очистка теста ${testId} из localStorage`)
+    
+    // Получаем все вопросы теста
+    const questions = getTestQuestions(testId)
+    
+    // Удаляем данные каждого вопроса
+    for (const question of questions) {
+      removeQuestionDraft(question.id, question.type)
+    }
+    
+    // Удаляем список вопросов теста
+    removeTestQuestions(testId)
+    
+    console.log(`Очищено ${questions.length} вопросов для теста ${testId}`)
+  } catch (error) {
+    console.error('Ошибка полной очистки теста:', error)
   }
 }
 
@@ -354,6 +411,10 @@ export class TestLocalStorage {
     } catch (error) {
       console.error('Ошибка сохранения списка вопросов теста:', error)
     }
+  }
+
+  static removeDuplicateQuestions(testId: string): void {
+    removeDuplicateQuestions(testId)
   }
 }
 

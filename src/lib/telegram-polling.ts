@@ -166,17 +166,26 @@ class TelegramPollingService {
         return false
       }
 
-      // 3. Удаление webhook перед запуском polling
+      // 3. Проверка на активный polling/webhook перед запуском
+      const conflictCheck = await this.checkForConflicts()
+      if (conflictCheck.hasConflict) {
+        console.log('⚠️ Обнаружен конфликт, пытаемся очистить...')
+        await this.forceClearConflicts()
+        // Дополнительная задержка после очистки
+        await new Promise(resolve => setTimeout(resolve, 2000))
+      }
+
+      // 4. Удаление webhook перед запуском polling
       await this.deleteWebhook()
       
-      // 4. Дополнительная задержка для очистки конфликтов
-      console.log('⏳ Ожидание 3 секунды для очистки конфликтов...')
-      await new Promise(resolve => setTimeout(resolve, 3000))
+      // 5. Дополнительная задержка для очистки конфликтов
+      console.log('⏳ Ожидание 2 секунды для очистки конфликтов...')
+      await new Promise(resolve => setTimeout(resolve, 2000))
       
-      // 5. Установка глобальной блокировки
+      // 6. Установка глобальной блокировки
       globalPollingLock = true
       
-      // 6. Запуск polling
+      // 7. Запуск polling
       this.pollingActive = true
       console.log('🚀 Telegram polling запущен для бота:', botCheck.username)
       
@@ -221,6 +230,92 @@ class TelegramPollingService {
     } catch (error) {
       console.error('❌ Ошибка подключения к Telegram API:', error)
       return null
+    }
+  }
+
+  /**
+   * Проверка на конфликты (активный webhook или другой polling)
+   */
+  private async checkForConflicts(): Promise<{ hasConflict: boolean; reason?: string }> {
+    try {
+      // Проверяем webhook
+      const infoResponse = await fetch(`https://api.telegram.org/bot${this.botToken}/getWebhookInfo`)
+      const infoResult = await infoResponse.json()
+      
+      if (infoResult.ok && infoResult.result.url) {
+        return { hasConflict: true, reason: `Активный webhook: ${infoResult.result.url}` }
+      }
+
+      // Пробуем сделать тестовый getUpdates для проверки конфликта
+      try {
+        const testResponse = await fetch(
+          `https://api.telegram.org/bot${this.botToken}/getUpdates?offset=-1&timeout=1&limit=1`
+        )
+        const testResult = await testResponse.json()
+        
+        if (!testResult.ok && testResult.description?.toLowerCase().includes('conflict')) {
+          return { hasConflict: true, reason: 'Другой процесс использует getUpdates' }
+        }
+      } catch (error) {
+        // Игнорируем ошибки тестового запроса
+      }
+
+      return { hasConflict: false }
+    } catch (error) {
+      console.warn('⚠️ Ошибка проверки конфликтов:', error)
+      return { hasConflict: false }
+    }
+  }
+
+  /**
+   * Принудительная очистка конфликтов
+   */
+  private async forceClearConflicts() {
+    try {
+      console.log('🔄 Принудительная очистка конфликтов...')
+      
+      // 1. Удаляем webhook с очисткой pending updates
+      await this.deleteWebhook()
+      
+      // 2. Делаем несколько getUpdates для очистки очереди
+      let offset = 0
+      let attempts = 0
+      const maxAttempts = 3
+
+      while (attempts < maxAttempts) {
+        try {
+          const updatesResponse = await fetch(
+            `https://api.telegram.org/bot${this.botToken}/getUpdates?offset=${offset}&timeout=1&limit=100`
+          )
+          const updatesResult = await updatesResponse.json()
+          
+          if (updatesResult.ok && updatesResult.result.length > 0) {
+            const lastUpdate = updatesResult.result[updatesResult.result.length - 1]
+            offset = lastUpdate.update_id + 1
+            console.log(`   └─ Очищено ${updatesResult.result.length} обновлений, новый offset: ${offset}`)
+          } else if (updatesResult.ok) {
+            console.log('   └─ Очередь обновлений пуста')
+            break
+          } else if (updatesResult.description?.toLowerCase().includes('conflict')) {
+            console.log('   └─ ⚠️ Конфликт обнаружен, ждем...')
+            await new Promise(resolve => setTimeout(resolve, 2000))
+          } else {
+            break
+          }
+          
+          attempts++
+          if (attempts < maxAttempts) {
+            await new Promise(resolve => setTimeout(resolve, 1000))
+          }
+        } catch (error) {
+          console.warn('   └─ Ошибка при очистке:', error)
+          attempts++
+        }
+      }
+
+      console.log('✅ Очистка конфликтов завершена')
+    } catch (error) {
+      console.warn('⚠️ Ошибка принудительной очистки конфликтов:', error)
     }
   }
 
@@ -273,10 +368,28 @@ class TelegramPollingService {
       if (!data.ok) {
         console.error('❌ Telegram API error:', data.description)
         
-        // Если ошибка конфликта - останавливаем polling
+        // Если ошибка конфликта - пытаемся очистить и перезапустить
         if (data.description && data.description.toLowerCase().includes('conflict')) {
-          console.log('💡 Решение: Останавливаем текущий polling. Убедитесь, что запущен только один экземпляр приложения.')
-          this.stop()
+          console.log('⚠️ Обнаружен конфликт getUpdates. Пытаемся очистить...')
+          
+          // Останавливаем текущий polling
+          this.pollingActive = false
+          globalPollingLock = false
+          
+          // Очищаем конфликты
+          await this.forceClearConflicts()
+          
+          // Ждем перед перезапуском
+          await new Promise(resolve => setTimeout(resolve, 3000))
+          
+          // Пытаемся перезапустить
+          console.log('🔄 Попытка перезапуска polling после очистки конфликтов...')
+          const restartResult = await this.start()
+          
+          if (!restartResult) {
+            console.error('❌ Не удалось перезапустить polling после конфликта')
+            console.log('💡 Убедитесь, что запущен только один экземпляр приложения')
+          }
           return
         }
         

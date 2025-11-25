@@ -216,6 +216,14 @@
       "grammar": "Грамматика",
       "standard": "Стандарттык"
     },
+    "sections": {
+      "standard": "Стандарттык",
+      "math1": "Математика 1",
+      "math2": "Математика 2",
+      "analogy": "Аналогия",
+      "rac": "РАЦ",
+      "grammar": "Грамматика"
+    },
     "sources": {
       "all": "Бардык булактар",
       "from_lesson": "Сабактан",
@@ -451,7 +459,19 @@
     "inlineFormula": "Саптагы формула",
     "blockFormula": "Блоктогу формула",
     "previewMode": "Алдын ала көрүү режими",
-    "editMode": "Редакциялоо режими"
+    "editMode": "Редакциялоо режими",
+    "questionBlock": "Суроо блогу",
+    "ai": {
+      "getExplanation": "AI түшүндүрмөсүн алуу",
+      "showExplanation": "Түшүндүрмөнү көрсөтүү",
+      "backToQuestion": "Суроого кайтуу",
+      "generating": "Түшүндүрмө түзүлүүдө...",
+      "errorGenerating": "Түшүндүрмө түзүүдө ката",
+      "apiKeyError": "OpenAI API key конфигурацияланган эмес. Администраторго кайрылыңыз."
+    },
+    "validation": {
+      "fillQuestionAndAnswers": "Суроону жана жооп вариантарын толтуруңуз"
+    }
   },
   "roles": {
     "teacher": "Мугалим",
@@ -520,6 +540,13 @@
     "loadError": "Тестти жүктөөдө ката кетти",
     "testNotFound": "Тест табылган жок",
     "backToList": "Тесттердин тизмесине кайтуу",
+    "editTestTitle": "Тестти өзгөртүү",
+    "noQuestionsTitle": "Суроолор жок",
+    "noQuestionsHint1": "Суроо кошуу үчүн + баскычын басыңыз",
+    "noQuestionsHint2": "Тесттик суроолорду кошуу үчүн \"+\" баскычын басыңыз",
+    "questionNumber": "Суроо",
+    "loadingTest": "Тест жүктөлүүдө...",
+    "loadingEditor": "Редактор жүктөлүүдө...",
     "authRequired": "Авторизация талап кылынат",
     "createError": "Тестти түзүүдө ката кетти",
     "testCreated": "Тест ийгиликтүү түзүлдү",
@@ -598,6 +625,14 @@
       "racDescription": "Текстти окуу жана түшүнүү тесттери. 4 туруктуу жооп варианты.",
       "grammarDescription": "Тил жана грамматика тесттери. 4 туруктуу вариант (А, Б, В, Г).",
       "standardDescription": "Универсалдуу тесттер. 2-10+ динамикалык жооп варианттары."
-    }
+    },
+    "noQuestionsToSave": "Сактоо үчүн суроолор жок",
+    "saveTestFirst": "Алгач тестти жөндөөлөрдө сактаңыз",
+    "questionsSaved": "Сакталган суроолор: {count}",
+    "questionsDeleted": "Өчүрүлгөн суроолор: {count}",
+    "questionsSavedAndDeleted": "Сакталды: {saved}, өчүрүлдү: {deleted}",
+    "saveQuestions": "Суроолорду сактоо",
+    "saveQuestionsError": "Суроолорду сактоодо ката",
+    "saveTestFirstHint": "Алгач тестти жөндөөлөрдө сактаңыз, андан кийин суроолорду сактаңыз"
   }
 }

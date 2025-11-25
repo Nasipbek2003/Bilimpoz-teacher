@@ -176,6 +176,117 @@ ${text}
       throw new Error('Ошибка при обращении к OpenAI API')
     }
   }
+
+  /**
+   * Генерация объяснения для вопроса с использованием промпта из БД
+   */
+  async explainQuestion(
+    questionData: {
+      question: string
+      answers: Array<{ value: string; isCorrect: boolean }>
+      imageUrl?: string
+    },
+    courseLanguage: 'kg' | 'ru',
+    testType: 'math1' | 'math2' | 'analogy' | 'rac' | 'grammar' | 'standard',
+    promptText: string
+  ): Promise<string> {
+    if (!this.apiKey) {
+      await this.initialize()
+    }
+
+    // Формируем список ответов с пометкой правильного
+    const answersText = questionData.answers
+      .map((answer, index) => {
+        const label = String.fromCharCode(1040 + index) // А, Б, В, Г, Д
+        const correctMark = answer.isCorrect ? ' (правильный ответ)' : ''
+        return `${label}) ${answer.value}${correctMark}`
+      })
+      .join('\n')
+
+    // Формируем полный промпт, подставляя данные вопроса
+    // Поддерживаем различные варианты плейсхолдеров (глобальная замена)
+    let fullPrompt = promptText
+      .replace(/\{question\}/g, questionData.question)
+      .replace(/\{answers\}/g, answersText)
+      .replace(/\{language\}/g, courseLanguage === 'kg' ? 'кыргызский' : 'русский')
+      .replace(/\{correctAnswer\}/g, questionData.answers.find(a => a.isCorrect)?.value || 'не указан')
+
+    // Если есть изображение, используем vision модель
+    const hasImage = questionData.imageUrl && questionData.imageUrl.trim() !== ''
+    
+    try {
+      const messages: any[] = [
+        {
+          role: 'system',
+          content: 'Ты - помощник для объяснения учебных вопросов. Твоя задача - давать понятные и структурированные объяснения в формате Markdown. Используй Markdown для форматирования текста (жирный, курсив, списки, заголовки) и LaTeX для математических формул (инлайн формулы через $...$ и блочные через $$...$$). Объяснение должно быть хорошо структурированным и читаемым.'
+        }
+      ]
+
+      if (hasImage && this.isVisionModel(this.model)) {
+        // Если есть изображение и модель поддерживает vision
+        messages.push({
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: fullPrompt
+            },
+            {
+              type: 'image_url',
+              image_url: {
+                url: questionData.imageUrl
+              }
+            }
+          ]
+        })
+      } else {
+        // Обычный текстовый запрос
+        messages.push({
+          role: 'user',
+          content: fullPrompt
+        })
+      }
+
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.apiKey}`
+        },
+        body: JSON.stringify({
+          model: this.model,
+          messages,
+          temperature: 0.7,
+          max_tokens: 2000
+        })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error?.message || `OpenAI API error: ${response.statusText}`)
+      }
+
+      const data = await response.json()
+      let explanation = data.choices?.[0]?.message?.content?.trim()
+
+      if (!explanation) {
+        throw new Error('Пустой ответ от OpenAI API')
+      }
+
+      // Убираем markdown код-блоки, если AI их добавил (например, ```markdown ... ```)
+      explanation = explanation.replace(/^```markdown\n?/i, '').replace(/^```\n?/g, '').replace(/\n?```$/g, '').trim()
+
+      return explanation
+    } catch (error) {
+      if (error instanceof Error) {
+        if (error.message.includes('API key')) {
+          throw new Error('OpenAI API key не настроен или неверен. Проверьте настройки OPENAI_API_KEY в таблице settings.')
+        }
+        throw error
+      }
+      throw new Error('Ошибка при обращении к OpenAI API')
+    }
+  }
 }
 
 // Экспортируем singleton экземпляр

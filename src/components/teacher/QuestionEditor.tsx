@@ -9,7 +9,8 @@ import rehypeRaw from 'rehype-raw'
 import 'katex/dist/katex.min.css'
 import { Icons } from '@/components/ui/Icons'
 import Button from '@/components/ui/Button'
-import TestToolbar from '@/components/teacher/TestToolbar'
+import RadioButton from '@/components/ui/RadioButton'
+import TestEditorField from '@/components/teacher/TestEditorField'
 import { useTranslation } from '@/hooks/useTranslation'
 import { useAI } from '@/hooks/useAI'
 import { 
@@ -24,7 +25,13 @@ interface QuestionEditorProps {
   testId: string
   testLanguage: 'ru' | 'kg'
   questionType: QuestionType
+  questionNumber?: number
   onQuestionUpdate?: (questionId: string, data: { question: string; type: QuestionType }) => void
+  isShowingExplanation?: boolean
+  aiExplanation?: string
+  isPreviewMode?: boolean
+  onFormatRegister?: (handler: (format: string) => void) => void
+  onRegenerateExplanation?: () => void
 }
 
 const QuestionEditor: React.FC<QuestionEditorProps> = ({
@@ -32,20 +39,50 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
   testId,
   testLanguage,
   questionType,
-  onQuestionUpdate
+  questionNumber,
+  onQuestionUpdate,
+  isShowingExplanation = false,
+  aiExplanation = '',
+  isPreviewMode: externalPreviewMode = false,
+  onFormatRegister,
+  onRegenerateExplanation
 }) => {
   const { t, ready } = useTranslation()
   const [mounted, setMounted] = useState(false)
   const [questionText, setQuestionText] = useState('')
-  const [answers, setAnswers] = useState<Array<{ value: string; isCorrect: boolean }>>([
-    { value: '', isCorrect: false },
-    { value: '', isCorrect: false }
-  ])
+  
+  // Определяем начальное количество ответов в зависимости от типа вопроса
+  const getInitialAnswersCount = () => {
+    if (questionType === 'math2' || questionType === 'standard') {
+      return 5
+    }
+    return 4 // math1, analogy, rac, grammar
+  }
+  
+  const [answers, setAnswers] = useState<Array<{ value: string; isCorrect: boolean }>>(
+    Array.from({ length: getInitialAnswersCount() }, () => ({ value: '', isCorrect: false }))
+  )
   const [points, setPoints] = useState(1)
   const [timeLimit, setTimeLimit] = useState(60)
   const [imageUrl, setImageUrl] = useState('')
-  const [isPreviewMode, setIsPreviewMode] = useState(false)
   const [isUploadingImage, setIsUploadingImage] = useState(false)
+  const [editableExplanation, setEditableExplanation] = useState('')
+  
+  // Состояние для версий текста (original/improved)
+  const [textVersions, setTextVersions] = useState<{
+    question?: { original: string; improved: string; isShowingImproved: boolean }
+    answers?: Record<number, { original: string; improved: string; isShowingImproved: boolean }>
+  }>({})
+  
+  // Используем внешний isPreviewMode, если передан
+  const isPreviewMode = externalPreviewMode
+  
+  // Синхронизируем editableExplanation с aiExplanation
+  useEffect(() => {
+    if (aiExplanation) {
+      setEditableExplanation(aiExplanation)
+    }
+  }, [aiExplanation])
   const [cursorPosition, setCursorPosition] = useState({ start: 0, end: 0 })
   const questionTextareaRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -65,15 +102,89 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
   useEffect(() => {
     if (!mounted || !questionId) return
 
-    const loadedData = loadQuestionDraft(questionId, questionType)
-    if (loadedData) {
-      setQuestionText(loadedData.question || '')
-      setAnswers(loadedData.answers || [{ value: '', isCorrect: false }, { value: '', isCorrect: false }])
-      setPoints(loadedData.points || 1)
-      setTimeLimit(loadedData.timeLimit || 60)
-      setImageUrl(loadedData.imageUrl || '')
+      const loadedData = loadQuestionDraft(questionId, questionType)
+      if (loadedData) {
+        // Загружаем версии текста, если есть
+        if (loadedData.textVersions) {
+          setTextVersions(loadedData.textVersions)
+          
+          // Восстанавливаем текущие значения из версий
+          if (loadedData.textVersions.question) {
+            const questionVersion = loadedData.textVersions.question
+            setQuestionText(questionVersion.isShowingImproved ? questionVersion.improved : questionVersion.original)
+          } else {
+            setQuestionText(loadedData.question || '')
+          }
+          
+          if (loadedData.textVersions.answers) {
+            const defaultAnswersCount = questionType === 'math2' || questionType === 'standard' ? 5 : 4
+            const loadedAnswers = loadedData.answers && loadedData.answers.length > 0 
+              ? loadedData.answers 
+              : Array.from({ length: defaultAnswersCount }, () => ({ value: '', isCorrect: false }))
+            
+            setAnswers(loadedAnswers.map((answer, index) => {
+              const answerVersion = loadedData.textVersions?.answers?.[index]
+              if (answerVersion) {
+                return {
+                  ...answer,
+                  value: answerVersion.isShowingImproved ? answerVersion.improved : answerVersion.original
+                }
+              }
+              return answer
+            }))
+          } else {
+            const defaultAnswersCount = questionType === 'math2' || questionType === 'standard' ? 5 : 4
+            setAnswers(loadedData.answers && loadedData.answers.length > 0 
+              ? loadedData.answers 
+              : Array.from({ length: defaultAnswersCount }, () => ({ value: '', isCorrect: false }))
+            )
+          }
+        } else {
+          setQuestionText(loadedData.question || '')
+          const defaultAnswersCount = questionType === 'math2' || questionType === 'standard' ? 5 : 4
+          setAnswers(loadedData.answers && loadedData.answers.length > 0 
+            ? loadedData.answers 
+            : Array.from({ length: defaultAnswersCount }, () => ({ value: '', isCorrect: false }))
+          )
+        }
+        
+        setPoints(loadedData.points || 1)
+        setTimeLimit(loadedData.timeLimit || 60)
+        setImageUrl(loadedData.imageUrl || '')
+      } else {
+      // Если данных нет, инициализируем с правильным количеством ответов
+      const defaultAnswersCount = questionType === 'math2' || questionType === 'standard' ? 5 : 4
+      setAnswers(Array.from({ length: defaultAnswersCount }, () => ({ value: '', isCorrect: false })))
     }
   }, [mounted, questionId, questionType])
+
+  // Обновляем количество ответов при изменении типа вопроса
+  useEffect(() => {
+    if (!mounted) return
+    
+    const requiredCount = questionType === 'math2' || questionType === 'standard' ? 5 : 4
+    
+    // Если текущее количество ответов не соответствует требуемому, обновляем
+    if (answers.length !== requiredCount) {
+      if (answers.length < requiredCount) {
+        // Добавляем недостающие ответы
+        const newAnswers = [...answers]
+        while (newAnswers.length < requiredCount) {
+          newAnswers.push({ value: '', isCorrect: false })
+        }
+        setAnswers(newAnswers)
+      } else {
+        // Удаляем лишние ответы (но не меньше минимума)
+        const newAnswers = answers.slice(0, requiredCount)
+        // Если удалили правильный ответ, делаем первый правильным
+        const hasCorrect = newAnswers.some(a => a.isCorrect)
+        if (!hasCorrect && newAnswers.length > 0) {
+          newAnswers[0].isCorrect = true
+        }
+        setAnswers(newAnswers)
+      }
+    }
+  }, [questionType, mounted])
 
   // Автосохранение при изменении
   useEffect(() => {
@@ -105,6 +216,12 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
     if (!mounted || !ready) return fallback
     const translation = t(key)
     return translation === key ? fallback : translation
+  }
+
+  // Функция для получения метки ответа (А, Б, В, Г, Д)
+  const getAnswerLabel = (index: number) => {
+    const labels = ['А', 'Б', 'В', 'Г', 'Д']
+    return labels[index] || String(index + 1)
   }
 
   // Функция для определения активного форматирования в выделенном тексте
@@ -145,8 +262,140 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
     return formats
   }
 
+  // AI улучшение текста
+  const handleMagicWand = React.useCallback(async (fieldType: 'question' | 'answer' = 'question', answerIndex?: number) => {
+    let textarea: HTMLTextAreaElement | null = null
+    let currentText = ''
+    let start = 0
+    let end = 0
+
+    if (fieldType === 'question') {
+      textarea = questionTextareaRef.current
+      if (!textarea) return
+      start = textarea.selectionStart
+      end = textarea.selectionEnd
+      currentText = questionText
+    } else if (fieldType === 'answer' && answerIndex !== undefined) {
+      // Находим textarea для ответа
+      const answerTextarea = document.querySelector(`textarea[data-answer-index="${answerIndex}"]`) as HTMLTextAreaElement
+      if (!answerTextarea) return
+      textarea = answerTextarea
+      start = textarea.selectionStart
+      end = textarea.selectionEnd
+      currentText = answers[answerIndex]?.value || ''
+    }
+
+    if (!textarea) return
+
+    const selectedText = currentText.substring(start, end).trim()
+
+    if (!selectedText) {
+      alert(getText('testEditor.errors.selectTextToImprove', 'Выделите текст, который нужно улучшить'))
+      return
+    }
+
+    if (!improveText) {
+      alert(getText('testEditor.errors.aiNotAvailable', 'AI функция недоступна'))
+      return
+    }
+
+    setAiLoading(true)
+    try {
+      // Вызываем AI для улучшения текста
+      const improvedText = await improveText(selectedText, testLanguage)
+
+      // Сохраняем оригинальную версию
+      const originalText = currentText
+      const newText = currentText.substring(0, start) + improvedText + currentText.substring(end)
+
+      if (fieldType === 'question') {
+        // Сохраняем версии для вопроса
+        setTextVersions(prev => ({
+          ...prev,
+          question: {
+            original: originalText,
+            improved: newText,
+            isShowingImproved: true
+          }
+        }))
+        setQuestionText(newText)
+      } else if (fieldType === 'answer' && answerIndex !== undefined) {
+        // Сохраняем версии для ответа
+        setTextVersions(prev => ({
+          ...prev,
+          answers: {
+            ...prev.answers,
+            [answerIndex]: {
+              original: originalText,
+              improved: newText,
+              isShowingImproved: true
+            }
+          }
+        }))
+        setAnswers(prev => prev.map((a, i) => 
+          i === answerIndex ? { ...a, value: newText } : a
+        ))
+      }
+
+      // Сохраняем версии в localStorage
+      if (typeof window !== 'undefined' && questionType) {
+        const existingData = loadQuestionDraft(questionId, questionType)
+        const questionData: QuestionData = existingData || {
+          question: questionText,
+          answers: answers,
+          points: points,
+          timeLimit: timeLimit,
+          textVersions: {}
+        }
+        questionData.textVersions = {
+          ...textVersions,
+          ...(fieldType === 'question' ? { question: { original: originalText, improved: newText, isShowingImproved: true } } : {}),
+          ...(fieldType === 'answer' && answerIndex !== undefined ? {
+            answers: {
+              ...textVersions.answers,
+              [answerIndex]: { original: originalText, improved: newText, isShowingImproved: true }
+            }
+          } : {})
+        }
+        saveQuestionDraft(questionId, questionType, questionData)
+      }
+
+      // Восстанавливаем фокус и позицию курсора
+      setTimeout(() => {
+        if (textarea) {
+          textarea.focus()
+          const newPosition = start + improvedText.length
+          textarea.setSelectionRange(newPosition, newPosition)
+        }
+      }, 0)
+    } catch (error) {
+      console.error('Ошибка улучшения текста:', error)
+      alert(getText('testEditor.errors.improvementError', 'Ошибка при улучшении текста'))
+    } finally {
+      setAiLoading(false)
+    }
+  }, [questionText, answers, questionType, questionId, textVersions, points, timeLimit, improveText, testLanguage])
+
   // Обработчики форматирования текста
-  const handleFormat = (format: string) => {
+  const handleFormat = React.useCallback((format: string) => {
+    // Если это улучшение текста через Magic Wand
+    if (format === 'magic-wand') {
+      const activeElement = document.activeElement
+      if (activeElement && activeElement.tagName === 'TEXTAREA') {
+        const textarea = activeElement as HTMLTextAreaElement
+        const isQuestionTextarea = textarea === questionTextareaRef.current
+        const answerIndexAttr = textarea.getAttribute('data-answer-index')
+        const answerIndex = answerIndexAttr !== null ? parseInt(answerIndexAttr) : undefined
+        
+        if (isQuestionTextarea) {
+          handleMagicWand('question')
+        } else if (answerIndex !== undefined) {
+          handleMagicWand('answer', answerIndex)
+        }
+      }
+      return
+    }
+    
     const textarea = questionTextareaRef.current
     if (!textarea) return
 
@@ -273,10 +522,17 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
     
     // Восстанавливаем фокус и выделение
     setTimeout(() => {
-      textarea.focus()
-      textarea.setSelectionRange(newStart, newEnd)
-    }, 0)
-  }
+        textarea.focus()
+        textarea.setSelectionRange(newStart, newEnd)
+      }, 0)
+  }, [questionText, handleMagicWand])
+
+  // Регистрация обработчика форматирования для родительского компонента
+  useEffect(() => {
+    if (onFormatRegister) {
+      onFormatRegister(handleFormat)
+    }
+  }, [onFormatRegister, handleFormat])
 
   // Загрузка изображения
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -324,51 +580,71 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
     }
   }
 
-  // AI улучшение текста
-  const handleMagicWand = async () => {
-    // Улучшает выделенный текст с помощью AI
-    const textarea = questionTextareaRef.current
-    if (!textarea) return
 
-    const start = textarea.selectionStart
-    const end = textarea.selectionEnd
-    const selectedText = questionText.substring(start, end).trim()
+  // Переключение между оригинальной и улучшенной версией
+  const toggleTextVersion = (fieldType: 'question' | 'answer', answerIndex?: number) => {
+    if (fieldType === 'question') {
+      const questionVersion = textVersions.question
+      if (!questionVersion) return
 
-    if (!selectedText) {
-      // Если ничего не выделено, показываем подсказку
-      alert(getText('testEditor.errors.selectTextToImprove', 'Выделите текст, который нужно улучшить'))
-      return
-    }
+      const newIsShowingImproved = !questionVersion.isShowingImproved
+      const newValue = newIsShowingImproved ? questionVersion.improved : questionVersion.original
 
-    if (!improveText) {
-      alert(getText('testEditor.errors.aiNotAvailable', 'AI функция недоступна'))
-      return
-    }
+      setTextVersions(prev => ({
+        ...prev,
+        question: {
+          ...questionVersion,
+          isShowingImproved: newIsShowingImproved
+        }
+      }))
+      setQuestionText(newValue)
 
-    setAiLoading(true)
-    try {
-      // Вызываем AI для улучшения текста
-      const improvedText = await improveText(selectedText, testLanguage)
+      // Сохраняем в localStorage
+      if (typeof window !== 'undefined' && questionType) {
+        const questionData = loadQuestionDraft(questionId, questionType)
+        if (questionData) {
+          if (!questionData.textVersions) questionData.textVersions = {}
+          questionData.textVersions.question = {
+            ...questionVersion,
+            isShowingImproved: newIsShowingImproved
+          }
+          saveQuestionDraft(questionId, questionType, questionData)
+        }
+      }
+    } else if (fieldType === 'answer' && answerIndex !== undefined) {
+      const answerVersion = textVersions.answers?.[answerIndex]
+      if (!answerVersion) return
 
-      // Заменяем выделенный текст на улучшенный
-      const newText = 
-        questionText.substring(0, start) + 
-        improvedText + 
-        questionText.substring(end)
-      
-      setQuestionText(newText)
-      
-      // Восстанавливаем фокус и позицию курсора
-      setTimeout(() => {
-        textarea.focus()
-        const newPosition = start + improvedText.length
-        textarea.setSelectionRange(newPosition, newPosition)
-      }, 0)
-    } catch (error) {
-      console.error('Ошибка улучшения текста:', error)
-      alert(getText('testEditor.errors.improvementError', 'Ошибка при улучшении текста'))
-    } finally {
-      setAiLoading(false)
+      const newIsShowingImproved = !answerVersion.isShowingImproved
+      const newValue = newIsShowingImproved ? answerVersion.improved : answerVersion.original
+
+      setTextVersions(prev => ({
+        ...prev,
+        answers: {
+          ...prev.answers,
+          [answerIndex]: {
+            ...answerVersion,
+            isShowingImproved: newIsShowingImproved
+          }
+        }
+      }))
+      setAnswers(prev => prev.map((a, i) => 
+        i === answerIndex ? { ...a, value: newValue } : a
+      ))
+
+      // Сохраняем в localStorage
+      if (typeof window !== 'undefined' && questionType) {
+        const questionData = loadQuestionDraft(questionId, questionType)
+        if (questionData) {
+          if (!questionData.textVersions) questionData.textVersions = {}
+          if (!questionData.textVersions.answers) questionData.textVersions.answers = {}
+          questionData.textVersions.answers[answerIndex] = {
+            ...answerVersion,
+            isShowingImproved: newIsShowingImproved
+          }
+          saveQuestionDraft(questionId, questionType, questionData)
+        }
+      }
     }
   }
 
@@ -442,7 +718,10 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
   }
 
   const handleRemoveAnswer = (index: number) => {
-    if (answers.length > 2) {
+    // Минимальное количество ответов зависит от типа вопроса
+    const minAnswers = questionType === 'math2' || questionType === 'standard' ? 5 : 4
+    
+    if (answers.length > minAnswers) {
       const wasCorrect = answers[index].isCorrect
       const newAnswers = answers.filter((_, i) => i !== index)
       
@@ -471,54 +750,106 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
   }
 
   return (
-    <div className="h-full flex flex-col bg-[var(--bg-card)]">
-      {/* Заголовок редактора */}
-      <div className="px-6 py-4 border-b border-[var(--border-primary)]">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-[var(--text-primary)]">
-            {getText('tests.questionEditor', 'Редактор вопроса')}
-          </h2>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setIsPreviewMode(!isPreviewMode)}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                isPreviewMode
-                  ? 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)]'
-                  : 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]'
-              }`}
-            >
-              {isPreviewMode 
-                ? getText('tests.editMode', 'Редактирование')
-                : getText('tests.previewMode', 'Предпросмотр')
-              }
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Контент редактора */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-6">
-        {/* Текст вопроса */}
+    <div className="space-y-6" data-question-id={questionId}>
+        {/* Текст вопроса или AI объяснение */}
         <div>
-          <div className="flex items-center justify-between mb-2">
-            <label className="block text-sm font-medium text-[var(--text-secondary)]">
-              {getText('tests.questionText', 'Текст вопроса')} <span className="text-red-400">*</span>
-            </label>
-          </div>
-
-          {!isPreviewMode ? (
-            <>
-              <TestToolbar
-                onFormat={handleFormat}
+        <div className="flex items-center justify-between mb-3">
+          <label className="flex items-center gap-2 text-sm font-medium text-[var(--text-secondary)]">
+            {isShowingExplanation ? (
+              <>
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="-10 -10 562 562"
+                  className="text-purple-400"
+                >
+                  <path
+                    fill="currentColor"
+                    stroke="currentColor"
+                    strokeWidth="0"
+                    d="M 327.5 85.2 c -4.5 1.7 -7.5 6 -7.5 10.8 s 3 9.1 7.5 10.8 L 384 128 l 21.2 56.5 c 1.7 4.5 6 7.5 10.8 7.5 s 9.1 -3 10.8 -7.5 L 448 128 l 56.5 -21.2 c 4.5 -1.7 7.5 -6 7.5 -10.8 s -3 -9.1 -7.5 -10.8 L 448 64 L 426.8 7.5 C 425.1 3 420.8 0 416 0 s -9.1 3 -10.8 7.5 L 384 64 L 327.5 85.2 Z M 205.1 73.3 c -2.6 -5.7 -8.3 -9.3 -14.5 -9.3 s -11.9 3.6 -14.5 9.3 L 123.3 187.3 L 9.3 240 C 3.6 242.6 0 248.3 0 254.6 s 3.6 11.9 9.3 14.5 l 114.1 52.7 L 176 435.8 c 2.6 5.7 8.3 9.3 14.5 9.3 s 11.9 -3.6 14.5 -9.3 l 52.7 -114.1 l 114.1 -52.7 c 5.7 -2.6 9.3 -8.3 9.3 -14.5 s -3.6 -11.9 -9.3 -14.5 L 257.8 187.4 L 205.1 73.3 Z M 384 384 l -56.5 21.2 c -4.5 1.7 -7.5 6 -7.5 10.8 s 3 9.1 7.5 10.8 L 384 448 l 21.2 56.5 c 1.7 4.5 6 7.5 10.8 7.5 s 9.1 -3 10.8 -7.5 L 448 448 l 56.5 -21.2 c 4.5 -1.7 7.5 -6 7.5 -10.8 s -3 -9.1 -7.5 -10.8 L 448 384 l -21.2 -56.5 c -1.7 -4.5 -6 -7.5 -10.8 -7.5 s -9.1 3 -10.8 7.5 L 384 384 Z"
+                  />
+                </svg>
+                <span>Объяснение от AI</span>
+              </>
+            ) : (
+              questionNumber ? `Вопрос ${questionNumber}` : getText('tests.questionText', 'Текст вопроса')
+            )}
+          </label>
+        </div>
+          
+          {isShowingExplanation ? (
+            // Отображение AI объяснения - используем TestEditorField
+            <div className="space-y-3">
+              <TestEditorField
+                value={editableExplanation || aiExplanation || ''}
+                onChange={(value) => {
+                  setEditableExplanation(value)
+                  // Сохраняем изменения в localStorage
+                  if (typeof window !== 'undefined' && questionType) {
+                    const questionData = loadQuestionDraft(questionId, questionType)
+                    if (questionData) {
+                      questionData.explanation_ai = value
+                      saveQuestionDraft(questionId, questionType, questionData)
+                    }
+                  }
+                }}
+                placeholder="Введите объяснение..."
+                height={300}
                 isPreviewMode={isPreviewMode}
-                onImageToLatex={handleImageToLatex}
-                onMagicWand={handleMagicWand}
-                onTogglePreview={() => setIsPreviewMode(!isPreviewMode)}
-                activeFormats={getActiveFormats(questionText, cursorPosition.start, cursorPosition.end)}
-                isAiLoading={aiLoading}
+                showResizeHandle={true}
+                onFocus={() => {
+                  // Можно добавить логику активации поля
+                }}
               />
+              {/* Кнопка регенерации объяснения */}
+              {onRegenerateExplanation && (
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    onClick={onRegenerateExplanation}
+                    className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors text-sm font-medium"
+                  >
+                    <Icons.RefreshCw className="h-4 w-4" />
+                    <span>Перегенерировать объяснение</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : isPreviewMode ? (
+            // Режим предпросмотра - показываем обработанный Markdown
+            <div className="w-full px-5 py-4 rounded-xl bg-[var(--bg-card)] border border-gray-700 min-h-[150px] prose prose-invert prose-sm max-w-none text-[var(--text-primary)] transition-colors">
+              <ReactMarkdown
+                remarkPlugins={[remarkMath, remarkGfm]}
+                rehypePlugins={[rehypeKatex, rehypeRaw]}
+                components={{
+                  h1: ({node, ...props}) => <h1 className="text-2xl font-bold mb-4 text-white" {...props} />,
+                  h2: ({node, ...props}) => <h2 className="text-xl font-bold mb-3 text-white" {...props} />,
+                  h3: ({node, ...props}) => <h3 className="text-lg font-semibold mb-2 text-white" {...props} />,
+                  p: ({node, ...props}) => <p className="mb-3 text-gray-200 leading-relaxed" {...props} />,
+                  ul: ({node, ...props}) => <ul className="list-disc list-inside mb-3 space-y-1 text-gray-200" {...props} />,
+                  ol: ({node, ...props}) => <ol className="list-decimal list-inside mb-3 space-y-1 text-gray-200" {...props} />,
+                  li: ({node, ...props}) => <li className="text-gray-200" {...props} />,
+                  strong: ({node, ...props}) => <strong className="font-bold text-white" {...props} />,
+                  em: ({node, ...props}) => <em className="italic text-gray-300" {...props} />,
+                  code: ({node, inline, ...props}: any) => 
+                    inline ? (
+                      <code className="px-1.5 py-0.5 rounded bg-gray-800 text-purple-300 text-sm font-mono" {...props} />
+                    ) : (
+                      <code className="block p-3 rounded bg-gray-800 text-gray-200 text-sm font-mono overflow-x-auto" {...props} />
+                    ),
+                  blockquote: ({node, ...props}) => <blockquote className="border-l-4 border-purple-500 pl-4 italic text-gray-300 my-3" {...props} />,
+                }}
+              >
+                {questionText || getText('tests.emptyQuestion', 'Текст вопроса отсутствует')}
+              </ReactMarkdown>
+            </div>
+          ) : (
+            // Режим редактирования - показываем textarea с Markdown кодом
+            <div className="relative">
               <textarea
                 ref={questionTextareaRef}
+                className="w-full px-5 py-4 rounded-xl text-[var(--text-primary)] placeholder-gray-400 bg-[var(--bg-card)] border border-gray-700 transition-all duration-300 ease-in-out focus:outline-none focus:border-white focus:bg-[var(--bg-tertiary)] hover:border-gray-600 resize-none text-sm font-mono min-h-[150px]"
                 value={questionText}
                 onChange={(e) => setQuestionText(e.target.value)}
                 onSelect={(e) => {
@@ -534,18 +865,20 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
                   setCursorPosition({ start: target.selectionStart, end: target.selectionEnd })
                 }}
                 placeholder={getText('tests.questionPlaceholder', 'Введите текст вопроса...')}
-                rows={8}
-                className="w-full px-3 py-2 rounded-lg border border-[var(--border-primary)] bg-[var(--bg-tertiary)] text-[var(--text-primary)] placeholder-[var(--text-tertiary)] focus:outline-none focus:border-[var(--text-primary)] resize-none text-sm font-mono"
               />
-            </>
-          ) : (
-            <div className="p-4 rounded-lg border border-[var(--border-primary)] bg-[var(--bg-tertiary)] min-h-[200px] prose prose-sm max-w-none dark:prose-invert">
-              <ReactMarkdown
-                remarkPlugins={[remarkMath, remarkGfm]}
-                rehypePlugins={[rehypeKatex, rehypeRaw]}
-              >
-                {questionText || getText('tests.emptyQuestion', 'Текст вопроса отсутствует')}
-              </ReactMarkdown>
+              {/* Кнопка переключения версий - показывается только если есть версии */}
+              {textVersions.question && (
+                <button
+                  type="button"
+                  onClick={() => toggleTextVersion('question')}
+                  className="absolute bottom-2 right-2 flex items-center gap-1.5 px-2.5 py-1.5 bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 rounded-lg transition-colors text-xs font-medium z-10"
+                  title={textVersions.question.isShowingImproved ? 'Показать оригинал' : 'Показать улучшенный'}
+                >
+                  <Icons.ArrowLeft className="h-3.5 w-3.5" />
+                  <Icons.ArrowRight className="h-3.5 w-3.5 -ml-1" />
+                  <span>{textVersions.question.isShowingImproved ? 'Показать оригинал' : 'Показать улучшенный'}</span>
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -556,43 +889,91 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
             <img
               src={imageUrl}
               alt="Question"
-              className="max-w-full h-auto rounded-lg border border-[var(--border-primary)]"
+            className="max-w-full h-auto rounded-lg border border-gray-700"
             />
             <button
               onClick={() => setImageUrl('')}
               className="absolute top-2 right-2 p-1.5 bg-red-500 hover:bg-red-600 rounded-lg transition-colors"
             >
-              <Icons.Trash2 className="h-4 w-4 text-white" />
+            <Icons.Trash2 className="h-4 w-4 text-white" />
             </button>
           </div>
         )}
 
-        {/* Варианты ответов */}
+        {/* Варианты ответов - скрываем при показе объяснения */}
+        {!isShowingExplanation && (
         <div>
-          <div className="flex items-center justify-between mb-2">
-            <label className="block text-sm font-medium text-[var(--text-secondary)]">
-              {getText('tests.answers', 'Варианты ответов')} <span className="text-red-400">*</span>
+        <label className="flex items-center text-sm font-medium text-[var(--text-secondary)] mb-3">
+          <Icons.List className="h-4 w-4 mr-2 text-[var(--text-primary)]" />
+          {getText('tests.answers', 'Варианты ответов')} <span className="text-red-400"> *</span>
             </label>
-          </div>
 
-          <div className="space-y-2">
+        <div className="space-y-4">
             {answers.map((answer, index) => (
-              <div key={index} className="flex items-center gap-2">
-                <input
-                  type="radio"
+            <div key={index}>
+              <div className="flex items-center gap-3">
+                <div className="flex-shrink-0">
+                  <RadioButton
+                    id={`answer-${questionId}-${index}`}
+                    name={`correct-answer-${questionId}`}
                   checked={answer.isCorrect}
                   onChange={() => handleCorrectAnswerChange(index)}
-                  className="flex-shrink-0"
+                    label={getAnswerLabel(index)}
                 />
-                <textarea
-                  value={answer.value}
-                  onChange={(e) => handleAnswerChange(index, e.target.value)}
-                  placeholder={`${getText('tests.answer', 'Ответ')} ${index + 1}`}
-                  rows={2}
-                  className="flex-1 px-3 py-2 rounded-lg border border-[var(--border-primary)] bg-[var(--bg-tertiary)] text-[var(--text-primary)] placeholder-[var(--text-tertiary)] focus:outline-none focus:border-[var(--text-primary)] text-sm resize-none overflow-y-auto"
-                />
+                </div>
+                <div className="flex-1">
+                  {isPreviewMode ? (
+                    // Режим предпросмотра - показываем обработанный Markdown
+                    <div className="w-full px-4 py-3 rounded-xl bg-[var(--bg-card)] border border-gray-700 min-h-[60px] prose prose-invert prose-sm max-w-none text-[var(--text-primary)] transition-colors">
+                      <ReactMarkdown
+                        remarkPlugins={[remarkMath, remarkGfm]}
+                        rehypePlugins={[rehypeKatex, rehypeRaw]}
+                        components={{
+                          p: ({node, ...props}) => <p className="mb-0 text-gray-200 leading-relaxed" {...props} />,
+                          strong: ({node, ...props}) => <strong className="font-bold text-white" {...props} />,
+                          em: ({node, ...props}) => <em className="italic text-gray-300" {...props} />,
+                          code: ({node, inline, ...props}: any) => 
+                            inline ? (
+                              <code className="px-1.5 py-0.5 rounded bg-gray-800 text-purple-300 text-sm font-mono" {...props} />
+                            ) : (
+                              <code className="block p-3 rounded bg-gray-800 text-gray-200 text-sm font-mono overflow-x-auto" {...props} />
+                            ),
+                        }}
+                      >
+                        {answer.value || `${getText('tests.answer', 'Ответ')} ${index + 1}`}
+                      </ReactMarkdown>
+                    </div>
+                  ) : (
+                    // Режим редактирования - показываем textarea с Markdown кодом
+                    <div className="relative">
+                      <textarea
+                        data-answer-index={index}
+                        value={answer.value}
+                        onChange={(e) => handleAnswerChange(index, e.target.value)}
+                        placeholder={`${getText('tests.answer', 'Ответ')} ${index + 1}`}
+                        className="w-full px-4 py-3 rounded-xl text-[var(--text-primary)] placeholder-gray-400 bg-[var(--bg-card)] border border-gray-700 transition-all duration-300 ease-in-out focus:outline-none focus:border-white focus:bg-[var(--bg-tertiary)] hover:border-gray-600 resize-none text-sm font-mono min-h-[60px]"
+                      />
+                      {/* Кнопка переключения версий - показывается только если есть версии */}
+                      {textVersions.answers?.[index] && (
+                        <button
+                          type="button"
+                          onClick={() => toggleTextVersion('answer', index)}
+                          className="absolute bottom-2 right-2 flex items-center gap-1.5 px-2.5 py-1.5 bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 rounded-lg transition-colors text-xs font-medium z-10"
+                          title={textVersions.answers[index].isShowingImproved ? 'Показать оригинал' : 'Показать улучшенный'}
+                        >
+                          <Icons.ArrowLeft className="h-3.5 w-3.5" />
+                          <Icons.ArrowRight className="h-3.5 w-3.5 -ml-1" />
+                          <span>{textVersions.answers[index].isShowingImproved ? 'Показать оригинал' : 'Показать улучшенный'}</span>
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
                 {/* Кнопка удаления - показываем если больше минимального количества */}
-                {answers.length > 2 && (
+                {(() => {
+                  const minAnswers = questionType === 'math2' || questionType === 'standard' ? 5 : 4
+                  return answers.length > minAnswers
+                })() && (
                   <button
                     onClick={() => handleRemoveAnswer(index)}
                     className="p-2 text-red-400 hover:bg-red-500/10 rounded-lg transition-colors flex-shrink-0"
@@ -602,25 +983,32 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
                   </button>
                 )}
               </div>
+              </div>
             ))}
           </div>
 
-          {/* Кнопка добавления ответа */}
-          <button
-            onClick={handleAddAnswer}
-            className="mt-3 w-full px-4 py-2.5 border-2 border-dashed border-[var(--border-primary)] rounded-lg hover:border-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-colors flex items-center justify-center gap-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-          >
-            <Icons.Plus className="h-5 w-5" />
-            <span>{getText('tests.addAnswer', 'Добавить вариант')}</span>
-          </button>
+          {/* Кнопка добавления ответа - только для стандартной секции */}
+          {questionType === 'standard' && (
+            <button
+              onClick={handleAddAnswer}
+            className="mt-3 w-full px-4 py-2.5 border-2 border-dashed border-gray-700 rounded-lg hover:border-white hover:bg-gray-800/50 transition-colors flex items-center justify-center gap-2 text-gray-400 hover:text-white"
+            >
+              <Icons.Plus className="h-5 w-5" />
+              <span>{getText('tests.addAnswer', 'Добавить вариант')}</span>
+            </button>
+          )}
         </div>
+        )}
 
-        {/* Баллы и время */}
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
-              {getText('tests.points', 'Баллы')} <span className="text-red-400">*</span>
+        {/* Баллы и время - скрываем при показе объяснения */}
+        {!isShowingExplanation && (
+      <div className="flex items-center gap-6 pt-4 border-t border-gray-800 flex-wrap">
+        <div className="flex items-center gap-3">
+          <label className="flex items-center text-sm font-medium text-[var(--text-secondary)] whitespace-nowrap">
+            <Icons.CircleDot className="h-4 w-4 mr-2 text-[var(--text-primary)]" />
+            {getText('tests.points', 'Баллы')} <span className="text-red-400"> *</span>
             </label>
+          <div className="w-16">
             <input
               type="number"
               value={points || ''}
@@ -643,16 +1031,20 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
               }}
               min="1"
               max="5"
-              className="w-full px-3 py-2 rounded-lg border border-[var(--border-primary)] bg-[var(--bg-tertiary)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--text-primary)] text-sm"
+              className="w-16 h-8 text-sm px-1 rounded-lg border border-gray-700 bg-[var(--bg-card)] text-[var(--text-primary)] focus:outline-none focus:border-white focus:bg-[var(--bg-tertiary)] text-center transition-colors"
             />
-            <p className="text-xs text-[var(--text-tertiary)] mt-1">
+          </div>
+          <p className="text-xs text-[var(--text-tertiary)]">
               {getText('tests.pointsHint', 'Максимум 5 баллов')}
             </p>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
-              {getText('tests.timeLimit', 'Время (сек)')} <span className="text-red-400">*</span>
+
+        <div className="flex items-center gap-3">
+          <label className="flex items-center text-sm font-medium text-[var(--text-secondary)] whitespace-nowrap">
+            <Icons.Clock className="h-4 w-4 mr-2 text-[var(--text-primary)]" />
+            {getText('tests.timeLimit', 'Время (сек)')} <span className="text-red-400"> *</span>
             </label>
+          <div className="w-16">
             <input
               type="number"
               value={timeLimit || ''}
@@ -675,14 +1067,15 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
               }}
               min="1"
               max="120"
-              className="w-full px-3 py-2 rounded-lg border border-[var(--border-primary)] bg-[var(--bg-tertiary)] text-[var(--text-primary)] focus:outline-none focus:border-[var(--text-primary)] text-sm"
+              className="w-16 h-8 text-sm px-1 rounded-lg border border-gray-700 bg-[var(--bg-card)] text-[var(--text-primary)] focus:outline-none focus:border-white focus:bg-[var(--bg-tertiary)] text-center transition-colors"
             />
-            <p className="text-xs text-[var(--text-tertiary)] mt-1">
-              {getText('tests.timeLimitHint', 'Максимум 120 секунд')}
-            </p>
           </div>
+          <p className="text-xs text-[var(--text-tertiary)]">
+            {getText('tests.timeLimitHint', 'Максимум 120 секунд')}
+          </p>
         </div>
       </div>
+        )}
 
       {/* Скрытые input для загрузки изображений */}
       <input

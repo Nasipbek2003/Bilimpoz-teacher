@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useRef, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 
 interface TooltipProps {
   text: string
@@ -10,43 +11,75 @@ interface TooltipProps {
 const Tooltip: React.FC<TooltipProps> = ({ text, children }) => {
   const [isVisible, setIsVisible] = useState(false)
   const [position, setPosition] = useState<'top' | 'bottom'>('top')
+  const [tooltipStyle, setTooltipStyle] = useState<React.CSSProperties>({})
   const tooltipRef = useRef<HTMLDivElement>(null)
   const triggerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    if (isVisible && triggerRef.current && tooltipRef.current) {
-      const triggerRect = triggerRef.current.getBoundingClientRect()
-      const tooltipRect = tooltipRef.current.getBoundingClientRect()
-      const spaceAbove = triggerRect.top
-      const spaceBelow = window.innerHeight - triggerRect.bottom
+    if (isVisible && triggerRef.current) {
+      const updatePosition = () => {
+        if (!triggerRef.current || !tooltipRef.current) return
 
-      if (spaceBelow < tooltipRect.height && spaceAbove > spaceBelow) {
-        setPosition('top')
-      } else {
-        setPosition('bottom')
+        const triggerRect = triggerRef.current.getBoundingClientRect()
+        const tooltipRect = tooltipRef.current.getBoundingClientRect()
+        const spaceAbove = triggerRect.top
+        const spaceBelow = window.innerHeight - triggerRect.bottom
+
+        const isTop = spaceBelow < tooltipRect.height && spaceAbove > spaceBelow
+        setPosition(isTop ? 'top' : 'bottom')
+
+        // Позиционирование относительно триггера
+        const left = triggerRect.left + triggerRect.width / 2
+        const top = isTop 
+          ? triggerRect.top - tooltipRect.height - 8
+          : triggerRect.bottom + 8
+
+        setTooltipStyle({
+          position: 'fixed',
+          left: `${left}px`,
+          top: `${top}px`,
+          transform: 'translateX(-50%)',
+          zIndex: 99999
+        })
+      }
+
+      // Используем requestAnimationFrame для правильного позиционирования после рендера
+      requestAnimationFrame(() => {
+        requestAnimationFrame(updatePosition)
+      })
+
+      // Обновляем позицию при скролле и изменении размера окна
+      window.addEventListener('scroll', updatePosition, true)
+      window.addEventListener('resize', updatePosition)
+
+      return () => {
+        window.removeEventListener('scroll', updatePosition, true)
+        window.removeEventListener('resize', updatePosition)
       }
     }
   }, [isVisible])
 
   return (
-    <div
-      ref={triggerRef}
-      className="relative"
-      onMouseEnter={() => setIsVisible(true)}
-      onMouseLeave={() => setIsVisible(false)}
-    >
-      {children}
-      {isVisible && (
+    <>
+      <div
+        ref={triggerRef}
+        className="relative"
+        onMouseEnter={() => setIsVisible(true)}
+        onMouseLeave={() => setIsVisible(false)}
+      >
+        {children}
+      </div>
+      {isVisible && typeof window !== 'undefined' && createPortal(
         <div
           ref={tooltipRef}
           className={`
-            absolute z-[9999] px-3 py-2 rounded-lg
+            px-3 py-2 rounded-lg
             bg-[var(--bg-card)] border border-[var(--border-primary)]
             shadow-xl
             text-[var(--text-primary)] text-xs whitespace-nowrap
-            ${position === 'top' ? 'bottom-full mb-2' : 'top-full mt-2'}
-            left-1/2 transform -translate-x-1/2
+            pointer-events-none
           `}
+          style={tooltipStyle}
         >
           {text}
           {/* Треугольный указатель */}
@@ -66,9 +99,10 @@ const Tooltip: React.FC<TooltipProps> = ({ text, children }) => {
               borderRightColor: 'transparent',
             }}
           />
-        </div>
+        </div>,
+        document.body
       )}
-    </div>
+    </>
   )
 }
 
