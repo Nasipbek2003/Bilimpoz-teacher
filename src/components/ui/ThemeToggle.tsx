@@ -29,7 +29,7 @@ const ThemeToggle: React.FC = () => {
     <button
       onClick={toggleTheme}
       className="p-2 rounded-lg transition-colors hover:bg-[var(--bg-hover)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] focus:ring-opacity-50"
-      title={theme === 'light' ? 'Переключить на темную тему' : 'Переключить на светлую тему'}
+      data-tooltip={theme === 'light' ? 'Переключить на темную тему' : 'Переключить на светлую тему'}
       aria-label={theme === 'light' ? 'Переключить на темную тему' : 'Переключить на светлую тему'}
     >
       {theme === 'light' ? (

@@ -16,7 +16,8 @@
     "apply": "Применить",
     "reset": "Сбросить",
     "user": "Пользователь",
-    "roleNotSpecified": "Роль не указана"
+    "roleNotSpecified": "Роль не указана",
+    "language": "Переключить язык"
   },
   "header": {
     "title": "Bilimpoz Teacher",

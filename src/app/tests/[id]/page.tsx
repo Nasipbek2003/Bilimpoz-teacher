@@ -604,6 +604,88 @@ export default function TestEditorPage() {
     }
   }
 
+  // Функция для проверки, изменился ли вопрос
+  const isQuestionModified = (question: Question, questionData: any) => {
+    // Для новых вопросов всегда считаем измененными
+    if (isTempId(question.id)) {
+      console.log(`Вопрос ${question.id} - новый (temp ID)`)
+      return true
+    }
+
+    // Ищем исходный вопрос в БД
+    const originalQuestion = originalQuestionsFromDB.find(q => q.id === question.id)
+    if (!originalQuestion) {
+      console.log(`Вопрос ${question.id} - не найден в исходных данных`)
+      return true // Если не найден в исходных данных, считаем измененным
+    }
+
+    console.log(`Сравниваем вопрос ${question.id}:`)
+    console.log('Текущий текст:', questionData.question?.trim())
+    console.log('Исходный текст:', originalQuestion.question?.trim())
+    
+    // Сравниваем основные поля
+    if (questionData.question?.trim() !== originalQuestion.question?.trim()) {
+      console.log(`Вопрос ${question.id} - изменился текст вопроса`)
+      return true
+    }
+
+    console.log('Текущие баллы:', questionData.points || 1)
+    console.log('Исходные баллы:', originalQuestion.points || 1)
+    
+    // Сравниваем баллы и время
+    if ((questionData.points || 1) !== (originalQuestion.points || 1)) {
+      console.log(`Вопрос ${question.id} - изменились баллы`)
+      return true
+    }
+
+    console.log('Текущее время:', questionData.timeLimit || 60)
+    console.log('Исходное время:', originalQuestion.timeLimit || 60)
+
+    if ((questionData.timeLimit || 60) !== (originalQuestion.timeLimit || 60)) {
+      console.log(`Вопрос ${question.id} - изменилось время`)
+      return true
+    }
+
+    console.log('Текущее изображение:', questionData.imageUrl || '')
+    console.log('Исходное изображение:', originalQuestion.photoUrl || '')
+
+    // Сравниваем изображение
+    if ((questionData.imageUrl || '') !== (originalQuestion.photoUrl || '')) {
+      console.log(`Вопрос ${question.id} - изменилось изображение`)
+      return true
+    }
+
+    // Сравниваем ответы
+    const currentAnswers = questionData.answers?.filter((a: any) => a.value && a.value.trim()) || []
+    const originalAnswers = originalQuestion.answerVariants || []
+
+    console.log('Текущие ответы:', currentAnswers.length, currentAnswers)
+    console.log('Исходные ответы:', originalAnswers.length, originalAnswers)
+
+    if (currentAnswers.length !== originalAnswers.length) {
+      console.log(`Вопрос ${question.id} - изменилось количество ответов`)
+      return true
+    }
+
+    for (let i = 0; i < currentAnswers.length; i++) {
+      const current = currentAnswers[i]
+      const original = originalAnswers[i]
+      
+      if (current.value?.trim() !== original.value?.trim()) {
+        console.log(`Вопрос ${question.id} - изменился ответ ${i}: "${current.value?.trim()}" !== "${original.value?.trim()}"`)
+        return true
+      }
+      
+      if (current.isCorrect !== original.isCorrect) {
+        console.log(`Вопрос ${question.id} - изменилась правильность ответа ${i}`)
+        return true
+      }
+    }
+
+    console.log(`Вопрос ${question.id} - НЕ ИЗМЕНИЛСЯ`)
+    return false // Вопрос не изменился
+  }
+
   // Сохранение всех вопросов в БД
   const handleSaveQuestions = async () => {
     if (!test || !user?.id || questions.length === 0) {
@@ -619,6 +701,8 @@ export default function TestEditorPage() {
 
     setIsSubmitting(true)
     let successCount = 0
+    let newQuestionsCount = 0
+    let updatedQuestionsCount = 0
     let errorCount = 0
 
     try {
@@ -689,7 +773,17 @@ export default function TestEditorPage() {
 
           // Определяем, новый это вопрос или существующий
           const isNewQuestion = isTempId(question.id)
-          console.log(`Сохраняем вопрос ${question.id}, новый: ${isNewQuestion}`)
+          
+          // Проверяем, изменился ли вопрос
+          const isModified = isQuestionModified(question, questionData)
+          
+          // Если вопрос не новый и не изменился, пропускаем его
+          if (!isNewQuestion && !isModified) {
+            console.log(`Вопрос ${question.id} не изменился, пропускаем`)
+            continue
+          }
+          
+          console.log(`Сохраняем вопрос ${question.id}, новый: ${isNewQuestion}, изменен: ${isModified}`)
           
           // Сохраняем вопрос через API
           const response = await fetch(
@@ -717,6 +811,11 @@ export default function TestEditorPage() {
 
           if (result.success) {
             successCount++
+            if (isNewQuestion) {
+              newQuestionsCount++
+            } else {
+              updatedQuestionsCount++
+            }
             console.log(`Вопрос ${question.id} успешно ${isNewQuestion ? 'создан' : 'обновлен'}`)
             
             if (isNewQuestion) {
@@ -766,13 +865,25 @@ export default function TestEditorPage() {
 
       if (successCount > 0 || questionsToDelete.length > 0) {
         let message = ''
-        if (successCount > 0 && questionsToDelete.length > 0) {
-          message = getText('tests.questionsSavedAndDeleted', `Сохранено: ${successCount}, удалено: ${questionsToDelete.length}${errorCount > 0 ? `, ошибок: ${errorCount}` : ''}`)
-        } else if (successCount > 0) {
-          message = getText('tests.questionsSaved', `Сохранено вопросов: ${successCount}${errorCount > 0 ? `, ошибок: ${errorCount}` : ''}`)
-        } else if (questionsToDelete.length > 0) {
-          message = getText('tests.questionsDeleted', `Удалено вопросов: ${questionsToDelete.length}${errorCount > 0 ? `, ошибок: ${errorCount}` : ''}`)
+        const messageParts = []
+        
+        if (newQuestionsCount > 0) {
+          messageParts.push(`Создано вопросов: ${newQuestionsCount}`)
         }
+        
+        if (updatedQuestionsCount > 0) {
+          messageParts.push(`Изменено вопросов: ${updatedQuestionsCount}`)
+        }
+        
+        if (questionsToDelete.length > 0) {
+          messageParts.push(`Удалено вопросов: ${questionsToDelete.length}`)
+        }
+        
+        if (errorCount > 0) {
+          messageParts.push(`Ошибок: ${errorCount}`)
+        }
+        
+        message = messageParts.join(', ')
         
         showToast(message, errorCount > 0 ? 'warning' : 'success')
         setHasUnsavedChanges(false)
@@ -780,6 +891,9 @@ export default function TestEditorPage() {
         // Перезагружаем актуальные данные из БД после успешного сохранения
         console.log('Вопросы успешно сохранены/удалены, перезагружаем из БД')
         await reloadQuestionsFromDB()
+        
+        // Принудительно обновляем страницу для гарантии отображения актуальных данных
+        window.location.reload()
       } else if (errorCount > 0) {
         showToast(
           getText('tests.saveQuestionsError', `Ошибка при сохранении вопросов: ${errorCount}`),

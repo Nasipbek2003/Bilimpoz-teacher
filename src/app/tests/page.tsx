@@ -528,9 +528,9 @@ export default function TestsPage() {
               <div
                 key={test.id}
                 onClick={() => handleOpenTest(test.id)}
-                className="bg-[var(--bg-card)] rounded-xl p-4 cursor-pointer hover:shadow-lg transition-all border border-[var(--border-primary)] hover:border-[var(--text-primary)]"
+                className="bg-[var(--bg-card)] rounded-xl p-3 cursor-pointer hover:shadow-lg transition-all hover:bg-[#242424]"
               >
-                <div className="flex items-start justify-between mb-3">
+                <div className="flex items-start justify-between mb-2">
                   <div className="flex-1">
                     <h3 className="text-base font-semibold text-[var(--text-primary)] mb-1 line-clamp-2">
                       {test.name}
@@ -547,7 +547,7 @@ export default function TestsPage() {
                   </button>
                 </div>
 
-                <div className="flex items-center gap-4 text-xs text-[var(--text-tertiary)] mb-3">
+                <div className="flex items-center gap-4 text-xs text-[var(--text-tertiary)] mb-2">
                   <div className="flex items-center gap-1">
                     <Icons.HelpCircle className="h-3.5 w-3.5" />
                     <span>{test.questionsCount} {getText('tests.questions', 'вопросов')}</span>

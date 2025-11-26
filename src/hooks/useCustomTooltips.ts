@@ -15,18 +15,19 @@ export function useCustomTooltips(container?: HTMLElement | null, language: Lang
       tooltip.textContent = text
       tooltip.style.cssText = `
         position: absolute;
-        background: #151515;
-        color: white;
-        padding: 6px 12px;
-        border-radius: 6px;
+        background: var(--bg-card);
+        color: var(--text-primary);
+        padding: 8px 12px;
+        border-radius: 8px;
         font-size: 12px;
+        font-weight: 500;
         pointer-events: none;
         z-index: 9999;
-        border: 1px solid #404040;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        border: 1px solid var(--border-primary);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
         white-space: nowrap;
         opacity: 0;
-        transition: opacity 0.2s;
+        transition: opacity 0.2s ease-in-out;
       `
       document.body.appendChild(tooltip)
       return tooltip

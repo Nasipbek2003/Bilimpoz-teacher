@@ -16,7 +16,8 @@
     "apply": "Колдонуу",
     "reset": "Баштапкы абалга келтирүү",
     "user": "Колдонуучу",
-    "roleNotSpecified": "Ролу көрсөтүлгөн эмес"
+    "roleNotSpecified": "Ролу көрсөтүлгөн эмес",
+    "language": "Тилди которуу"
   },
   "header": {
     "title": "Bilimpoz Мугалим",

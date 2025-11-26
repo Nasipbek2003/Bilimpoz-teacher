@@ -83,7 +83,7 @@ export default function LanguageSwitcher() {
           setIsOpen(!isOpen);
         }}
         className="flex items-center gap-2 px-3 py-2 bg-[var(--bg-tertiary)] rounded-lg hover:bg-[var(--bg-hover)] transition-colors"
-        data-tooltip={t('common.language') || 'Switch language'}
+        data-tooltip={t('common.language') || 'Переключить язык'}
       >
         <span className="text-sm text-[var(--text-primary)] font-medium">
           {currentLanguage.name}
