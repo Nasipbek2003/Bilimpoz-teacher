@@ -11,9 +11,9 @@ interface Student {
   registrationDate: string
   activity7Days: number
   completedLessons: number
-  status: 'active' | 'inactive' | 'banned'
+  status: string // статус реферала: registered | paid | referral_paid
   points: number
-  profilePhotoUrl?: string
+  profilePhotoUrl?: string | null
 }
 
 interface StudentCardProps {
@@ -32,61 +32,63 @@ const StudentCard: React.FC<StudentCardProps> = ({
     setMounted(true)
   }, [])
   
-  const getStatusConfig = (status: Student['status']) => {
+  const getStatusConfig = (status: string) => {
+    // Определяем цвет и текст для статуса реферала
     if (!mounted || !ready) {
       // Fallback значения до готовности переводов
-    switch (status) {
-      case 'active':
-        return {
-          label: 'Активен',
-          bgColor: 'bg-green-500/10',
-          textColor: 'text-green-400',
-          borderColor: 'border-green-500/20'
-        }
-      case 'inactive':
-        return {
-          label: 'Неактивен',
-          bgColor: 'bg-yellow-500/10',
-          textColor: 'text-yellow-400',
-          borderColor: 'border-yellow-500/20'
-        }
-      case 'banned':
-        return {
-          label: 'Заблокирован',
-          bgColor: 'bg-red-500/10',
-          textColor: 'text-red-400',
-          borderColor: 'border-red-500/20'
-        }
-      default:
-        return {
-          label: 'Неизвестно',
+      switch (status) {
+        case 'registered':
+          return {
+            label: 'Зарегистрирован',
+            bgColor: 'bg-blue-500/10',
+            textColor: 'text-blue-400',
+            borderColor: 'border-blue-500/20'
+          }
+        case 'paid':
+          return {
+            label: 'Оплачен',
+            bgColor: 'bg-green-500/10',
+            textColor: 'text-green-400',
+            borderColor: 'border-green-500/20'
+          }
+        case 'referral_paid':
+          return {
+            label: 'Оплачен администратором',
+            bgColor: 'bg-purple-500/10',
+            textColor: 'text-purple-400',
+            borderColor: 'border-purple-500/20'
+          }
+        default:
+          return {
+            label: 'Неизвестно',
             bgColor: 'bg-gray-500/10',
             textColor: 'text-gray-400',
             borderColor: 'border-gray-500/20'
           }
       }
     }
+    
     switch (status) {
-      case 'active':
+      case 'registered':
         return {
-          label: t('students.card.status.active'),
+          label: t('students.card.status.registered'),
+          bgColor: 'bg-blue-500/10',
+          textColor: 'text-blue-400',
+          borderColor: 'border-blue-500/20'
+        }
+      case 'paid':
+        return {
+          label: t('students.card.status.paid'),
           bgColor: 'bg-green-500/10',
           textColor: 'text-green-400',
           borderColor: 'border-green-500/20'
         }
-      case 'inactive':
+      case 'referral_paid':
         return {
-          label: t('students.card.status.inactive'),
-          bgColor: 'bg-yellow-500/10',
-          textColor: 'text-yellow-400',
-          borderColor: 'border-yellow-500/20'
-        }
-      case 'banned':
-        return {
-          label: t('students.card.status.banned'),
-          bgColor: 'bg-red-500/10',
-          textColor: 'text-red-400',
-          borderColor: 'border-red-500/20'
+          label: t('students.card.status.referral_paid'),
+          bgColor: 'bg-purple-500/10',
+          textColor: 'text-purple-400',
+          borderColor: 'border-purple-500/20'
         }
       default:
         return {
@@ -156,13 +158,6 @@ const StudentCard: React.FC<StudentCardProps> = ({
             <p className="text-lg font-bold text-[var(--text-primary)]">{student.points.toLocaleString()}</p>
             <p className="text-xs text-[var(--text-tertiary)]">{getText('students.card.points', 'Баллы')}</p>
           </div>
-          <div className="text-center min-w-[80px]">
-            <div className="flex items-center justify-center gap-1">
-              <Icons.TrendingUp className="h-4 w-4 text-green-400" />
-              <p className="text-sm font-medium text-green-400">+12%</p>
-            </div>
-            <p className="text-xs text-[var(--text-tertiary)]">{getText('students.card.growth', 'Рост')}</p>
-          </div>
         </div>
 
         {/* Правая часть: Действия */}
@@ -192,13 +187,6 @@ const StudentCard: React.FC<StudentCardProps> = ({
           <div className="text-center">
             <p className="text-lg font-bold text-[var(--text-primary)]">{student.points.toLocaleString()}</p>
             <p className="text-xs text-[var(--text-tertiary)]">{getText('students.card.points', 'Баллы')}</p>
-          </div>
-          <div className="text-center">
-            <div className="flex items-center justify-center gap-1">
-              <Icons.TrendingUp className="h-4 w-4 text-green-400" />
-              <p className="text-sm font-medium text-green-400">+12%</p>
-            </div>
-            <p className="text-xs text-[var(--text-tertiary)]">{getText('students.card.growthWeek', 'Рост за неделю')}</p>
           </div>
         </div>
       </div>

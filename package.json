@@ -11,7 +11,8 @@
     "db:push": "prisma db push",
     "db:studio": "prisma studio",
     "init:verification-messages": "npx tsx src/scripts/init-verification-messages.ts",
-    "seed:discussions": "npx tsx src/scripts/seed-discussions.ts"
+    "seed:discussions": "npx tsx src/scripts/seed-discussions.ts",
+    "migrate:referral-links": "npx tsx src/scripts/migrate-referral-links.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.933.0",

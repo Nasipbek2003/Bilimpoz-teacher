@@ -47,6 +47,7 @@ enum NotificationFilter {
 enum TeacherReferralStatus {
   registered
   paid
+  referral_paid
 }
 
 enum UserSubscriptionStatus {

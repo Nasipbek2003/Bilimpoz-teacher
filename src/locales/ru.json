@@ -109,48 +109,14 @@
       "sendHint": "Нажмите Enter для отправки, Shift+Enter для новой строки"
     }
   },
-  "testEditor": {
-    "editTest": "Редактировать тест",
-    "loading": "Загрузка теста...",
-    "testNotFound": "Тест не найден",
-    "backToList": "Вернуться к списку тестов",
-    "basicInfo": "Основная информация",
-    "testName": "Название теста",
-    "enterTestName": "Введите название теста",
-    "testDescription": "Описание теста",
-    "enterTestDescription": "Введите описание теста",
-    "language": "Язык",
-    "section": "Секция",
-    "russian": "Русский",
-    "kyrgyz": "Кыргызский",
-    "sections": {
-      "standard": "Стандартные",
-      "math1": "Математика 1",
-      "math2": "Математика 2",
-      "analogy": "Аналогии",
-      "rac": "RAC",
-      "grammar": "Грамматика"
-    },
-    "tabs": {
-      "test": "Тест",
-      "questions": "Вопросы"
-    },
-    "questionBlock": "Блок вопроса",
-    "errors": {
-      "nameRequired": "Название теста обязательно",
-      "descriptionRequired": "Описание теста обязательно"
-    },
-    "saveSuccess": "Тест сохранен",
-    "saving": "Сохранение..."
-  },
   "students": {
     "title": "Ученики",
     "description": "Управление учениками и приглашение новых через реферальную систему",
     "stats": {
-      "total": "Всего учеников",
-      "active": "Активные",
-      "inactive": "Неактивные",
-      "banned": "Заблокированные"
+      "total": "Всего участников",
+      "registered": "Зарегистрированные",
+      "paid": "Оплаченные",
+      "adminPaid": "Оплаченные администратором"
     },
     "filters": {
       "title": "Фильтры",
@@ -160,9 +126,9 @@
       "sortPlaceholder": "Сортировать по",
       "statusOptions": {
         "all": "Все статусы",
-        "active": "Активные",
-        "inactive": "Неактивные",
-        "banned": "Заблокированные"
+        "registered": "Зарегистрированные",
+        "paid": "Оплаченные",
+        "adminPaid": "Оплаченные администратором"
       },
       "sortOptions": {
         "name": "По имени",
@@ -186,9 +152,9 @@
     },
     "card": {
       "status": {
-        "active": "Активен",
-        "inactive": "Неактивен",
-        "banned": "Заблокирован",
+        "registered": "Зарегистрирован",
+        "paid": "Оплачен",
+        "referral_paid": "Оплачен администратором",
         "unknown": "Неизвестно"
       },
       "registration": "Регистрация:",
@@ -219,8 +185,7 @@
       "telegramHint": "Отправить в чат",
       "whatsapp": "WhatsApp",
       "whatsappHint": "Поделиться ссылкой",
-      "other": "Другие",
-      "otherHint": "Социальные сети",
+      "shareMessage": "Присоединяйся к Bilimpoz! Используй мою реферальную ссылку",
       "copyError": "Ошибка копирования:"
     }
   },
@@ -623,22 +588,6 @@
     "deleteError": "Ошибка при удалении теста",
     "deleteQuestionConfirmTitle": "Удалить вопрос?",
     "deleteQuestionConfirmMessage": "Вы уверены, что хотите удалить этот вопрос? Это действие нельзя отменить.",
-    "newTestName": "Новый тест",
-    "newTestDescription": "Описание теста",
-    "editTest": "Редактирование теста",
-    "save": "Сохранить",
-    "testName": "Название теста",
-    "testNamePlaceholder": "Введите название теста",
-    "testDescription": "Описание теста",
-    "testDescriptionPlaceholder": "Введите описание теста",
-    "addQuestion": "Добавить вопрос",
-    "noQuestions": "Вопросы пока не добавлены",
-    "question": "Вопрос",
-    "saved": "Изменения сохранены",
-    "loadError": "Ошибка загрузки теста",
-    "testNotFound": "Тест не найден",
-    "backToList": "Вернуться к списку тестов",
-    "editTestTitle": "Редактировать тест",
     "noQuestionsTitle": "Нет вопросов",
     "noQuestionsHint1": "Нажмите на кнопку + чтобы добавить вопрос",
     "noQuestionsHint2": "Нажмите на кнопку \"+\" чтобы добавить тестовые вопросы",
@@ -684,14 +633,10 @@
     "answer": "Ответ",
     "points": "Баллы",
     "timeLimit": "Время (сек)",
-    "save": "Сохранить",
-    "saving": "Saving...",
-    "saved": "Тест сохранен",
     "savedWithQuestions": "Тест и {count} вопросов сохранены",
     "saveError": "Ошибка при сохранении теста",
     "publish": "Опубликовать",
     "publishing": "Publishing...",
-    "published": "Тест опубликован",
     "publishError": "Ошибка при публикации теста",
     "publishConfirmTitle": "Подтвердите публикацию",
     "publishConfirmMessage": "Вы уверены, что хотите опубликовать этот тест? После публикации тест станет доступен для прохождения.",

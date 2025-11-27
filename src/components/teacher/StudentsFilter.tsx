@@ -36,9 +36,9 @@ const StudentsFilter: React.FC<StudentsFilterProps> = ({
     if (!mounted || !ready) return []
     return [
       { value: 'all', label: t('students.filters.statusOptions.all') },
-      { value: 'active', label: t('students.filters.statusOptions.active') },
-      { value: 'inactive', label: t('students.filters.statusOptions.inactive') },
-      { value: 'banned', label: t('students.filters.statusOptions.banned') },
+      { value: 'registered', label: t('students.filters.statusOptions.registered') },
+      { value: 'paid', label: t('students.filters.statusOptions.paid') },
+      { value: 'adminPaid', label: t('students.filters.statusOptions.adminPaid') },
   ]
   }, [t, mounted, ready])
 

@@ -19,7 +19,7 @@ export async function getSetting(key: string, defaultValue?: string): Promise<st
  * Получение токена бота учителя из БД
  */
 export async function getTeacherBotToken(): Promise<string | null> {
-  return await getSetting('TEACHER_BOT_TOKEN_2')
+  return await getSetting('TEACHER_BOT_TOKEN_3')
 }
 
 /**
@@ -28,6 +28,14 @@ export async function getTeacherBotToken(): Promise<string | null> {
 export async function getTeacherSiteUrl(): Promise<string> {
   const siteUrl = await getSetting('TEACHER_SITE_URL', 'https://teacher.bilimpoz.kg')
   return siteUrl || 'https://teacher.bilimpoz.kg'
+}
+
+/**
+ * Получение URL студенческого сайта
+ */
+export async function getStudentSiteUrl(): Promise<string> {
+  const siteUrl = await getSetting('STUDENT_WEB_SERVER_URL', 'https://bilimpoz.kg')
+  return siteUrl || 'https://bilimpoz.kg'
 }
 
 /**

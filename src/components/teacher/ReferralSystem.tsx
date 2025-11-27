@@ -10,15 +10,13 @@ interface ReferralSystemProps {
   totalClicks: number
   totalRegistrations: number
   onCopyLink: () => void
-  onInviteStudent: () => void
 }
 
 const ReferralSystem: React.FC<ReferralSystemProps> = ({
   referralLink,
   totalClicks,
   totalRegistrations,
-  onCopyLink,
-  onInviteStudent
+  onCopyLink
 }) => {
   const { t, ready } = useTranslation()
   const [mounted, setMounted] = useState(false)
@@ -41,49 +39,52 @@ const ReferralSystem: React.FC<ReferralSystemProps> = ({
     }
   }
 
+  const getShareMessage = () => {
+    // Всегда пытаемся получить перевод, независимо от состояния готовности
+    try {
+      const translation = t('students.referral.shareMessage')
+      // Если вернулся ключ (не найден перевод), используем fallback
+      if (translation === 'students.referral.shareMessage') {
+        return 'Присоединяйся к Bilimpoz! Используй мою реферальную ссылку'
+      }
+      return translation
+    } catch {
+      return 'Присоединяйся к Bilimpoz! Используй мою реферальную ссылку'
+    }
+  }
+
+  const handleTelegramShare = () => {
+    const messageText = getShareMessage()
+    // В Telegram API параметр url автоматически добавляется после текста
+    // Поэтому в text передаем только сообщение без ссылки
+    const telegramUrl = `https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent(messageText)}`
+    window.open(telegramUrl, '_blank', 'noopener,noreferrer')
+  }
+
+  const handleWhatsAppShare = () => {
+    const messageText = getShareMessage()
+    const fullMessage = `${messageText} ${referralLink}`
+    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(fullMessage)}`
+    window.open(whatsappUrl, '_blank', 'noopener,noreferrer')
+  }
+
   // Fallback значения для предотвращения ошибок гидратации
   const getText = (key: string, fallback: string) => {
     if (!mounted || !ready) return fallback
-    return t(key)
+    const translation = t(key)
+    // Если перевод вернул ключ (не найден), используем fallback
+    return translation === key ? fallback : translation
   }
 
   return (
     <div className="bg-[var(--bg-card)] rounded-2xl p-6">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-2">
-            {getText('students.referral.title', 'Реферальная система')}
-          </h3>
-          <p className="text-[var(--text-tertiary)]">
-            {getText('students.referral.description', 'Приглашайте новых учеников и получайте бонусы')}
-          </p>
-        </div>
-        <Button
-          variant="primary"
-          onClick={onInviteStudent}
-        >
-          <Icons.Plus className="h-4 w-4 mr-2" />
-          {getText('students.referral.inviteButton', 'Пригласить ученика')}
-        </Button>
-      </div>
-
-      {/* Статистика реферальной системы */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-        <div className="bg-[var(--bg-tertiary)] rounded-lg p-4 text-center">
-          <div className="flex items-center justify-center gap-2 mb-2">
-            <Icons.MousePointer className="h-5 w-5 text-blue-400" />
-            <span className="text-sm font-medium text-[var(--text-secondary)]">{getText('students.referral.clicks', 'Переходы')}</span>
-          </div>
-          <p className="text-2xl font-bold text-[var(--text-primary)]">{totalClicks}</p>
-        </div>
-
-        <div className="bg-[var(--bg-tertiary)] rounded-lg p-4 text-center">
-          <div className="flex items-center justify-center gap-2 mb-2">
-            <Icons.UserPlus className="h-5 w-5 text-green-400" />
-            <span className="text-sm font-medium text-[var(--text-secondary)]">{getText('students.referral.registrations', 'Регистрации')}</span>
-          </div>
-          <p className="text-2xl font-bold text-[var(--text-primary)]">{totalRegistrations}</p>
-        </div>
+      <div className="mb-6">
+        <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-2">
+          {getText('students.referral.title', 'Реферальная система')}
+        </h3>
+        <p className="text-[var(--text-tertiary)]">
+          {getText('students.referral.description', 'Приглашайте новых учеников и получайте бонусы')}
+        </p>
       </div>
 
       {/* Реферальная ссылка */}
@@ -127,9 +128,12 @@ const ReferralSystem: React.FC<ReferralSystemProps> = ({
       {/* Способы приглашения */}
       <div className="mt-6">
         <h4 className="font-medium text-[var(--text-primary)] mb-4">{getText('students.referral.inviteMethods', 'Способы приглашения')}</h4>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <button className="flex items-center gap-3 p-3 bg-[var(--bg-tertiary)] rounded-lg hover:bg-[var(--bg-hover)] transition-colors group">
-            <div className="p-2 bg-blue-500/10 rounded-lg group-hover:bg-blue-500/20">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <button 
+            onClick={handleTelegramShare}
+            className="flex items-center gap-3 p-3 bg-[var(--bg-tertiary)] rounded-lg hover:bg-[var(--bg-hover)] transition-colors group"
+          >
+            <div className="p-2 bg-blue-500/10 rounded-lg group-hover:bg-blue-500/20 transition-colors">
               <Icons.MessageCircle className="h-5 w-5 text-blue-400" />
             </div>
             <div className="text-left">
@@ -138,23 +142,16 @@ const ReferralSystem: React.FC<ReferralSystemProps> = ({
             </div>
           </button>
 
-          <button className="flex items-center gap-3 p-3 bg-[var(--bg-tertiary)] rounded-lg hover:bg-[var(--bg-hover)] transition-colors group">
-            <div className="p-2 bg-green-500/10 rounded-lg group-hover:bg-green-500/20">
+          <button 
+            onClick={handleWhatsAppShare}
+            className="flex items-center gap-3 p-3 bg-[var(--bg-tertiary)] rounded-lg hover:bg-[var(--bg-hover)] transition-colors group"
+          >
+            <div className="p-2 bg-green-500/10 rounded-lg group-hover:bg-green-500/20 transition-colors">
               <Icons.Phone className="h-5 w-5 text-green-400" />
             </div>
             <div className="text-left">
               <p className="text-sm font-medium text-[var(--text-primary)]">{getText('students.referral.whatsapp', 'WhatsApp')}</p>
               <p className="text-xs text-[var(--text-tertiary)]">{getText('students.referral.whatsappHint', 'Поделиться ссылкой')}</p>
-            </div>
-          </button>
-
-          <button className="flex items-center gap-3 p-3 bg-[var(--bg-tertiary)] rounded-lg hover:bg-[var(--bg-hover)] transition-colors group">
-            <div className="p-2 bg-purple-500/10 rounded-lg group-hover:bg-purple-500/20">
-              <Icons.Share2 className="h-5 w-5 text-purple-400" />
-            </div>
-            <div className="text-left">
-              <p className="text-sm font-medium text-[var(--text-primary)]">{getText('students.referral.other', 'Другие')}</p>
-              <p className="text-xs text-[var(--text-tertiary)]">{getText('students.referral.otherHint', 'Социальные сети')}</p>
             </div>
           </button>
         </div>
