@@ -1,4 +1,5 @@
 import { getOpenAIApiKey, getOpenAIModel } from './settings'
+import { getImproveTextPrompt } from './prompts'
 
 /**
  * Сервис для работы с OpenAI API
@@ -27,14 +28,11 @@ export class OpenAIService {
       await this.initialize()
     }
 
-    const languageName = language === 'kg' ? 'кыргызский' : 'русский'
+    // Получаем промпт из базы данных
+    const promptTemplate = await getImproveTextPrompt(language)
     
-    const prompt = `Ты - помощник для улучшения образовательных текстов. Улучши следующий текст на ${languageName} языке, сделав его более понятным, структурированным и подходящим для учебных материалов. Сохрани основную мысль и смысл, но улучши формулировки, грамматику и стиль.
-
-Текст для улучшения:
-${text}
-
-Верни только улучшенный текст без дополнительных комментариев.`
+    // Подставляем текст в промпт (заменяем плейсхолдер {text})
+    const prompt = promptTemplate.replace('{text}', text)
 
     try {
       const response = await fetch('https://api.openai.com/v1/chat/completions', {

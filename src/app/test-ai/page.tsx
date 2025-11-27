@@ -11,10 +11,14 @@ export default function TestAIPage() {
   const [apiKey, setApiKey] = useState('')
   const [model, setModel] = useState('gpt-4o-mini')
   const [isSaving, setIsSaving] = useState(false)
+  const [prompts, setPrompts] = useState<any[]>([])
+  const [promptRu, setPromptRu] = useState('')
+  const [promptKg, setPromptKg] = useState('')
   const { improveText, convertImageToLatex, isLoading } = useAI()
 
-  // Загружаем настройки AI при монтировании
+  // Загружаем настройки AI и промпты при монтировании
   useEffect(() => {
+    // Загружаем настройки AI
     fetch('/api/debug/ai-settings')
       .then(res => res.json())
       .then(data => {
@@ -25,6 +29,21 @@ export default function TestAIPage() {
         }
       })
       .catch(err => setError(err.message))
+
+    // Загружаем промпты
+    fetch('/api/debug/prompts')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          setPrompts(data.data)
+          // Устанавливаем значения в поля
+          const ruPrompt = data.data.find((p: any) => p.language === 'ru')
+          const kgPrompt = data.data.find((p: any) => p.language === 'kg')
+          if (ruPrompt) setPromptRu(ruPrompt.value)
+          if (kgPrompt) setPromptKg(kgPrompt.value)
+        }
+      })
+      .catch(err => console.error('Ошибка загрузки промптов:', err))
   }, [])
 
   const handleImproveText = async () => {
@@ -89,6 +108,46 @@ export default function TestAIPage() {
     }
   }
 
+  const handleSavePrompts = async () => {
+    setIsSaving(true)
+    try {
+      // Сохраняем русский промпт
+      if (promptRu.trim()) {
+        await fetch('/api/debug/prompts', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            language: 'ru',
+            value: promptRu.trim()
+          })
+        })
+      }
+
+      // Сохраняем кыргызский промпт
+      if (promptKg.trim()) {
+        await fetch('/api/debug/prompts', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            language: 'kg',
+            value: promptKg.trim()
+          })
+        })
+      }
+
+      setError('')
+      alert('Промпты сохранены!')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Ошибка сохранения промптов')
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
   return (
     <div className="p-8 max-w-2xl mx-auto">
       <h1 className="text-2xl font-bold mb-6">Тест AI функций</h1>
@@ -139,9 +198,48 @@ export default function TestAIPage() {
           </div>
         </div>
 
+        {/* Промпты для улучшения текста */}
+        <div>
+          <h2 className="text-lg font-semibold mb-2">Промпты для улучшения текста</h2>
+          
+          <div className="mb-4">
+            <label className="block text-sm font-medium mb-1">Промпт на русском:</label>
+            <textarea
+              value={promptRu}
+              onChange={(e) => setPromptRu(e.target.value)}
+              className="w-full p-3 border rounded-lg"
+              rows={4}
+              placeholder="Промпт для улучшения текста на русском языке..."
+            />
+          </div>
+          
+          <div className="mb-4">
+            <label className="block text-sm font-medium mb-1">Промпт на кыргызском:</label>
+            <textarea
+              value={promptKg}
+              onChange={(e) => setPromptKg(e.target.value)}
+              className="w-full p-3 border rounded-lg"
+              rows={4}
+              placeholder="Промпт для улучшения текста на кыргызском языке..."
+            />
+          </div>
+          
+          <button
+            onClick={handleSavePrompts}
+            disabled={isSaving}
+            className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 disabled:opacity-50 mb-4"
+          >
+            {isSaving ? 'Сохраняем...' : 'Сохранить промпты'}
+          </button>
+          
+          <p className="text-sm text-gray-600 mb-4">
+            В промпте используйте <code>{'{text}'}</code> для подстановки текста, который нужно улучшить.
+          </p>
+        </div>
+
         {/* Тест улучшения текста */}
         <div>
-          <h2 className="text-lg font-semibold mb-2">Улучшение текста</h2>
+          <h2 className="text-lg font-semibold mb-2">Тест улучшения текста</h2>
           <textarea
             value={text}
             onChange={(e) => setText(e.target.value)}

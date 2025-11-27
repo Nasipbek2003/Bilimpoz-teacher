@@ -759,12 +759,17 @@ export default function TestEditorPage() {
               // Сохраняем каждый вопрос в localStorage и добавляем в список
               for (const dbQuestion of questionsResult.data) {
                 // Сохраняем данные вопроса в localStorage (теперь localStorage очищен)
-                saveQuestionDraft(dbQuestion.id, dbQuestion.type, {
-                  question: dbQuestion.question,
-                  answers: dbQuestion.answerVariants.map((v: any) => ({
+                // Фильтруем пустые варианты ответов
+                const validAnswers = dbQuestion.answerVariants
+                  .filter((v: any) => v.value && v.value.trim())
+                  .map((v: any) => ({
                     value: v.value,
                     isCorrect: v.isCorrect
-                  })),
+                  }))
+                
+                saveQuestionDraft(dbQuestion.id, dbQuestion.type, {
+                  question: dbQuestion.question,
+                  answers: validAnswers,
                   points: dbQuestion.points,
                   timeLimit: dbQuestion.timeLimit,
                   imageUrl: dbQuestion.photoUrl,
@@ -950,12 +955,17 @@ export default function TestEditorPage() {
         // Сохраняем каждый вопрос из БД в localStorage и добавляем в список
         for (const dbQuestion of result.data) {
           // Сохраняем данные вопроса в localStorage
-          saveQuestionDraft(dbQuestion.id, dbQuestion.type, {
-            question: dbQuestion.question,
-            answers: dbQuestion.answerVariants.map((v: any) => ({
+          // Фильтруем пустые варианты ответов
+          const validAnswers = dbQuestion.answerVariants
+            .filter((v: any) => v.value && v.value.trim())
+            .map((v: any) => ({
               value: v.value,
               isCorrect: v.isCorrect
-            })),
+            }))
+          
+          saveQuestionDraft(dbQuestion.id, dbQuestion.type, {
+            question: dbQuestion.question,
+            answers: validAnswers,
             points: dbQuestion.points,
             timeLimit: dbQuestion.timeLimit,
             imageUrl: dbQuestion.photoUrl,
@@ -1042,12 +1052,17 @@ export default function TestEditorPage() {
         // Сохраняем каждый вопрос в localStorage и добавляем в список
         for (const dbQuestion of result.data) {
           // Сохраняем данные вопроса в localStorage
-          saveQuestionDraft(dbQuestion.id, dbQuestion.type, {
-            question: dbQuestion.question,
-            answers: dbQuestion.answerVariants.map((v: any) => ({
+          // Фильтруем пустые варианты ответов
+          const validAnswers = dbQuestion.answerVariants
+            .filter((v: any) => v.value && v.value.trim())
+            .map((v: any) => ({
               value: v.value,
               isCorrect: v.isCorrect
-            })),
+            }))
+          
+          saveQuestionDraft(dbQuestion.id, dbQuestion.type, {
+            question: dbQuestion.question,
+            answers: validAnswers,
             points: dbQuestion.points,
             timeLimit: dbQuestion.timeLimit,
             imageUrl: dbQuestion.photoUrl,
