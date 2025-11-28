@@ -6,7 +6,7 @@ import { getTokenFromRequest, verifyToken } from '@/lib/jwt-middleware'
 const publicRoutes = ['/register', '/login', '/verify-telegram']
 
 // Маршруты, которые требуют аутентификации
-const protectedRoutes = ['/', '/discussions', '/settings', '/students', '/tests']
+const protectedRoutes = ['/', '/settings', '/students', '/tests']
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl

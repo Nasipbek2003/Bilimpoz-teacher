@@ -66,14 +66,10 @@ const TeacherLayout: React.FC<TeacherLayoutProps> = ({ children }) => {
         // Модальное окно остается открытым
       } else {
         console.error('Не удалось получить логин администратора')
-        // Fallback: переходим в раздел обсуждений
-        router.push('/discussions')
         setIsVerificationModalOpen(false)
       }
     } catch (error) {
       console.error('Ошибка при открытии Telegram чата:', error)
-      // Fallback: переходим в раздел обсуждений
-      router.push('/discussions')
       setIsVerificationModalOpen(false)
     }
   }

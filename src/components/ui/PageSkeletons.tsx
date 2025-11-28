@@ -185,50 +185,6 @@ export const SkeletonQuestionCard: React.FC<{ className?: string }> = ({ classNa
 }
 
 /**
- * Skeleton для карточки обсуждения
- */
-export const SkeletonDiscussionCard: React.FC<{ className?: string }> = ({ className = '' }) => {
-  return (
-    <div className={`bg-[var(--bg-card)] rounded-2xl p-6 ${className}`}>
-      {/* Заголовок */}
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex-1">
-          <div className="flex items-center gap-3 mb-2">
-            <Skeleton variant="text" width="40%" height={20} />
-            <Skeleton variant="rectangular" width={80} height={24} rounded />
-            <Skeleton variant="circular" width={24} height={24} />
-          </div>
-          
-          <div className="flex items-center gap-2 mb-3">
-            <Skeleton variant="text" width="30%" height={16} />
-            <Skeleton variant="text" width="25%" height={16} />
-          </div>
-        </div>
-      </div>
-      
-      {/* Последнее сообщение */}
-      <div className="mb-4 p-3 bg-[var(--bg-tertiary)] rounded-lg">
-        <div className="flex items-center justify-between mb-2">
-          <Skeleton variant="text" width={120} height={12} />
-          <Skeleton variant="text" width={80} height={12} />
-        </div>
-        <div className="space-y-2">
-          <Skeleton variant="text" width="100%" height={16} />
-          <Skeleton variant="text" width="75%" height={16} />
-        </div>
-      </div>
-      
-      {/* Действия */}
-      <div className="flex items-center gap-2">
-        {[...Array(3)].map((_, i) => (
-          <Skeleton key={i} variant="rectangular" width={120} height={36} rounded />
-        ))}
-      </div>
-    </div>
-  )
-}
-
-/**
  * Skeleton для таблицы вопросов
  */
 export const SkeletonQuestionsTable: React.FC<{ className?: string }> = ({ className = '' }) => {
@@ -477,47 +433,6 @@ export const QuestionsPageSkeleton: React.FC = () => {
 
       {/* Таблица вопросов */}
       <SkeletonQuestionsTable />
-    </div>
-  )
-}
-
-/**
- * Skeleton для страницы Discussions
- */
-export const DiscussionsPageSkeleton: React.FC = () => {
-  return (
-    <div className="space-y-6">
-      {/* Заголовок страницы */}
-      <div>
-        <Skeleton variant="text" width="30%" height={32} className="mb-2" />
-        <Skeleton variant="text" width="50%" height={20} />
-      </div>
-
-      {/* Статистические карточки */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {[...Array(4)].map((_, i) => (
-          <SkeletonStatCard key={i} />
-        ))}
-      </div>
-
-      {/* Фильтры */}
-      <div className="bg-[var(--bg-card)] rounded-2xl p-6">
-        <div className="flex items-center justify-between mb-4">
-          <Skeleton variant="text" width="20%" height={24} />
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {[...Array(4)].map((_, i) => (
-            <Skeleton key={i} variant="rectangular" width={120} height={40} rounded />
-          ))}
-        </div>
-      </div>
-
-      {/* Список обсуждений */}
-      <div className="space-y-4">
-        {[...Array(3)].map((_, i) => (
-          <SkeletonDiscussionCard key={i} />
-        ))}
-      </div>
     </div>
   )
 }

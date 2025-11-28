@@ -30,7 +30,6 @@
     "students": "Окуучулар",
     "tests": "Тесттер",
     "questions": "Суроолор",
-    "discussions": "Талкуулар",
     "referrals": "Рефералдар",
     "settings": "Жөндөөлөр"
   },
@@ -63,49 +62,8 @@
     "quickActions": "Тез аракеттер",
     "newQuestionsAction": "Жаңы суроолор",
     "newQuestionsActionDesc": "Окуучулардын суроолоруна жооп берүү",
-    "discussionsAction": "Талкуулар",
-    "discussionsActionDesc": "Активдүү чаттарды текшерүү",
     "studentsAction": "Окуучулар",
     "studentsActionDesc": "Окуучуларды башкаруу жана реферал системасы"
-  },
-  "discussions": {
-    "title": "Талкуулар",
-    "description": "Сабактардын алкагында окуучулар менен баарлашуу",
-    "stats": {
-      "total": "Жалпы талкуулар",
-      "active": "Активдүү",
-      "closed": "Жабылган",
-      "unread": "Окулбаган"
-    },
-    "filters": {
-      "title": "Чыпкалар",
-      "all": "Бардыгы",
-      "active": "Активдүү",
-      "closed": "Жабылган",
-      "withUnread": "Окулбагандар менен"
-    },
-    "empty": {
-      "title": "Талкуулар жок",
-      "description": "Азырынча окуучулар менен активдүү талкуулар жок"
-    },
-    "card": {
-      "active": "Активдүү",
-      "closed": "Жабылган",
-      "student": "Окуучу:",
-      "messages": "билдирүүлөр",
-      "lastMessage": "Акыркы билдирүү",
-      "openChat": "Чатты ачуу",
-      "summarize": "Жыйынтыктоо",
-      "close": "Жабуу",
-      "justNow": "Азыр эле",
-      "hoursAgo": "саат мурун"
-    },
-    "chat": {
-      "chatWith": "Чат",
-      "noMessages": "Азырынча билдирүүлөр жок",
-      "enterMessage": "Билдирүү киргизиңиз...",
-      "sendHint": "Жөнөтүү үчүн Enter басыңыз, жаңы сап үчүн Shift+Enter"
-    }
   },
   "students": {
     "title": "Окуучулар",

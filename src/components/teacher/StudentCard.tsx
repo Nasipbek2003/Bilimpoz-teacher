@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from 'react'
 import { Icons } from '@/components/ui/Icons'
-import Tooltip from '@/components/ui/Tooltip'
 import { useTranslation } from '@/hooks/useTranslation'
 
 interface Student {
@@ -160,17 +159,6 @@ const StudentCard: React.FC<StudentCardProps> = ({
           </div>
         </div>
 
-        {/* Правая часть: Действия */}
-        <div className="flex items-center gap-2 flex-shrink-0">
-          <Tooltip text={getText('students.card.details', 'Детали')}>
-            <button
-              onClick={() => onViewDetails(student.id)}
-              className="p-2 rounded-lg bg-[var(--bg-tertiary)] hover:bg-[var(--bg-hover)] transition-colors"
-            >
-              <Icons.Eye className="h-5 w-5 text-[var(--text-primary)]" />
-            </button>
-          </Tooltip>
-        </div>
       </div>
 
       {/* Мобильная версия статистики */}

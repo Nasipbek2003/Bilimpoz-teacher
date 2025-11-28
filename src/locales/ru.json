@@ -30,7 +30,6 @@
     "students": "Ученики",
     "tests": "Тесты",
     "questions": "Вопросы",
-    "discussions": "Обсуждения",
     "referrals": "Рефералы",
     "settings": "Настройки"
   },
@@ -65,49 +64,8 @@
     "quickActions": "Быстрые действия",
     "newQuestionsAction": "Новые вопросы",
     "newQuestionsActionDesc": "Ответить на вопросы учеников",
-    "discussionsAction": "Обсуждения",
-    "discussionsActionDesc": "Проверить активные чаты",
     "studentsAction": "Ученики",
     "studentsActionDesc": "Управление учениками и реферальная система"
-  },
-  "discussions": {
-    "title": "Обсуждения",
-    "description": "Коммуникация с учениками в рамках уроков",
-    "stats": {
-      "total": "Всего обсуждений",
-      "active": "Активные",
-      "closed": "Закрытые",
-      "unread": "Непрочитанные"
-    },
-    "filters": {
-      "title": "Фильтры",
-      "all": "Все",
-      "active": "Активные",
-      "closed": "Закрытые",
-      "withUnread": "С непрочитанными"
-    },
-    "empty": {
-      "title": "Нет обсуждений",
-      "description": "Пока нет активных обсуждений с учениками"
-    },
-    "card": {
-      "active": "Активное",
-      "closed": "Закрытое",
-      "student": "Ученик:",
-      "messages": "сообщений",
-      "lastMessage": "Последнее сообщение",
-      "openChat": "Открыть чат",
-      "summarize": "Суммировать",
-      "close": "Закрыть",
-      "justNow": "Только что",
-      "hoursAgo": "ч назад"
-    },
-    "chat": {
-      "chatWith": "Чат с",
-      "noMessages": "Пока нет сообщений",
-      "enterMessage": "Введите сообщение...",
-      "sendHint": "Нажмите Enter для отправки, Shift+Enter для новой строки"
-    }
   },
   "students": {
     "title": "Ученики",

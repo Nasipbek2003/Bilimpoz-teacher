@@ -39,11 +39,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
       label: getLabel('sidebar.tests', 'Тесты'),
     },
     {
-      href: '/discussions',
-      icon: Icons.MessageCircle,
-      label: getLabel('sidebar.discussions', 'Обсуждения'),
-    },
-    {
       href: '/settings',
       icon: Icons.Settings,
       label: getLabel('sidebar.settings', 'Настройки'),
