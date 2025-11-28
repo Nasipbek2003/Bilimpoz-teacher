@@ -21,6 +21,16 @@ export class OpenAIService {
   }
 
   /**
+   * Получение текущей модели
+   */
+  async getModel(): Promise<string> {
+    if (!this.model) {
+      await this.initialize()
+    }
+    return this.model
+  }
+
+  /**
    * Улучшение текста с помощью AI
    */
   async improveText(text: string, language: 'kg' | 'ru'): Promise<string> {
@@ -174,7 +184,7 @@ export class OpenAIService {
       
       // Исправляем распространенные ошибки с дробями
       // Исправляем неправильные дроби вида a/b на \frac{a}{b}
-      latexCode = latexCode.replace(/(\d+|[a-zA-Z]+\^?\{?[^}]*\}?)\s*\/\s*(\d+|[a-zA-Z]+\^?\{?[^}]*\}?)/g, (match, num, den) => {
+      latexCode = latexCode.replace(/(\d+|[a-zA-Z]+\^?\{?[^}]*\}?)\s*\/\s*(\d+|[a-zA-Z]+\^?\{?[^}]*\}?)/g, (match: string, num: string, den: string) => {
         // Проверяем, не является ли это уже частью \frac
         if (match.includes('\\frac')) return match
         // Убираем лишние пробелы
@@ -184,12 +194,12 @@ export class OpenAIService {
       })
       
       // Исправляем дроби без фигурных скобок: \frac a b -> \frac{a}{b}
-      latexCode = latexCode.replace(/\\frac\s+([^{}\s]+)\s+([^{}\s]+)/g, (match, num, den) => {
+      latexCode = latexCode.replace(/\\frac\s+([^{}\s]+)\s+([^{}\s]+)/g, (_match: string, num: string, den: string) => {
         return `\\frac{${num}}{${den}}`
       })
       
       // Исправляем незакрытые фигурные скобки в дробях
-      latexCode = latexCode.replace(/\\frac\{([^}]+)\s+([^}]+)\}/g, (match, num, den) => {
+      latexCode = latexCode.replace(/\\frac\{([^}]+)\s+([^}]+)\}/g, (_match: string, num: string, den: string) => {
         // Если в числителе или знаменателе есть пробелы, но нет скобок, добавляем их
         if (num.includes(' ') && !num.startsWith('{')) {
           num = `{${num}}`
@@ -205,7 +215,7 @@ export class OpenAIService {
       
       // Проверяем и исправляем баланс фигурных скобок в \frac
       const fracRegex = /\\frac\{([^}]*)\}\{([^}]*)\}/g
-      latexCode = latexCode.replace(fracRegex, (match, num, den) => {
+      latexCode = latexCode.replace(fracRegex, (match: string, num: string, den: string) => {
         // Убеждаемся, что числитель и знаменатель не пустые
         if (!num || !den) {
           console.warn('Обнаружена пустая дробь:', match)
@@ -263,13 +273,55 @@ export class OpenAIService {
       })
       .join('\n')
 
+    const correctAnswer = questionData.answers.find(a => a.isCorrect)?.value || 'не указан'
+
     // Формируем полный промпт, подставляя данные вопроса
     // Поддерживаем различные варианты плейсхолдеров (глобальная замена)
+    console.log('\n🔍 ПРОВЕРКА ПЛЕЙСХОЛДЕРОВ В ПРОМПТЕ:')
+    console.log('Промпт содержит {question}:', promptText.includes('{question}'))
+    console.log('Промпт содержит {answers}:', promptText.includes('{answers}'))
+    console.log('Промпт содержит {correctAnswer}:', promptText.includes('{correctAnswer}'))
+    console.log('Промпт содержит {language}:', promptText.includes('{language}'))
+    
     let fullPrompt = promptText
       .replace(/\{question\}/g, questionData.question)
       .replace(/\{answers\}/g, answersText)
       .replace(/\{language\}/g, courseLanguage === 'kg' ? 'кыргызский' : 'русский')
-      .replace(/\{correctAnswer\}/g, questionData.answers.find(a => a.isCorrect)?.value || 'не указан')
+      .replace(/\{correctAnswer\}/g, correctAnswer)
+
+    // Если промпт не содержит плейсхолдеры, добавляем данные в конец
+    if (!promptText.includes('{question}') && !promptText.includes('{answers}')) {
+      console.log('⚠️ ПРОМПТ НЕ СОДЕРЖИТ ПЛЕЙСХОЛДЕРЫ! Добавляем данные в конец промпта.')
+      fullPrompt += `\n\n---\n\nВОПРОС:\n${questionData.question}\n\nВАРИАНТЫ ОТВЕТОВ:\n${answersText}\n\nПРАВИЛЬНЫЙ ОТВЕТ:\n${correctAnswer}`
+    }
+
+    // Подробное логирование запроса к OpenAI
+    console.log('\n' + '='.repeat(80))
+    console.log('📤 ПОДРОБНОЕ ЛОГИРОВАНИЕ ЗАПРОСА К OPENAI API')
+    console.log('='.repeat(80))
+    console.log('\n📋 ДАННЫЕ ВОПРОСА:')
+    console.log('─'.repeat(80))
+    console.log('Вопрос:')
+    console.log(questionData.question)
+    console.log('\n📝 Варианты ответов:')
+    questionData.answers.forEach((answer, index) => {
+      const label = String.fromCharCode(1040 + index)
+      const mark = answer.isCorrect ? ' ✓ (ПРАВИЛЬНЫЙ)' : ''
+      console.log(`${label}) ${answer.value}${mark}`)
+    })
+    console.log('\n✅ Правильный ответ:')
+    console.log(correctAnswer)
+    
+    if (questionData.imageUrl) {
+      console.log('\n🖼️ Изображение:')
+      console.log(questionData.imageUrl.substring(0, 100) + '...')
+    }
+
+    console.log('\n' + '─'.repeat(80))
+    console.log('📨 ПОЛНЫЙ ПРОМПТ, ОТПРАВЛЯЕМЫЙ В OPENAI:')
+    console.log('─'.repeat(80))
+    console.log(fullPrompt)
+    console.log('─'.repeat(80))
 
     // Если есть изображение, используем vision модель
     const hasImage = questionData.imageUrl && questionData.imageUrl.trim() !== ''
@@ -284,6 +336,7 @@ export class OpenAIService {
 
       if (hasImage && this.isVisionModel(this.model)) {
         // Если есть изображение и модель поддерживает vision
+        console.log('\n🖼️ Режим: VISION (с изображением)')
         messages.push({
           role: 'user',
           content: [
@@ -301,11 +354,21 @@ export class OpenAIService {
         })
       } else {
         // Обычный текстовый запрос
+        console.log('\n📝 Режим: ТЕКСТОВЫЙ (без изображения)')
         messages.push({
           role: 'user',
           content: fullPrompt
         })
       }
+
+      console.log('\n🤖 ПАРАМЕТРЫ ЗАПРОСА К OPENAI:')
+      console.log('─'.repeat(80))
+      console.log('Модель:', this.model)
+      console.log('Temperature:', 0.7)
+      console.log('Max tokens:', 2000)
+      console.log('Количество сообщений:', messages.length)
+      console.log('─'.repeat(80))
+      console.log('\n🌐 Отправка запроса в OpenAI API...')
 
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
@@ -321,8 +384,12 @@ export class OpenAIService {
         })
       })
 
+      console.log('📡 Статус ответа:', response.status, response.statusText)
+
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
+        console.error('❌ ОШИБКА OPENAI API:', errorData)
+        console.log('='.repeat(80) + '\n')
         throw new Error(errorData.error?.message || `OpenAI API error: ${response.statusText}`)
       }
 
@@ -330,14 +397,30 @@ export class OpenAIService {
       let explanation = data.choices?.[0]?.message?.content?.trim()
 
       if (!explanation) {
+        console.error('❌ Пустой ответ от OpenAI API')
+        console.log('='.repeat(80) + '\n')
         throw new Error('Пустой ответ от OpenAI API')
       }
+
+      console.log('\n✅ ОТВЕТ ПОЛУЧЕН ОТ OPENAI')
+      console.log('─'.repeat(80))
+      console.log('Длина ответа:', explanation.length, 'символов')
+      console.log('Первые 200 символов ответа:')
+      console.log(explanation.substring(0, 200) + (explanation.length > 200 ? '...' : ''))
+      console.log('─'.repeat(80))
 
       // Убираем markdown код-блоки, если AI их добавил (например, ```markdown ... ```)
       explanation = explanation.replace(/^```markdown\n?/i, '').replace(/^```\n?/g, '').replace(/\n?```$/g, '').trim()
 
+      console.log('\n✅ ЗАПРОС УСПЕШНО ЗАВЕРШЁН')
+      console.log('='.repeat(80) + '\n')
+
       return explanation
     } catch (error) {
+      console.error('\n❌ ИСКЛЮЧЕНИЕ ПРИ ЗАПРОСЕ К OPENAI:')
+      console.error(error)
+      console.log('='.repeat(80) + '\n')
+      
       if (error instanceof Error) {
         if (error.message.includes('API key')) {
           throw new Error('OpenAI API key не настроен или неверен. Проверьте настройки OPENAI_API_KEY в таблице settings.')

@@ -1,6 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { openAIService } from '@/lib/openai'
+import { prisma } from '@/lib/prisma'
+
+async function getPromptSource(name: string, language: 'kg' | 'ru'): Promise<string> {
+  try {
+    const prompt = await prisma.prompts.findFirst({
+      where: { name, language }
+    })
+    return prompt ? `БД (ID: ${prompt.id})` : 'Дефолтный'
+  } catch {
+    return 'Дефолтный'
+  }
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -41,6 +53,10 @@ export async function POST(request: NextRequest) {
     }
 
     // 5. Вызов AI сервиса
+    const model = await openAIService.getModel()
+    const promptSource = await getPromptSource('improve_text', courseLanguage as 'kg' | 'ru')
+    console.log(`[AI ImproveText] Промпт: ${promptSource} | Модель: ${model}`)
+    
     let improvedText: string
     try {
       improvedText = await openAIService.improveText(text.trim(), courseLanguage as 'kg' | 'ru')

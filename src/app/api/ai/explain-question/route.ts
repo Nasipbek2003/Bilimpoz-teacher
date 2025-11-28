@@ -43,24 +43,34 @@ export async function POST(request: NextRequest) {
     // 4. Получение промпта из БД по секции (name) и языку
     // Если промпта нет в БД, используем дефолтный промпт
     let promptText = ''
+    let promptSource = ''
     
     try {
-      const prompt = await prisma.prompts.findFirst({
+      // Промпты в БД хранятся с префиксом explain_question_
+      const promptName = `explain_question_${testType}`
+      
+      const prompt = await prisma.prompts.findUnique({
         where: {
-          name: testType,
-          language: courseLanguage as 'kg' | 'ru'
+          name_language: {
+            name: promptName,
+            language: courseLanguage as 'kg' | 'ru'
+          }
         }
       })
 
       if (prompt && prompt.value) {
         promptText = prompt.value
+        promptSource = `БД (ID: ${prompt.id})`
+      } else {
+        console.warn(`⚠️ Промпт не найден в БД: name="${promptName}", language="${courseLanguage}"`)
       }
     } catch (error) {
-      console.warn('Ошибка при получении промпта из БД, используем дефолтный:', error)
+      console.error('❌ Ошибка при получении промпта из БД:', error)
     }
 
     // Если промпта нет в БД, используем дефолтный промпт
     if (!promptText) {
+      promptSource = 'Дефолтный'
       const languageName = courseLanguage === 'kg' ? 'кыргызский' : 'русский'
       promptText = `Ты - помощник для объяснения учебных вопросов. Объясни следующий вопрос на ${languageName} языке, сделав объяснение понятным и структурированным.
 
@@ -81,6 +91,9 @@ export async function POST(request: NextRequest) {
     }
 
     // 5. Вызов AI сервиса с промптом из БД или дефолтным
+    const model = await openAIService.getModel()
+    console.log(`[AI Explain] Тип: ${testType} | Промпт: ${promptSource} | Модель: ${model}`)
+    
     let explanation: string
     try {
       explanation = await openAIService.explainQuestion(

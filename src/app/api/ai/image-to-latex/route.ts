@@ -35,6 +35,9 @@ export async function POST(request: NextRequest) {
     }
 
     // 4. Вызов AI сервиса для конвертации изображения в LaTeX
+    const model = await openAIService.getModel()
+    console.log(`[AI ImageToLatex] Модель: ${model}`)
+    
     let latexCode: string
     try {
       latexCode = await openAIService.convertImageToLatex(imageBase64)

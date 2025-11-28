@@ -16,7 +16,7 @@ export async function getPrompt(name: string, language: 'ru' | 'kg'): Promise<st
 
     return prompt?.value || null
   } catch (error) {
-    console.error(`Ошибка получения промпта ${name} (${language}):`, error)
+    console.error(`❌ Ошибка получения промпта ${name} (${language}):`, error)
     return null
   }
 }
