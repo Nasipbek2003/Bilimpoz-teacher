@@ -39,13 +39,13 @@ const QuickActions: React.FC<QuickActionsProps> = ({ teacherId, onTabChange }) =
     },
     {
       icon: Icons.UserPlus,
-      title: getText('quickActions.inviteStudent', 'Пригласить студента'),
+      title: getText('quickActions.inviteStudent', 'Пригласить реферала'),
       description: getText('quickActions.inviteStudentDesc', 'Поделитесь реферальной ссылкой'),
       action: () => {
         if (onTabChange) {
           onTabChange('referrals')
         } else {
-          router.push('/students')
+          router.push('/referrals')
         }
       }
     },
@@ -65,13 +65,13 @@ const QuickActions: React.FC<QuickActionsProps> = ({ teacherId, onTabChange }) =
 
   if (!mounted || !ready) {
     return (
-      <div className="bg-[var(--bg-card)] rounded-2xl p-6 border border-[var(--border-primary)] shadow-sm">
+      <div className="bg-[var(--bg-card)] rounded-xl md:rounded-2xl p-4 sm:p-5 md:p-6 border border-[var(--border-primary)] shadow-sm">
         <div className="h-6 skeleton-shimmer rounded w-1/4 mb-4"></div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
           {[...Array(3)].map((_, i) => (
-            <div key={i} className="p-4 rounded-xl bg-[var(--bg-tertiary)]">
+            <div key={i} className="p-3 sm:p-4 rounded-xl bg-[var(--bg-tertiary)]">
               <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 skeleton-shimmer rounded-lg"></div>
+                <div className="w-10 h-10 skeleton-shimmer rounded-lg flex-shrink-0"></div>
                 <div className="flex-1 space-y-2">
                   <div className="h-4 skeleton-shimmer rounded w-3/4"></div>
                   <div className="h-3 skeleton-shimmer rounded w-full"></div>
@@ -85,28 +85,28 @@ const QuickActions: React.FC<QuickActionsProps> = ({ teacherId, onTabChange }) =
   }
 
   return (
-    <div className="bg-[var(--bg-card)] rounded-2xl p-6  shadow-sm">
-      <div className="pb-2 border-b border-[var(--border-primary)] mb-6">
-        <h3 className="text-lg font-semibold text-[var(--text-primary)]">
+    <div className="bg-[var(--bg-card)] rounded-xl md:rounded-2xl p-4 sm:p-5 md:p-6 shadow-sm">
+      <div className="pb-2 mb-4 sm:mb-6">
+        <h3 className="text-base sm:text-lg font-semibold text-[var(--text-primary)]">
           {getText('quickActions.title', 'Быстрые действия')}
         </h3>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
         {actions.map((action, index) => {
           const Icon = action.icon
           return (
             <button
               key={index}
               onClick={action.action}
-              className="p-4 rounded-xl transition-all duration-300 text-left group relative overflow-hidden hover:bg-[var(--bg-hover)]"
+              className="p-3 sm:p-4 rounded-xl transition-all duration-300 text-left group relative overflow-hidden hover:bg-[var(--bg-hover)] active:scale-95"
             >
-              <div className="flex items-center space-x-3">
+              <div className="flex items-start sm:items-center gap-3">
                 <div className="w-10 h-10 min-w-[2.5rem] flex-shrink-0 rounded-lg bg-[var(--bg-tertiary)] flex items-center justify-center">
-                  <Icon className="w-6 h-6 flex-shrink-0 text-[var(--text-primary)]" />
+                  <Icon className="w-5 h-5 sm:w-6 sm:h-6 flex-shrink-0 text-[var(--text-primary)]" />
                 </div>
-                <div>
-                  <p className="font-medium text-[var(--text-primary)]">{action.title}</p>
-                  <p className="text-sm text-[var(--text-tertiary)]">{action.description}</p>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-sm sm:text-base text-[var(--text-primary)] truncate">{action.title}</p>
+                  <p className="text-xs sm:text-sm text-[var(--text-tertiary)] mt-0.5 sm:mt-1 line-clamp-2">{action.description}</p>
                 </div>
               </div>
             </button>

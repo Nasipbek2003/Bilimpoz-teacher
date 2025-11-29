@@ -33,7 +33,7 @@ interface ReferralData {
   }>
 }
 
-export default function StudentsPage() {
+export default function ReferralsPage() {
   const { t, ready } = useTranslation()
   const [mounted, setMounted] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -77,7 +77,7 @@ export default function StudentsPage() {
     adminPaid: 0
   }
 
-  // Получаем список студентов из рефералов
+  // Получаем список рефералов
   const students = referralData?.referrals.map(r => ({
     id: r.student.id,
     name: r.student.name,
@@ -89,7 +89,7 @@ export default function StudentsPage() {
     points: 0 // TODO: добавить подсчет баллов
   })) || []
 
-  // Фильтрация и сортировка учеников
+  // Фильтрация и сортировка рефералов
   const filteredAndSortedStudents = students
     .filter(student => {
       const matchesSearch = student.name.toLowerCase().includes(search.toLowerCase())
@@ -132,7 +132,7 @@ export default function StudentsPage() {
   }
 
   const handleViewDetails = (studentId: string) => {
-    console.log('Просмотр деталей ученика:', studentId)
+    console.log('Просмотр деталей реферала:', studentId)
     // Здесь можно открыть модальное окно с деталями
   }
 
@@ -145,7 +145,7 @@ export default function StudentsPage() {
   }
 
   const handleInviteStudent = () => {
-    console.log('Открыть модальное окно приглашения ученика')
+    console.log('Открыть модальное окно приглашения реферала')
     // Здесь можно открыть модальное окно для приглашения
   }
 
@@ -245,18 +245,18 @@ export default function StudentsPage() {
           onClearFilters={handleClearFilters}
         />
 
-        {/* Список учеников */}
+        {/* Список рефералов */}
         <div className="space-y-4">
           {filteredAndSortedStudents.length === 0 ? (
             <div className="bg-[var(--bg-card)] rounded-2xl p-12 text-center">
               <Icons.Users className="mx-auto h-12 w-12 text-[var(--text-tertiary)] mb-4" />
               <h3 className="text-lg font-medium text-[var(--text-primary)] mb-2">
-                {getText('students.empty.title', 'Нет учеников')}
+                {getText('students.empty.title', 'Нет рефералов')}
               </h3>
               <p className="text-[var(--text-tertiary)] mb-4">
                 {search || status !== 'all' 
-                  ? getText('students.empty.noResults', 'По выбранным фильтрам ученики не найдены')
-                  : getText('students.empty.noStudents', 'Пока нет учеников. Пригласите первого ученика!')
+                  ? getText('students.empty.noResults', 'По выбранным фильтрам рефералы не найдены')
+                  : getText('students.empty.noStudents', 'Пока нет рефералов. Пригласите первого реферала!')
                 }
               </p>
               {!search && status === 'all' && (
@@ -265,7 +265,7 @@ export default function StudentsPage() {
                   className="inline-flex items-center gap-2 px-4 py-2 bg-[var(--bg-active-button)] text-[var(--text-active-button)] rounded-lg font-medium hover:bg-[var(--bg-hover)] transition-colors"
                 >
                   <Icons.Plus className="h-4 w-4" />
-                  {getText('students.empty.inviteButton', 'Пригласить ученика')}
+                  {getText('students.empty.inviteButton', 'Пригласить реферала')}
                 </button>
               )}
             </div>

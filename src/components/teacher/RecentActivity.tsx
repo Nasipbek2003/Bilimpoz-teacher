@@ -94,12 +94,12 @@ const RecentActivity: React.FC<RecentActivityProps> = ({ teacherId }) => {
 
   if (!mounted || !ready || loading) {
     return (
-      <div className="bg-[var(--bg-card)] rounded-2xl p-6 border border-[var(--border-primary)] shadow-sm">
+      <div className="bg-[var(--bg-card)] rounded-xl md:rounded-2xl p-4 sm:p-5 md:p-6 border border-[var(--border-primary)] shadow-sm">
         <div className="h-6 skeleton-shimmer rounded w-1/3 mb-4"></div>
-        <div className="space-y-4">
+        <div className="space-y-3 sm:space-y-4">
           {[...Array(3)].map((_, i) => (
             <div key={i} className="flex items-center space-x-3">
-              <div className="w-10 h-10 skeleton-shimmer rounded-lg"></div>
+              <div className="w-10 h-10 skeleton-shimmer rounded-lg flex-shrink-0"></div>
               <div className="flex-1 space-y-2">
                 <div className="h-4 skeleton-shimmer rounded w-3/4"></div>
                 <div className="h-3 skeleton-shimmer rounded w-1/2"></div>
@@ -113,23 +113,23 @@ const RecentActivity: React.FC<RecentActivityProps> = ({ teacherId }) => {
 
   if (error && activities.length === 0) {
     return (
-      <div className="bg-[var(--bg-card)] rounded-2xl p-6 border border-[var(--border-primary)] shadow-sm text-center">
-        <p className="text-red-500 dark:text-red-400">{error}</p>
+      <div className="bg-[var(--bg-card)] rounded-xl md:rounded-2xl p-4 sm:p-5 md:p-6 border border-[var(--border-primary)] shadow-sm text-center">
+        <p className="text-sm sm:text-base text-red-500 dark:text-red-400">{error}</p>
       </div>
     )
   }
 
   return (
-    <div className="bg-[var(--bg-card)] rounded-2xl p-6  shadow-sm">
-      <div className="pb-2 border-b border-[var(--border-primary)] mb-6">
-        <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-[var(--text-primary)]">
+    <div className="bg-[var(--bg-card)] rounded-xl md:rounded-2xl p-4 sm:p-5 md:p-6 shadow-sm">
+      <div className="pb-2 mb-4 sm:mb-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
+          <h3 className="text-base sm:text-lg font-semibold text-[var(--text-primary)]">
             {getText('activity.title', 'Последняя активность')}
           </h3>
           
           {/* Пагинация */}
           {activities.length > 0 && (
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-2 self-end sm:self-auto">
             {/* Селектор количества */}
             <div className="relative">
               <select
@@ -138,7 +138,7 @@ const RecentActivity: React.FC<RecentActivityProps> = ({ teacherId }) => {
                   setItemsPerPage(Number(e.target.value))
                   setCurrentPage(1)
                 }}
-                className="px-2 py-1 text-sm bg-[var(--bg-tertiary)] border border-[var(--border-primary)] rounded-lg text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
+                className="px-2 py-1 text-xs sm:text-sm bg-[var(--bg-tertiary)] border border-[var(--border-primary)] rounded-lg text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]"
               >
                 <option value={5}>5</option>
                 <option value={10}>10</option>
@@ -151,16 +151,18 @@ const RecentActivity: React.FC<RecentActivityProps> = ({ teacherId }) => {
               onClick={() => handlePageChange(currentPage - 1)}
               disabled={currentPage === 1}
               className="p-1 rounded hover:bg-[var(--bg-hover)] disabled:opacity-50 disabled:cursor-not-allowed"
+              aria-label="Предыдущая страница"
             >
               <Icons.ChevronLeft className="w-4 h-4 text-[var(--text-primary)]" />
             </button>
-            <span className="text-sm text-[var(--text-tertiary)]">
+            <span className="text-xs sm:text-sm text-[var(--text-tertiary)] min-w-[3rem] text-center">
               {currentPage} / {totalPages}
             </span>
             <button
               onClick={() => handlePageChange(currentPage + 1)}
               disabled={currentPage === totalPages}
               className="p-1 rounded hover:bg-[var(--bg-hover)] disabled:opacity-50 disabled:cursor-not-allowed"
+              aria-label="Следующая страница"
             >
               <Icons.ChevronRight className="w-4 h-4 text-[var(--text-primary)]" />
             </button>
@@ -170,17 +172,17 @@ const RecentActivity: React.FC<RecentActivityProps> = ({ teacherId }) => {
       </div>
 
       {activities.length === 0 ? (
-        <div className="text-center py-8">
-          <div className="w-16 h-16 bg-[var(--bg-tertiary)] rounded-lg flex items-center justify-center mx-auto mb-4">
-            <Icons.BarChart3 className="w-8 h-8 text-[var(--text-tertiary)]" />
+        <div className="text-center py-6 sm:py-8">
+          <div className="w-12 h-12 sm:w-16 sm:h-16 bg-[var(--bg-tertiary)] rounded-lg flex items-center justify-center mx-auto mb-3 sm:mb-4">
+            <Icons.BarChart3 className="w-6 h-6 sm:w-8 sm:h-8 text-[var(--text-tertiary)]" />
           </div>
-          <p className="text-[var(--text-tertiary)]">{getText('activity.noActivity', 'Нет активности')}</p>
-          <p className="text-sm text-[var(--text-tertiary)] mt-1">
+          <p className="text-sm sm:text-base text-[var(--text-tertiary)]">{getText('activity.noActivity', 'Нет активности')}</p>
+          <p className="text-xs sm:text-sm text-[var(--text-tertiary)] mt-1">
             {getText('activity.noActivityDesc', 'Начните создавать тесты...')}
           </p>
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-2 sm:space-y-4">
           {paginatedActivities.map((activity) => {
             const Icon = Icons[activity.icon] || Icons.Activity
             const title = getText(`activity.${activity.activityKey}.title`, activity.type)
@@ -189,17 +191,17 @@ const RecentActivity: React.FC<RecentActivityProps> = ({ teacherId }) => {
             return (
               <div
                 key={activity.id}
-                className="flex items-start space-x-3 p-4 rounded-xl hover:bg-[var(--bg-hover)] transition-colors"
+                className="flex items-start space-x-3 p-3 sm:p-4 rounded-lg sm:rounded-xl hover:bg-[var(--bg-hover)] transition-colors"
               >
-                <div className="w-10 h-10 rounded-lg bg-[var(--bg-tertiary)] flex items-center justify-center flex-shrink-0">
-                  <Icon className="w-5 h-5 text-[var(--text-primary)]" />
+                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-[var(--bg-tertiary)] flex items-center justify-center flex-shrink-0">
+                  <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-[var(--text-primary)]" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium text-[var(--text-primary)] text-sm">{title}</p>
+                  <p className="font-medium text-[var(--text-primary)] text-xs sm:text-sm truncate">{title}</p>
                   {description && (
-                    <p className="text-xs text-[var(--text-tertiary)] mt-1">{description}</p>
+                    <p className="text-xs text-[var(--text-tertiary)] mt-1 line-clamp-2">{description}</p>
                   )}
-                  <p className="text-xs text-[var(--text-tertiary)] mt-2">
+                  <p className="text-xs text-[var(--text-tertiary)] mt-1.5 sm:mt-2">
                     {formatTimeAgo(activity.timestamp)}
                   </p>
                 </div>

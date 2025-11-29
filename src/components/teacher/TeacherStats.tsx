@@ -58,8 +58,8 @@ const TeacherStats: React.FC<TeacherStatsProps> = ({ teacherId }) => {
 
   if (!mounted || !ready || loading) {
     return (
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-        {[...Array(4)].map((_, i) => (
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        {[...Array(3)].map((_, i) => (
           <div key={i} className="bg-[var(--bg-tertiary)] rounded-2xl p-6">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 skeleton-shimmer rounded-lg"></div>
@@ -98,17 +98,11 @@ const TeacherStats: React.FC<TeacherStatsProps> = ({ teacherId }) => {
       value: stats?.referral_students || 0,
       title: getText('stats.myReferrals', 'Мои рефералы'),
       description: getText('stats.myReferralsDesc', 'Студенты по вашей реферальной ссылке')
-    },
-    {
-      icon: Icons.Globe,
-      value: stats?.total_platform_students || 0,
-      title: getText('stats.totalStudents', 'Всего студентов'),
-      description: getText('stats.totalStudentsDesc', 'Всего студентов на платформе')
     }
   ]
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
       {statCards.map((card, index) => {
         const Icon = card.icon
         return (
