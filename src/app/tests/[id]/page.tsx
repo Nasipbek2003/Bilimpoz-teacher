@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useMemo } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import dynamic from 'next/dynamic'
 import TeacherLayout from '@/components/teacher/TeacherLayout'
@@ -118,13 +118,16 @@ export default function TestEditorPage() {
     text: string
   } | null>(null)
   const [questionValidationErrors, setQuestionValidationErrors] = useState<Record<string, string>>({})
+  const [validationCheckTrigger, setValidationCheckTrigger] = useState(0)
+  const [showValidationWarnings, setShowValidationWarnings] = useState(false)
+  const [questionWarnings, setQuestionWarnings] = useState<Record<string, string[]>>({})
   
   // AI хук для конвертации изображения
   const { convertImageToLatex, isLoading: isAiConverting } = useAI()
   const imageInputRef = useRef<HTMLInputElement>(null)
   const [isPreviewMode, setIsPreviewMode] = useState(false)
   const formatHandlersRef = useRef<Record<string, (format: string) => void>>({})
-  const [toast, setToast] = useState<{ isOpen: boolean; message: string; variant: ToastVariant }>({
+  const [toast, setToast] = useState<{ isOpen: boolean; title?: string; message: string; variant: ToastVariant }>({
     isOpen: false,
     message: '',
     variant: 'success'
@@ -200,24 +203,117 @@ export default function TestEditorPage() {
             updatedErrors[questionId] = error
           }
         }
+        
+        // Очищаем предупреждения для исправленных вопросов
+        if (showValidationWarnings) {
+          setQuestionWarnings(prevWarnings => {
+            const updatedWarnings: Record<string, string[]> = {}
+            let warningsChanged = false
+            
+            for (const [qId, warnings] of Object.entries(prevWarnings)) {
+              const q = questions.find(q => q.id === qId)
+              if (!q) {
+                warningsChanged = true
+                continue
+              }
+              
+              const qData = loadQuestionDraft(qId, q.type)
+              if (!qData) {
+                updatedWarnings[qId] = warnings
+                continue
+              }
+              
+              // Проверяем, исправлены ли все предупреждения
+              const validAnswers = qData.answers?.filter(a => a.value && a.value.trim()) || []
+              const hasQuestionText = qData.question && qData.question.trim()
+              const hasMinAnswers = validAnswers.length >= 2
+              const hasCorrectAnswer = validAnswers.some(a => a.isCorrect)
+              
+              const remainingWarnings: string[] = []
+              if (!hasQuestionText) remainingWarnings.push('Должен быть текст вопроса')
+              if (!hasMinAnswers) remainingWarnings.push('Необходимо минимум 2 варианта ответа')
+              if (!hasCorrectAnswer && validAnswers.length > 0) remainingWarnings.push('Должен быть правильный ответ')
+              
+              if (remainingWarnings.length > 0) {
+                updatedWarnings[qId] = remainingWarnings
+              } else {
+                warningsChanged = true
+              }
+            }
+            
+            return warningsChanged ? updatedWarnings : prevWarnings
+          })
+        }
 
         // Возвращаем обновленные ошибки только если что-то изменилось
         if (hasChanges) {
+          // Триггерим пересчет валидации
+          setValidationCheckTrigger(prev => prev + 1)
           return updatedErrors
         }
         return prevErrors
       })
     }
 
-    // Проверяем сразу
+    // Проверяем сразу и триггерим пересчет валидации
     checkAndClearErrors()
+    setValidationCheckTrigger(prev => prev + 1)
 
     // Устанавливаем интервал для периодической проверки (каждые 500мс)
-    const interval = setInterval(checkAndClearErrors, 500)
+    const interval = setInterval(() => {
+      checkAndClearErrors()
+      // Триггерим пересчет валидации при каждой проверке
+      setValidationCheckTrigger(prev => prev + 1)
+      
+      // Обновляем предупреждения, если они показываются
+      if (showValidationWarnings) {
+        const updatedWarnings: Record<string, string[]> = {}
+        
+        for (const question of questions) {
+          const questionData = loadQuestionDraft(question.id, question.type)
+          if (!questionData) continue
+          
+          const questionWarnings: string[] = []
+          const validAnswers = questionData.answers?.filter(a => a.value && a.value.trim()) || []
+          
+          if (!questionData.question || !questionData.question.trim()) {
+            questionWarnings.push('Должен быть текст вопроса')
+          }
+          if (validAnswers.length < 2) {
+            questionWarnings.push('Необходимо минимум 2 варианта ответа')
+          }
+          const hasCorrectAnswer = validAnswers.some(a => a.isCorrect)
+          if (!hasCorrectAnswer && validAnswers.length > 0) {
+            questionWarnings.push('Должен быть правильный ответ')
+          }
+          
+          if (questionWarnings.length > 0) {
+            updatedWarnings[question.id] = questionWarnings
+          }
+        }
+        
+        setQuestionWarnings(prev => {
+          const prevKeys = Object.keys(prev).sort().join(',')
+          const newKeys = Object.keys(updatedWarnings).sort().join(',')
+          if (prevKeys !== newKeys) return updatedWarnings
+          
+          let hasChanges = false
+          for (const [qId, warnings] of Object.entries(updatedWarnings)) {
+            const prevWarnings = prev[qId] || []
+            if (warnings.length !== prevWarnings.length || 
+                warnings.some((w, i) => w !== prevWarnings[i])) {
+              hasChanges = true
+              break
+            }
+          }
+          return hasChanges ? updatedWarnings : prev
+        })
+      }
+    }, 500)
 
     return () => clearInterval(interval)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mounted, questions])
+  }, [mounted, questions, showValidationWarnings])
 
   // Fallback значения для предотвращения ошибок гидратации
   const getText = (key: string, fallback: string) => {
@@ -365,7 +461,7 @@ export default function TestEditorPage() {
           textarea.setSelectionRange(newPosition, newPosition)
         }, 0)
         
-        showToast('Формула успешно вставлена', 'success')
+        showToast('Формула успешно вставлена', 'success', 'Успешно!')
         // Восстанавливаем фокус после успешной вставки
         restoreFocusToActiveField(textarea)
       } else {
@@ -897,8 +993,8 @@ export default function TestEditorPage() {
     }
   }
 
-  const showToast = (message: string, variant: ToastVariant) => {
-    setToast({ isOpen: true, message, variant })
+  const showToast = (message: string, variant: ToastVariant, title?: string) => {
+    setToast({ isOpen: true, title, message, variant })
   }
 
   // Сохранение теста (для модального окна настроек)
@@ -1211,30 +1307,37 @@ export default function TestEditorPage() {
     return false // Вопрос не изменился
   }
 
-  // Проверка валидности всех вопросов (есть ли правильный ответ)
-  const validateAllQuestions = (): boolean => {
+  // Проверка валидности всех вопросов (мемоизированная)
+  const isValidAllQuestions = useMemo(() => {
     if (questions.length === 0) return true
     
-    // Если есть ошибки валидации, кнопка должна быть отключена
-    if (Object.keys(questionValidationErrors).length > 0) {
-      return false
-    }
-    
+    // Проверяем актуальные данные всех вопросов
     for (const question of questions) {
       const questionData = loadQuestionDraft(question.id, question.type)
-      if (!questionData) continue
+      if (!questionData) {
+        return false // Данные вопроса не найдены
+      }
       
+      // Проверка текста вопроса
+      if (!questionData.question || !questionData.question.trim()) {
+        return false // Текст вопроса не заполнен
+      }
+      
+      // Проверка вариантов ответов
       const validAnswers = questionData.answers?.filter(a => a.value && a.value.trim()) || []
-      if (validAnswers.length > 0) {
+      if (validAnswers.length < 2) {
+        return false // Необходимо минимум 2 варианта ответа
+      }
+      
+      // Проверка правильного ответа
         const hasCorrectAnswer = validAnswers.some(a => a.isCorrect)
         if (!hasCorrectAnswer) {
-          return false // Найден вопрос без правильного ответа
-        }
+        return false // Не выбран правильный ответ
       }
     }
     
     return true // Все вопросы валидны
-  }
+  }, [questions, validationCheckTrigger])
 
   // Сохранение всех вопросов в БД
   const handleSaveQuestions = async () => {
@@ -1249,57 +1352,63 @@ export default function TestEditorPage() {
       return
     }
 
-    // Очищаем предыдущие ошибки валидации
-    setQuestionValidationErrors({})
+    // Показываем предупреждения для всех вопросов
+    setShowValidationWarnings(true)
     
-    // Сначала проверяем все вопросы на валидность
-    const validationErrorsMap: Record<string, string> = {}
-    let hasValidationErrors = false
+    // Собираем предупреждения для каждого вопроса
+    const warningsMap: Record<string, string[]> = {}
 
     for (const question of questions) {
       const questionData = loadQuestionDraft(question.id, question.type)
+      const questionWarnings: string[] = []
       
       if (!questionData) {
-        const questionNumber = questions.findIndex(q => q.id === question.id) + 1
-        validationErrorsMap[question.id] = `Вопрос ${questionNumber}: Данные вопроса не найдены`
-        hasValidationErrors = true
-        continue
-      }
-
-      const questionNumber = questions.findIndex(q => q.id === question.id) + 1
-      
+        questionWarnings.push('Данные вопроса не найдены')
+      } else {
+        // Проверка текста вопроса
       if (!questionData.question || !questionData.question.trim()) {
-        validationErrorsMap[question.id] = `Вопрос ${questionNumber}: Текст вопроса не заполнен`
-        hasValidationErrors = true
-        continue
+          questionWarnings.push('Должен быть текст вопроса')
       }
 
+        // Проверка вариантов ответов
       const validAnswers = questionData.answers?.filter(a => a.value && a.value.trim()) || []
       if (validAnswers.length < 2) {
-        validationErrorsMap[question.id] = `Вопрос ${questionNumber}: Необходимо минимум 2 варианта ответа`
-        hasValidationErrors = true
-        continue
+          questionWarnings.push('Необходимо минимум 2 варианта ответа')
       }
 
+        // Проверка правильного ответа
       const hasCorrectAnswer = validAnswers.some(a => a.isCorrect)
-      if (!hasCorrectAnswer) {
-        validationErrorsMap[question.id] = `Вопрос ${questionNumber}: Не выбран правильный ответ`
-        hasValidationErrors = true
-        continue
-      }
-    }
-
-    // Если есть ошибки валидации, показываем их и не сохраняем
-    if (hasValidationErrors) {
-      setQuestionValidationErrors(validationErrorsMap)
-      // Прокручиваем к первому вопросу с ошибкой
-      const firstErrorQuestionId = Object.keys(validationErrorsMap)[0]
-      if (firstErrorQuestionId) {
-        const errorElement = document.querySelector(`[data-question-id="${firstErrorQuestionId}"]`)
-        if (errorElement) {
-          errorElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        if (!hasCorrectAnswer && validAnswers.length > 0) {
+          questionWarnings.push('Должен быть правильный ответ')
         }
       }
+      
+      if (questionWarnings.length > 0) {
+        warningsMap[question.id] = questionWarnings
+      }
+    }
+    
+    setQuestionWarnings(warningsMap)
+    
+    // Если есть предупреждения, прокручиваем к первому вопросу с предупреждением
+    const firstWarningQuestionId = Object.keys(warningsMap)[0]
+    if (firstWarningQuestionId) {
+      const warningElement = document.querySelector(`[data-question-id="${firstWarningQuestionId}"]`)
+      if (warningElement) {
+        warningElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        }
+      }
+    
+    // Продолжаем сохранение даже если есть предупреждения
+    // Но проверяем, что хотя бы один вопрос валиден
+    const hasValidQuestions = questions.some(question => {
+      const questionData = loadQuestionDraft(question.id, question.type)
+      if (!questionData) return false
+      const validAnswers = questionData.answers?.filter(a => a.value && a.value.trim()) || []
+      return questionData.question?.trim() && validAnswers.length >= 2 && validAnswers.some(a => a.isCorrect)
+    })
+    
+    if (!hasValidQuestions && questions.length > 0) {
       showToast(getText('tests.validationErrors', 'Исправьте ошибки в вопросах'), 'error')
       return
     }
@@ -1310,6 +1419,8 @@ export default function TestEditorPage() {
     let updatedQuestionsCount = 0
     let errorCount = 0
     let validationErrors: string[] = []
+    let deleteSuccessCount = 0
+    let deleteErrorCount = 0
 
     try {
       // Сначала удаляем вопросы, которые были удалены из интерфейса
@@ -1328,21 +1439,38 @@ export default function TestEditorPage() {
             method: 'DELETE'
           })
 
+          if (!deleteResponse.ok) {
+            const errorText = await deleteResponse.text()
+            let errorData
+            try {
+              errorData = JSON.parse(errorText)
+            } catch {
+              errorData = { error: errorText || `HTTP ${deleteResponse.status}` }
+            }
+            console.error(`Ошибка удаления вопроса ${questionToDelete.id}:`, errorData.error || `HTTP ${deleteResponse.status}`)
+            deleteErrorCount++
+            continue
+          }
+
           const deleteResult = await deleteResponse.json()
           if (deleteResult.success) {
             console.log(`Вопрос ${questionToDelete.id} успешно удален из БД`)
+            deleteSuccessCount++
             // Удаляем из localStorage
             removeQuestionDraft(questionToDelete.id, questionToDelete.type)
             removeQuestionFromTest(testId, questionToDelete.id)
           } else {
             console.error(`Ошибка удаления вопроса ${questionToDelete.id}:`, deleteResult.error)
-            errorCount++
+            deleteErrorCount++
           }
         } catch (error) {
           console.error(`Ошибка при удалении вопроса ${questionToDelete.id}:`, error)
-          errorCount++
+          deleteErrorCount++
         }
       }
+      
+      // Учитываем ошибки удаления в общий счетчик ошибок
+      errorCount += deleteErrorCount
 
       // Сохраняем каждый вопрос (валидация уже выполнена выше)
       for (const question of questions) {
@@ -1398,6 +1526,20 @@ export default function TestEditorPage() {
             }
           )
 
+          // Проверяем статус ответа
+          if (!response.ok) {
+            const errorText = await response.text()
+            let errorData
+            try {
+              errorData = JSON.parse(errorText)
+            } catch {
+              errorData = { error: errorText || `HTTP ${response.status}` }
+            }
+            console.error(`Ошибка сохранения вопроса ${question.id}:`, errorData.error || `HTTP ${response.status}`)
+            errorCount++
+            continue
+          }
+
           const result = await response.json()
 
           if (result.success) {
@@ -1449,24 +1591,8 @@ export default function TestEditorPage() {
         }
       }
 
-      // Если есть ошибки, показываем их
-      if (errorCount > 0) {
-        // Показываем конкретные ошибки валидации
-        if (validationErrors.length > 0) {
-          const errorMessage = validationErrors.join('\n')
-          showToast(errorMessage, 'error')
-        } else {
-          showToast(
-            getText('tests.saveQuestionsError', `Ошибка при сохранении вопросов: ${errorCount}`),
-            'error'
-          )
-        }
-        setIsSubmitting(false)
-        return
-      }
-
-      // Если нет ошибок, показываем успешное сообщение
-      if (successCount > 0 || questionsToDelete.length > 0) {
+      // Если есть успешные сохранения, показываем успех (даже если есть ошибки)
+      if (successCount > 0 || deleteSuccessCount > 0) {
         let message = ''
         const messageParts = []
         
@@ -1478,8 +1604,14 @@ export default function TestEditorPage() {
           messageParts.push(`Изменено вопросов: ${updatedQuestionsCount}`)
         }
         
-        if (questionsToDelete.length > 0) {
-          messageParts.push(`Удалено вопросов: ${questionsToDelete.length}`)
+        if (deleteSuccessCount > 0) {
+          messageParts.push(`Удалено вопросов: ${deleteSuccessCount}`)
+        }
+        
+        // Если есть ошибки при сохранении вопросов (не при удалении), добавляем предупреждение
+        const saveErrors = errorCount - deleteErrorCount
+        if (saveErrors > 0) {
+          messageParts.push(`Ошибок при сохранении: ${saveErrors}`)
         }
         
         // Если нет изменений, но и нет ошибок, показываем сообщение об успехе
@@ -1489,7 +1621,9 @@ export default function TestEditorPage() {
           message = messageParts.join(', ')
         }
         
-        showToast(message, 'success')
+        // Показываем success, если все вопросы успешно сохранены, или warning, если есть ошибки сохранения
+        const hasSaveErrors = saveErrors > 0
+        showToast(message, hasSaveErrors ? 'warning' : 'success', hasSaveErrors ? 'Внимание!' : 'Сохранено!')
         setHasUnsavedChanges(false)
         
         // Очищаем ошибки валидации после успешного сохранения
@@ -1505,6 +1639,18 @@ export default function TestEditorPage() {
         
         // Принудительно обновляем страницу для гарантии отображения актуальных данных
         window.location.reload()
+      } else if (errorCount > 0) {
+        // Если есть только ошибки и нет успешных операций
+        if (validationErrors.length > 0) {
+          const errorMessage = validationErrors.join('\n')
+          showToast(errorMessage, 'error')
+        } else {
+          showToast(
+            getText('tests.saveQuestionsError', `Ошибка при сохранении вопросов: ${errorCount}`),
+            'error'
+          )
+        }
+        setIsSubmitting(false)
       } else {
         // Если нет изменений и нет ошибок, просто показываем сообщение
         showToast(getText('tests.noChanges', 'Нет изменений для сохранения'), 'info')
@@ -1674,7 +1820,7 @@ export default function TestEditorPage() {
             ) : (
               <div className="space-y-6">
                 {questions.map((question, index) => (
-                  <div key={question.id} className="bg-[var(--bg-tertiary)] rounded-xl p-6 space-y-6 transition-colors">
+                  <div key={question.id} data-question-id={question.id} className="bg-[var(--bg-tertiary)] rounded-xl p-6 space-y-6 transition-colors">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
@@ -1738,6 +1884,29 @@ export default function TestEditorPage() {
                       </button>
                       </div>
                     </div>
+                    
+                    {/* Предупреждения валидации */}
+                    {showValidationWarnings && questionWarnings[question.id] && questionWarnings[question.id].length > 0 && (
+                      <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4">
+                        <div className="flex items-start gap-3">
+                          <Icons.AlertTriangle className="h-5 w-5 text-yellow-400 flex-shrink-0 mt-0.5" />
+                          <div className="flex-1">
+                            <h4 className="text-yellow-400 font-medium text-sm mb-2">
+                              {getText('testEditor.validation.warnings', 'Требуется исправление')}
+                            </h4>
+                            <ul className="space-y-1">
+                              {questionWarnings[question.id].map((warning, idx) => (
+                                <li key={idx} className="text-yellow-300 text-sm flex items-center gap-2">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-yellow-400"></span>
+                                  {warning}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    
                     <QuestionEditor
                       questionId={question.id}
                       testId={testId}
@@ -1805,7 +1974,7 @@ export default function TestEditorPage() {
                             saveQuestionDraft(question.id, question.type, questionData)
                           }
                           
-                          showToast('Объяснение успешно обновлено', 'success')
+                          showToast('Объяснение успешно обновлено', 'success', 'Успешно!')
                         } catch (error) {
                           console.error('Ошибка регенерации объяснения:', error)
                           showToast('Ошибка при генерации объяснения', 'error')
@@ -1848,7 +2017,7 @@ export default function TestEditorPage() {
                 type="button"
                 variant="primary"
                 onClick={handleSaveQuestions}
-                disabled={isSubmitting || isTempId(testId) || !validateAllQuestions()}
+                disabled={isSubmitting || isTempId(testId)}
                 isLoading={isSubmitting}
               >
                 {getText('tests.saveQuestions', 'Сохранить вопросы')}
@@ -1866,6 +2035,7 @@ export default function TestEditorPage() {
       {/* Toast уведомления */}
       <Toast
         isOpen={toast.isOpen}
+        title={toast.title}
         message={toast.message}
         variant={toast.variant}
         onClose={() => setToast(prev => ({ ...prev, isOpen: false }))}

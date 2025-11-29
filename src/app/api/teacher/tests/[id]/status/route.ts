@@ -8,7 +8,7 @@ import { auth } from '@/lib/auth'
  */
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Проверка аутентификации
@@ -28,7 +28,7 @@ export async function PATCH(
       )
     }
 
-    const testId = params.id
+    const { id: testId } = await params
     const { searchParams } = new URL(request.url)
     const teacherId = searchParams.get('teacherId') || user.id
 

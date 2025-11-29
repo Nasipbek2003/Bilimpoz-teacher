@@ -42,7 +42,7 @@ const TestSettingsModal: React.FC<TestSettingsModalProps> = ({
     language: 'ru' as 'ru' | 'kg'
   })
   const [errors, setErrors] = useState<{ name?: string; description?: string }>({})
-  const [toast, setToast] = useState<{ isOpen: boolean; message: string; variant: ToastVariant }>({
+  const [toast, setToast] = useState<{ isOpen: boolean; title?: string; message: string; variant: ToastVariant }>({
     isOpen: false,
     message: '',
     variant: 'success'
@@ -112,6 +112,7 @@ const TestSettingsModal: React.FC<TestSettingsModalProps> = ({
       await onSave(formData)
       setToast({
         isOpen: true,
+        title: 'Сохранено!',
         message: getText('testEditor.testSaved', 'Тест сохранен'),
         variant: 'success'
       })
@@ -121,6 +122,7 @@ const TestSettingsModal: React.FC<TestSettingsModalProps> = ({
     } catch (error) {
       setToast({
         isOpen: true,
+        title: 'Ошибка!',
         message: getText('testEditor.saveError', 'Ошибка сохранения теста'),
         variant: 'error'
       })
@@ -281,6 +283,7 @@ const TestSettingsModal: React.FC<TestSettingsModalProps> = ({
       <Toast
         isOpen={toast.isOpen}
         onClose={() => setToast({ ...toast, isOpen: false })}
+        title={toast.title}
         message={toast.message}
         variant={toast.variant}
         duration={3000}

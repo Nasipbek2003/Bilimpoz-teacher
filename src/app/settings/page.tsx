@@ -42,6 +42,7 @@ export default function SettingsPage() {
 
   const [toast, setToast] = useState<{
     isOpen: boolean
+    title?: string
     message: string
     variant: ToastVariant
   }>({
@@ -139,6 +140,7 @@ export default function SettingsPage() {
         setIsEditing(false)
         setToast({
           isOpen: true,
+          title: 'Сохранено!',
           message: getText('settings.saveSuccess', 'Настройки успешно сохранены'),
           variant: 'success'
         })
@@ -569,6 +571,7 @@ export default function SettingsPage() {
       <Toast
         isOpen={toast.isOpen}
         onClose={() => setToast({ ...toast, isOpen: false })}
+        title={toast.title}
         message={toast.message}
         variant={toast.variant}
         duration={4000}

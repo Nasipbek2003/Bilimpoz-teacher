@@ -42,7 +42,7 @@ const TestAIExplainButton: React.FC<TestAIExplainButtonProps> = ({
   const [hasExplanation, setHasExplanation] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [mounted, setMounted] = useState(false)
-  const [toast, setToast] = useState<{ isOpen: boolean; message: string; variant: ToastVariant }>({
+  const [toast, setToast] = useState<{ isOpen: boolean; title?: string; message: string; variant: ToastVariant }>({
     isOpen: false,
     message: '',
     variant: 'error'
@@ -354,6 +354,7 @@ const TestAIExplainButton: React.FC<TestAIExplainButtonProps> = ({
       <Toast
         isOpen={toast.isOpen}
         onClose={() => setToast({ ...toast, isOpen: false })}
+        title={toast.title}
         message={toast.message}
         variant={toast.variant}
         duration={4000}

@@ -14,6 +14,7 @@ import CustomDatePicker from '@/components/ui/CustomDatePicker'
 import CustomTimePicker from '@/components/ui/CustomTimePicker'
 import Select, { SelectOption } from '@/components/ui/Select'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
+import Toast, { ToastVariant } from '@/components/ui/Toast'
 
 interface Test {
   id: string
@@ -46,6 +47,11 @@ export default function TestsPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [testToDelete, setTestToDelete] = useState<string | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [toast, setToast] = useState<{ isOpen: boolean; title?: string; message: string; variant: ToastVariant }>({
+    isOpen: false,
+    message: '',
+    variant: 'success'
+  })
 
   useEffect(() => {
     setMounted(true)
@@ -582,6 +588,14 @@ export default function TestsPage() {
         onClose={() => setIsCreateModalOpen(false)}
         teacherId={user?.id || ''}
         onTestCreated={() => {
+          // Показываем уведомление о создании теста
+          setToast({
+            isOpen: true,
+            title: 'Тест создан!',
+            message: getText('tests.testCreated', 'Тест успешно создан'),
+            variant: 'success'
+          })
+
           // Перезагружаем список тестов после создания
           const fetchTests = async () => {
             if (!user?.id) return
@@ -647,6 +661,16 @@ export default function TestsPage() {
         cancelText={getText('common.cancel', 'Отмена')}
         variant="danger"
         isLoading={isDeleting}
+      />
+
+      {/* Toast уведомления */}
+      <Toast
+        isOpen={toast.isOpen}
+        onClose={() => setToast({ ...toast, isOpen: false })}
+        title={toast.title}
+        message={toast.message}
+        variant={toast.variant}
+        duration={4000}
       />
     </TeacherLayout>
   )

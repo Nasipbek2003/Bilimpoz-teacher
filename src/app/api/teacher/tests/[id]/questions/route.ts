@@ -8,7 +8,7 @@ import { auth } from '@/lib/auth'
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Проверка аутентификации
@@ -28,7 +28,7 @@ export async function GET(
       )
     }
 
-    const testId = params.id
+    const { id: testId } = await params
 
     // Проверка существования теста
     const test = await prisma.teacher_tests.findUnique({
@@ -110,7 +110,7 @@ export async function GET(
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Проверка аутентификации
@@ -130,7 +130,7 @@ export async function POST(
       )
     }
 
-    const testId = params.id
+    const { id: testId } = await params
     const { searchParams } = new URL(request.url)
     const teacherId = searchParams.get('teacherId') || user.id
 

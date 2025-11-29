@@ -6,9 +6,9 @@ import { getTokenFromRequest, verifyToken } from '@/lib/jwt-middleware'
 const publicRoutes = ['/register', '/login', '/verify-telegram']
 
 // Маршруты, которые требуют аутентификации
-const protectedRoutes = ['/', '/settings', '/referrals', '/tests']
+const protectedRoutes = ['/', '/settings', '/students', '/tests']
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
   
   // Получаем язык из cookie или используем 'ru' по умолчанию
@@ -75,3 +75,4 @@ export const config = {
     '/((?!api|_next/static|_next/image|favicon.ico).*)',
   ],
 }
+

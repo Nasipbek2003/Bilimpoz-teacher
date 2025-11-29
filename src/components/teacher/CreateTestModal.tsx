@@ -33,7 +33,7 @@ const CreateTestModal: React.FC<CreateTestModalProps> = ({
   const [language, setLanguage] = useState<'ru' | 'kg'>('ru')
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [isLoading, setIsLoading] = useState(false)
-  const [toast, setToast] = useState<{ isOpen: boolean; message: string; variant: ToastVariant }>({
+  const [toast, setToast] = useState<{ isOpen: boolean; title?: string; message: string; variant: ToastVariant }>({
     isOpen: false,
     message: '',
     variant: 'success'
@@ -114,6 +114,7 @@ const CreateTestModal: React.FC<CreateTestModalProps> = ({
     if (!teacherId) {
       setToast({
         isOpen: true,
+        title: 'Ошибка!',
         message: getText('tests.authRequired', 'Необходима авторизация'),
         variant: 'error'
       })
@@ -147,6 +148,7 @@ const CreateTestModal: React.FC<CreateTestModalProps> = ({
       // Показываем уведомление о создании теста
       setToast({
         isOpen: true,
+        title: 'Тест создан!',
         message: getText('tests.testCreated', 'Тест успешно создан'),
         variant: 'success'
       })
@@ -156,17 +158,19 @@ const CreateTestModal: React.FC<CreateTestModalProps> = ({
         onTestCreated()
       }
       
-      // Закрываем модал
+      // Закрываем модал с задержкой, чтобы показать уведомление
+      setTimeout(() => {
       onClose()
-      
-      // Переход в редактор с небольшой задержкой для показа уведомления
+        // Переход в редактор с задержкой для показа уведомления
       setTimeout(() => {
         router.push(`/tests/${testData.id}`)
-      }, 500)
+        }, 1000)
+      }, 2000)
     } catch (error) {
       console.error('Ошибка создания теста:', error)
       setToast({
         isOpen: true,
+        title: 'Ошибка!',
         message: getText('tests.createError', 'Ошибка при создании теста') + ': ' + (error instanceof Error ? error.message : String(error)),
         variant: 'error'
       })
@@ -335,6 +339,7 @@ const CreateTestModal: React.FC<CreateTestModalProps> = ({
       <Toast
         isOpen={toast.isOpen}
         onClose={() => setToast({ ...toast, isOpen: false })}
+        title={toast.title}
         message={toast.message}
         variant={toast.variant}
         duration={4000}

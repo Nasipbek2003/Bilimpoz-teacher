@@ -8,7 +8,7 @@ import { auth } from '@/lib/auth'
  */
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string; questionId: string } }
+  { params }: { params: Promise<{ id: string; questionId: string }> }
 ) {
   try {
     // Проверка аутентификации
@@ -28,8 +28,7 @@ export async function PUT(
       )
     }
 
-    const testId = params.id
-    const questionId = params.questionId
+    const { id: testId, questionId } = await params
 
     // Проверка существования теста
     const test = await prisma.teacher_tests.findUnique({
@@ -192,7 +191,7 @@ export async function PUT(
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string; questionId: string } }
+  { params }: { params: Promise<{ id: string; questionId: string }> }
 ) {
   try {
     // Проверка аутентификации
@@ -212,8 +211,7 @@ export async function DELETE(
       )
     }
 
-    const testId = params.id
-    const questionId = params.questionId
+    const { id: testId, questionId } = await params
 
     // Проверка существования теста
     const test = await prisma.teacher_tests.findUnique({
