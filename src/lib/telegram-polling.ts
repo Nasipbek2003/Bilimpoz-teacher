@@ -491,7 +491,10 @@ class TelegramPollingService {
 
     // Поиск пользователя в БД
     const dbUser = await prisma.users.findUnique({
-      where: { login }
+      where: { login },
+      include: {
+        social_networks: true
+      }
     })
 
     if (!dbUser) {
@@ -531,8 +534,8 @@ class TelegramPollingService {
     
     // 1. Проверка: уже подключен ли этот Telegram к пользователю
     if (dbUser.telegram_id === telegramIdString) {
-      // Обновление фото профиля
-      await this.updateProfilePhoto(user, dbUser)
+      // Обновление username и фото профиля
+      await this.updateUserTelegramData(user, dbUser)
       await this.sendMessage(user.id, msg.alreadyConnected)
       return
     }
@@ -653,10 +656,13 @@ class TelegramPollingService {
       return
     }
     
-    // 3. Генерация кода верификации
+    // 3. Обновление username и фото профиля при каждом входе
+    await this.updateUserTelegramData(user, dbUser)
+    
+    // 4. Генерация кода верификации
     const verificationCode = await generateAndStoreVerificationCode(dbUser.id, 'login')
     
-    // 4. Отправка кода пользователю
+    // 5. Отправка кода пользователю
     const sendResult = await this.sendMessage(
       user.id,
       `${msg.verificationCodeTitle}\n\n` +
@@ -668,7 +674,7 @@ class TelegramPollingService {
       { parse_mode: 'Markdown' }
     )
     
-    // 5. Обработка ошибки блокировки бота
+    // 6. Обработка ошибки блокировки бота
     if (!sendResult.success && sendResult.isBlocked) {
       const botUsername = await getTeacherBotUsername()
       await this.sendMessage(user.id,
@@ -676,6 +682,29 @@ class TelegramPollingService {
         { parse_mode: 'Markdown' }
       )
       return
+    }
+  }
+
+  /**
+   * Получение информации о пользователе из Telegram (Chat)
+   */
+  private async getTelegramUserInfo(userId: number): Promise<{ username?: string } | null> {
+    try {
+      const response = await fetch(
+        `https://api.telegram.org/bot${this.botToken}/getChat?chat_id=${userId}`
+      )
+      const data = await response.json()
+      
+      if (data.ok && data.result) {
+        return {
+          username: data.result.username || null
+        }
+      }
+      
+      return null
+    } catch (error) {
+      console.log('⚠️ Не удалось получить информацию о пользователе:', error)
+      return null
     }
   }
 
@@ -748,6 +777,67 @@ class TelegramPollingService {
       }
     } catch (error) {
       console.warn('⚠️ Не удалось обновить фото профиля:', error)
+    }
+  }
+
+  /**
+   * Обновление данных Telegram пользователя (username и фото)
+   */
+  private async updateUserTelegramData(user: any, dbUser: any) {
+    try {
+      console.log(`🔄 Обновление данных Telegram для пользователя ${dbUser.login}...`)
+      
+      // 1. Получаем актуальное фото профиля
+      const profilePhotoUrl = await this.getTelegramProfilePhoto(user.id)
+      
+      // 2. Получаем актуальный username из Telegram
+      const telegramUsername = user.username || null
+      
+      // 3. Проверяем, нужно ли обновлять данные
+      const needsUpdate = 
+        (profilePhotoUrl && profilePhotoUrl !== dbUser.profile_photo_url) ||
+        (telegramUsername !== dbUser.social_networks?.telegram_login)
+      
+      if (!needsUpdate) {
+        console.log(`✅ Данные Telegram для ${dbUser.login} актуальны`)
+        return
+      }
+      
+      // 4. Удаление старого фото если оно изменилось
+      if (profilePhotoUrl && profilePhotoUrl !== dbUser.profile_photo_url && dbUser.profile_photo_url) {
+        await this.deleteOldPhotoFromS3(dbUser.profile_photo_url)
+      }
+      
+      // 5. Обновление в БД (только если есть изменения)
+      if (profilePhotoUrl && profilePhotoUrl !== dbUser.profile_photo_url) {
+        await prisma.users.update({
+          where: { id: dbUser.id },
+          data: {
+            profile_photo_url: profilePhotoUrl,
+            updated_at: new Date()
+          }
+        })
+        console.log(`✅ Фото профиля обновлено для ${dbUser.login}`)
+      }
+      
+      // 6. Обновление username в social_networks
+      if (telegramUsername !== dbUser.social_networks?.telegram_login) {
+        await prisma.social_networks.upsert({
+          where: { user_id: dbUser.id },
+          create: {
+            user_id: dbUser.id,
+            telegram_login: telegramUsername
+          },
+          update: {
+            telegram_login: telegramUsername
+          }
+        })
+        console.log(`✅ Username обновлен для ${dbUser.login}: ${telegramUsername || 'нет'}`)
+      }
+      
+      console.log(`✅ Данные Telegram успешно обновлены для ${dbUser.login}`)
+    } catch (error) {
+      console.warn(`⚠️ Не удалось обновить данные Telegram для ${dbUser.login}:`, error)
     }
   }
 
@@ -899,7 +989,10 @@ class TelegramPollingService {
 
       // 1. Поиск пользователя в БД
       const dbUser = await prisma.users.findUnique({
-        where: { login }
+        where: { login },
+        include: {
+          social_networks: true
+        }
       })
 
       if (!dbUser) {
@@ -910,6 +1003,15 @@ class TelegramPollingService {
       if (dbUser.telegram_id !== telegramId) {
         return { success: false, error: 'Telegram ID не совпадает' }
       }
+
+      // 2.5. Обновление username и фото профиля при каждом входе
+      const telegramUserId = parseInt(telegramId)
+      const telegramUserInfo = await this.getTelegramUserInfo(telegramUserId)
+      const telegramUser = {
+        id: telegramUserId,
+        username: telegramUserInfo?.username || null
+      }
+      await this.updateUserTelegramData(telegramUser, dbUser)
 
       // 3. Определение языка
       const userLanguage: 'ru' | 'kg' = (language === 'ky' || language === 'kg') ? 'kg' : 'ru'

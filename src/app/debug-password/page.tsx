@@ -54,7 +54,7 @@ export default function DebugPasswordPage() {
   }
 
   return (
-    <div className="p-8 bg-[#0b0b0b] min-h-screen text-white">
+    <div className="p-8 bg-[#0b0b0b] h-screen text-white overflow-auto">
       <h1 className="text-2xl font-bold mb-6">Тест пароля</h1>
       
       <div className="bg-[#151515] rounded-lg p-6 max-w-md">

@@ -57,7 +57,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
       {/* Overlay для мобильных */}
       {isOpen && (
         <div
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-30 lg:hidden transition-opacity duration-300"
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[60] lg:hidden transition-opacity duration-300"
           onClick={onClose}
           aria-label="Закрыть меню"
         />
@@ -66,13 +66,13 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
       {/* Sidebar */}
       <aside
         className={`
-          w-64 sm:w-72 lg:w-64 bg-[var(--bg-card)] rounded-xl lg:rounded-2xl z-40
+          w-64 sm:w-72 lg:w-64 bg-[var(--bg-card)] rounded-xl lg:rounded-2xl z-[70]
           transform transition-all duration-300 ease-in-out
-          flex-shrink-0 shadow-xl lg:shadow-none
+          flex-shrink-0 shadow-xl lg:shadow-none overflow-hidden
           ${isOpen ? 'translate-x-0' : '-translate-x-full'}
           lg:translate-x-0
           fixed top-0 left-0 h-full pt-4 lg:pt-0
-          lg:relative lg:h-auto
+          lg:relative lg:h-full
         `}
       >
         {/* Header для мобильных */}

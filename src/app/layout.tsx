@@ -39,7 +39,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="font-sans antialiased">
+      <body className="font-sans antialiased h-full">
         {/* Дополнительный скрипт через Next.js Script для гарантии выполнения */}
         <Script
           id="theme-init"

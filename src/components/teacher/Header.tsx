@@ -8,11 +8,7 @@ import LanguageSwitcher from '@/components/ui/LanguageSwitcher'
 import ThemeToggle from '@/components/ui/ThemeToggle'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
 
-interface HeaderProps {
-  onMenuToggle: () => void
-}
-
-const Header: React.FC<HeaderProps> = ({ onMenuToggle }) => {
+const Header: React.FC = () => {
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false)
   const [showLogoutDialog, setShowLogoutDialog] = useState(false)
   const { user, logout } = useAuth()
@@ -42,15 +38,6 @@ const Header: React.FC<HeaderProps> = ({ onMenuToggle }) => {
       <div className="flex items-center justify-between px-3 sm:px-4 lg:px-6 h-14 sm:h-16">
         {/* Левая часть */}
         <div className="flex items-center gap-2 sm:gap-4">
-          {/* Кнопка меню (только на мобильных) */}
-          <button
-            onClick={onMenuToggle}
-            className="lg:hidden p-2 rounded-lg hover:bg-[var(--bg-hover)] transition-colors"
-            aria-label="Открыть меню"
-          >
-            <Icons.Menu className="h-5 w-5 text-[var(--text-primary)]" />
-          </button>
-
           {/* Логотип */}
           <div className="flex items-center gap-2 sm:gap-3">
             <div className="w-7 h-7 sm:w-8 sm:h-8 bg-[var(--text-primary)] rounded-lg flex items-center justify-center flex-shrink-0">
@@ -64,20 +51,8 @@ const Header: React.FC<HeaderProps> = ({ onMenuToggle }) => {
 
         {/* Правая часть */}
         <div className="flex items-center gap-1 sm:gap-2 md:gap-3 lg:gap-4">
-          {/* Поиск (скрыт на мобильных) */}
-          <div className="hidden xl:flex items-center relative">
-            <Icons.Search className="absolute left-4 h-4 w-4 text-[var(--text-tertiary)]" />
-            <input
-              type="text"
-              placeholder={t('common.search')}
-              className="pl-12 pr-4 py-3 bg-[var(--bg-select)] rounded-xl text-sm text-[var(--text-primary)] placeholder-[var(--text-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/20 transition-all w-48 xl:w-64"
-            />
-          </div>
-
           {/* Переключатель языка */}
-          <div className="hidden sm:block">
-            <LanguageSwitcher />
-          </div>
+          <LanguageSwitcher />
 
           {/* Переключатель темы */}
           <ThemeToggle />
@@ -118,19 +93,6 @@ const Header: React.FC<HeaderProps> = ({ onMenuToggle }) => {
                   onClick={() => setIsProfileMenuOpen(false)}
                 />
                 <div className="absolute right-0 mt-2 w-48 bg-[var(--bg-card)] rounded-xl md:rounded-2xl shadow-2xl py-2 z-50 border border-[var(--border-primary)]">
-                  {/* Переключатель языка для мобильных */}
-                  <div className="sm:hidden px-4 py-2 border-b border-[var(--border-primary)] mb-2">
-                    <LanguageSwitcher />
-                  </div>
-                  <button className="w-full px-4 py-2 text-left text-sm text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] transition-colors flex items-center gap-3">
-                    <Icons.User className="h-4 w-4" />
-                    {t('header.profile')}
-                  </button>
-                  <button className="w-full px-4 py-2 text-left text-sm text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] transition-colors flex items-center gap-3">
-                    <Icons.Settings className="h-4 w-4" />
-                    {t('header.settings')}
-                  </button>
-                  <hr className="my-2 border-[var(--border-primary)]" />
                   <button 
                     onClick={() => setShowLogoutDialog(true)}
                     className="w-full px-4 py-2 text-left text-sm text-[var(--accent-danger)] hover:bg-[var(--bg-hover)] transition-colors flex items-center gap-3"

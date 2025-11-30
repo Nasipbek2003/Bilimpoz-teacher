@@ -42,7 +42,7 @@ export default function DebugUsersPage() {
   if (error) return <div className="p-8 text-red-400">Ошибка: {error}</div>
 
   return (
-    <div className="p-8 bg-[#0b0b0b] min-h-screen text-white">
+    <div className="p-8 bg-[#0b0b0b] h-screen text-white overflow-auto">
       <h1 className="text-2xl font-bold mb-6">Пользователи в системе</h1>
       
       <div className="bg-[#151515] rounded-lg overflow-hidden">

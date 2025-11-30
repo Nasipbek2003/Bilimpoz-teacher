@@ -296,237 +296,243 @@ export default function SettingsPage() {
           )}
         </div>
 
-        {/* Основная информация */}
-        <div className="bg-[var(--bg-card)] rounded-2xl p-6">
-          <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-6">
-            {getText('settings.basicInfo', 'Основная информация')}
-          </h3>
-          
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Фото профиля */}
-            <div>
-              <label className="block text-sm font-medium text-[var(--text-secondary)] mb-4">
-                {getText('settings.profilePhoto', 'Фото профиля')}
-              </label>
-              <div className="flex items-center gap-4">
-                <div className="w-20 h-20 bg-[var(--bg-tertiary)] rounded-full flex items-center justify-center overflow-hidden">
-                  {formData.profilePhotoUrl || formData.profilePhoto ? (
-                    <img 
-                      src={formData.profilePhoto ? URL.createObjectURL(formData.profilePhoto) : formData.profilePhotoUrl} 
-                      alt="Profile" 
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <Icons.User className="h-8 w-8 text-[var(--text-primary)]" />
+        {/* Сетка блоков настроек 2x2 */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Основная информация */}
+          <div className="bg-[var(--bg-card)] rounded-2xl p-6">
+            <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-6">
+              {getText('settings.basicInfo', 'Основная информация')}
+            </h3>
+            
+            <div className="space-y-6">
+              {/* Фото профиля */}
+              <div>
+                <label className="block text-sm font-medium text-[var(--text-secondary)] mb-4">
+                  {getText('settings.profilePhoto', 'Фото профиля')}
+                </label>
+                <div className="flex items-center gap-4">
+                  <div className="w-20 h-20 bg-[var(--bg-tertiary)] rounded-full flex items-center justify-center overflow-hidden">
+                    {formData.profilePhotoUrl || formData.profilePhoto ? (
+                      <img 
+                        src={formData.profilePhoto ? URL.createObjectURL(formData.profilePhoto) : formData.profilePhotoUrl} 
+                        alt="Profile" 
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <Icons.User className="h-8 w-8 text-[var(--text-primary)]" />
+                    )}
+                  </div>
+                  {isEditing && (
+                    <div>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handlePhotoChange}
+                        className="hidden"
+                        id="photo-upload"
+                      />
+                      <label
+                        htmlFor="photo-upload"
+                        className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-[var(--bg-tertiary)] text-[var(--text-primary)] rounded-lg hover:bg-[var(--bg-hover)] transition-colors"
+                      >
+                        <Icons.Camera className="h-4 w-4" />
+                        {getText('settings.changePhoto', 'Изменить фото')}
+                      </label>
+                    </div>
                   )}
                 </div>
-                {isEditing && (
-                  <div>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handlePhotoChange}
-                      className="hidden"
-                      id="photo-upload"
-                    />
-                    <label
-                      htmlFor="photo-upload"
-                      className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-[var(--bg-tertiary)] text-[var(--text-primary)] rounded-lg hover:bg-[var(--bg-hover)] transition-colors"
-                    >
-                      <Icons.Camera className="h-4 w-4" />
-                      {getText('settings.changePhoto', 'Изменить фото')}
-                    </label>
-                  </div>
-                )}
+              </div>
+
+              {/* Имя */}
+              <div>
+                <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
+                  {getText('settings.name', 'Имя')} *
+                </label>
+                <input
+                  type="text"
+                  value={formData.name}
+                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                  disabled={!isEditing}
+                  className="w-full px-3 py-2 border rounded-lg text-[var(--text-primary)] placeholder-[var(--text-tertiary)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--text-primary)]/20 bg-[var(--bg-tertiary)] border-[var(--border-primary)] disabled:opacity-50"
+                  placeholder={getText('settings.namePlaceholder', 'Введите ваше имя')}
+                />
               </div>
             </div>
+          </div>
 
-            {/* Имя */}
-            <div>
-              <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
-                {getText('settings.name', 'Имя')} *
-              </label>
-              <input
-                type="text"
-                value={formData.name}
-                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                disabled={!isEditing}
-                className="w-full px-3 py-2 border rounded-lg text-[var(--text-primary)] placeholder-[var(--text-tertiary)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--text-primary)]/20 bg-[var(--bg-tertiary)] border-[var(--border-primary)] disabled:opacity-50"
-                placeholder={getText('settings.namePlaceholder', 'Введите ваше имя')}
-              />
+          {/* Настройки интерфейса */}
+          <div className="bg-[var(--bg-card)] rounded-2xl p-6">
+            <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-6">
+              {getText('settings.interface', 'Настройки интерфейса')}
+            </h3>
+            
+            <div className="space-y-6">
+              {/* Тема */}
+              <div>
+                <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
+                  {getText('settings.theme', 'Тема')}
+                </label>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={toggleTheme}
+                    className="flex items-center gap-2 px-4 py-2 bg-[var(--bg-tertiary)] text-[var(--text-primary)] rounded-lg hover:bg-[var(--bg-hover)] transition-colors"
+                  >
+                    {theme === 'dark' ? (
+                      <>
+                        <Icons.Sun className="h-4 w-4" />
+                        {getText('settings.lightTheme', 'Светлая тема')}
+                      </>
+                    ) : (
+                      <>
+                        <Icons.Moon className="h-4 w-4" />
+                        {getText('settings.darkTheme', 'Темная тема')}
+                      </>
+                    )}
+                  </button>
+                  <span className="text-sm text-[var(--text-tertiary)]">
+                    {getText('settings.currentTheme', 'Текущая')}: {theme === 'dark' ? getText('settings.dark', 'Темная') : getText('settings.light', 'Светлая')}
+                  </span>
+                </div>
+              </div>
+
+              {/* Язык интерфейса */}
+              <div>
+                <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
+                  {getText('settings.interfaceLanguage', 'Язык интерфейса')}
+                </label>
+                <Select
+                  value={formData.language}
+                  onChange={(value) => setFormData(prev => ({ ...prev, language: value }))}
+                  options={languageOptions}
+                  className={!isEditing ? 'opacity-50 pointer-events-none' : ''}
+                />
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Настройки интерфейса */}
-        <div className="bg-[var(--bg-card)] rounded-2xl p-6">
-          <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-6">
-            {getText('settings.interface', 'Настройки интерфейса')}
-          </h3>
-          
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Тема */}
-            <div>
-              <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
-                {getText('settings.theme', 'Тема')}
-              </label>
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={toggleTheme}
-                  className="flex items-center gap-2 px-4 py-2 bg-[var(--bg-tertiary)] text-[var(--text-primary)] rounded-lg hover:bg-[var(--bg-hover)] transition-colors"
+          {/* Социальные сети */}
+          <div className="bg-[var(--bg-card)] rounded-2xl p-6">
+            <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-6">
+              {getText('settings.socialNetworks', 'Социальные сети')}
+            </h3>
+            
+            <div className="space-y-6">
+              {/* Telegram */}
+              <div>
+                <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
+                  {getText('settings.telegram', 'Telegram')}
+                </label>
+                <div className="relative">
+                  <Icons.MessageCircle className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-[var(--text-tertiary)]" />
+                  <input
+                    type="text"
+                    value={formData.telegramLogin}
+                    onChange={(e) => setFormData(prev => ({ ...prev, telegramLogin: e.target.value }))}
+                    disabled={!isEditing}
+                    className="w-full pl-10 pr-4 py-2 border rounded-lg text-[var(--text-primary)] placeholder-[var(--text-tertiary)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--text-primary)]/20 bg-[var(--bg-tertiary)] border-[var(--border-primary)] disabled:opacity-50"
+                    placeholder={getText('settings.telegramPlaceholder', '@username')}
+                  />
+                </div>
+              </div>
+
+              {/* Instagram */}
+              <div>
+                <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
+                  {getText('settings.instagram', 'Instagram')}
+                </label>
+                <div className="relative">
+                  <Icons.Camera className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-[var(--text-tertiary)]" />
+                  <input
+                    type="text"
+                    value={formData.instagramLogin}
+                    onChange={(e) => setFormData(prev => ({ ...prev, instagramLogin: e.target.value }))}
+                    disabled={!isEditing}
+                    className="w-full pl-10 pr-4 py-2 border rounded-lg text-[var(--text-primary)] placeholder-[var(--text-tertiary)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--text-primary)]/20 bg-[var(--bg-tertiary)] border-[var(--border-primary)] disabled:opacity-50"
+                    placeholder={getText('settings.instagramPlaceholder', 'username')}
+                  />
+                </div>
+              </div>
+
+              {/* WhatsApp */}
+              <div>
+                <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
+                  {getText('settings.whatsapp', 'WhatsApp')}
+                </label>
+                <div className="relative">
+                  <Icons.Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-[var(--text-tertiary)]" />
+                  <input
+                    type="text"
+                    value={formData.whatsappLogin}
+                    onChange={(e) => setFormData(prev => ({ ...prev, whatsappLogin: e.target.value }))}
+                    disabled={!isEditing}
+                    className="w-full pl-10 pr-4 py-2 border rounded-lg text-[var(--text-primary)] placeholder-[var(--text-tertiary)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--text-primary)]/20 bg-[var(--bg-tertiary)] border-[var(--border-primary)] disabled:opacity-50"
+                    placeholder={getText('settings.whatsappPlaceholder', '+996555123456')}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Смена пароля */}
+          <div className="bg-[var(--bg-card)] rounded-2xl p-6">
+            <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-6">
+              {getText('settings.changePassword', 'Смена пароля')}
+            </h3>
+            
+            <div className="space-y-6">
+              <div>
+                <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
+                  {getText('settings.currentPassword', 'Текущий пароль')}
+                </label>
+                <input
+                  type="password"
+                  value={passwordData.currentPassword}
+                  onChange={(e) => setPasswordData(prev => ({ ...prev, currentPassword: e.target.value }))}
+                  disabled={!isEditing}
+                  className="w-full px-3 py-2 border rounded-lg text-[var(--text-primary)] placeholder-[var(--text-tertiary)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--text-primary)]/20 bg-[var(--bg-tertiary)] border-[var(--border-primary)] disabled:opacity-50"
+                  placeholder={getText('settings.currentPasswordPlaceholder', 'Введите текущий пароль')}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
+                  {getText('settings.newPassword', 'Новый пароль')}
+                </label>
+                <input
+                  type="password"
+                  value={passwordData.newPassword}
+                  onChange={(e) => setPasswordData(prev => ({ ...prev, newPassword: e.target.value }))}
+                  disabled={!isEditing}
+                  className="w-full px-3 py-2 border rounded-lg text-[var(--text-primary)] placeholder-[var(--text-tertiary)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--text-primary)]/20 bg-[var(--bg-tertiary)] border-[var(--border-primary)] disabled:opacity-50"
+                  placeholder={getText('settings.newPasswordPlaceholder', 'Введите новый пароль')}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
+                  {getText('settings.confirmPassword', 'Подтвердите пароль')}
+                </label>
+                <input
+                  type="password"
+                  value={passwordData.confirmPassword}
+                  onChange={(e) => setPasswordData(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                  disabled={!isEditing}
+                  className="w-full px-3 py-2 border rounded-lg text-[var(--text-primary)] placeholder-[var(--text-tertiary)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--text-primary)]/20 bg-[var(--bg-tertiary)] border-[var(--border-primary)] disabled:opacity-50"
+                  placeholder={getText('settings.confirmPasswordPlaceholder', 'Повторите новый пароль')}
+                />
+              </div>
+
+              <div>
+                <Button
+                  variant="warning"
+                  onClick={handlePasswordChange}
+                  disabled={!isEditing || !passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword}
+                  isLoading={isSaving}
                 >
-                  {theme === 'dark' ? (
-                    <>
-                      <Icons.Sun className="h-4 w-4" />
-                      {getText('settings.lightTheme', 'Светлая тема')}
-                    </>
-                  ) : (
-                    <>
-                      <Icons.Moon className="h-4 w-4" />
-                      {getText('settings.darkTheme', 'Темная тема')}
-                    </>
-                  )}
-                </button>
-                <span className="text-sm text-[var(--text-tertiary)]">
-                  {getText('settings.currentTheme', 'Текущая')}: {theme === 'dark' ? getText('settings.dark', 'Темная') : getText('settings.light', 'Светлая')}
-                </span>
+                  <Icons.Key className="h-4 w-4 mr-2" />
+                  {getText('settings.changePasswordButton', 'Изменить пароль')}
+                </Button>
               </div>
-            </div>
-
-            {/* Язык интерфейса */}
-            <div>
-              <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
-                {getText('settings.interfaceLanguage', 'Язык интерфейса')}
-              </label>
-              <Select
-                value={formData.language}
-                onChange={(value) => setFormData(prev => ({ ...prev, language: value }))}
-                options={languageOptions}
-                className={!isEditing ? 'opacity-50 pointer-events-none' : ''}
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Социальные сети */}
-        <div className="bg-[var(--bg-card)] rounded-2xl p-6">
-          <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-6">
-            {getText('settings.socialNetworks', 'Социальные сети')}
-          </h3>
-          
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Telegram */}
-            <div>
-              <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
-                {getText('settings.telegram', 'Telegram')}
-              </label>
-              <div className="relative">
-                <Icons.MessageCircle className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-[var(--text-tertiary)]" />
-                <input
-                  type="text"
-                  value={formData.telegramLogin}
-                  onChange={(e) => setFormData(prev => ({ ...prev, telegramLogin: e.target.value }))}
-                  disabled={!isEditing}
-                  className="w-full pl-10 pr-4 py-2 border rounded-lg text-[var(--text-primary)] placeholder-[var(--text-tertiary)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--text-primary)]/20 bg-[var(--bg-tertiary)] border-[var(--border-primary)] disabled:opacity-50"
-                  placeholder={getText('settings.telegramPlaceholder', '@username')}
-                />
-              </div>
-            </div>
-
-            {/* Instagram */}
-            <div>
-              <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
-                {getText('settings.instagram', 'Instagram')}
-              </label>
-              <div className="relative">
-                <Icons.Camera className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-[var(--text-tertiary)]" />
-                <input
-                  type="text"
-                  value={formData.instagramLogin}
-                  onChange={(e) => setFormData(prev => ({ ...prev, instagramLogin: e.target.value }))}
-                  disabled={!isEditing}
-                  className="w-full pl-10 pr-4 py-2 border rounded-lg text-[var(--text-primary)] placeholder-[var(--text-tertiary)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--text-primary)]/20 bg-[var(--bg-tertiary)] border-[var(--border-primary)] disabled:opacity-50"
-                  placeholder={getText('settings.instagramPlaceholder', 'username')}
-                />
-              </div>
-            </div>
-
-            {/* WhatsApp */}
-            <div>
-              <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
-                {getText('settings.whatsapp', 'WhatsApp')}
-              </label>
-              <div className="relative">
-                <Icons.Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-[var(--text-tertiary)]" />
-                <input
-                  type="text"
-                  value={formData.whatsappLogin}
-                  onChange={(e) => setFormData(prev => ({ ...prev, whatsappLogin: e.target.value }))}
-                  disabled={!isEditing}
-                  className="w-full pl-10 pr-4 py-2 border rounded-lg text-[var(--text-primary)] placeholder-[var(--text-tertiary)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--text-primary)]/20 bg-[var(--bg-tertiary)] border-[var(--border-primary)] disabled:opacity-50"
-                  placeholder={getText('settings.whatsappPlaceholder', '+996555123456')}
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Смена пароля */}
-        <div className="bg-[var(--bg-card)] rounded-2xl p-6">
-          <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-6">
-            {getText('settings.changePassword', 'Смена пароля')}
-          </h3>
-          
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
-                {getText('settings.currentPassword', 'Текущий пароль')}
-              </label>
-              <input
-                type="password"
-                value={passwordData.currentPassword}
-                onChange={(e) => setPasswordData(prev => ({ ...prev, currentPassword: e.target.value }))}
-                className="w-full px-3 py-2 border rounded-lg text-[var(--text-primary)] placeholder-[var(--text-tertiary)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--text-primary)]/20 bg-[var(--bg-tertiary)] border-[var(--border-primary)]"
-                placeholder={getText('settings.currentPasswordPlaceholder', 'Введите текущий пароль')}
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
-                {getText('settings.newPassword', 'Новый пароль')}
-              </label>
-              <input
-                type="password"
-                value={passwordData.newPassword}
-                onChange={(e) => setPasswordData(prev => ({ ...prev, newPassword: e.target.value }))}
-                className="w-full px-3 py-2 border rounded-lg text-[var(--text-primary)] placeholder-[var(--text-tertiary)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--text-primary)]/20 bg-[var(--bg-tertiary)] border-[var(--border-primary)]"
-                placeholder={getText('settings.newPasswordPlaceholder', 'Введите новый пароль')}
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
-                {getText('settings.confirmPassword', 'Подтвердите пароль')}
-              </label>
-              <input
-                type="password"
-                value={passwordData.confirmPassword}
-                onChange={(e) => setPasswordData(prev => ({ ...prev, confirmPassword: e.target.value }))}
-                className="w-full px-3 py-2 border rounded-lg text-[var(--text-primary)] placeholder-[var(--text-tertiary)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--text-primary)]/20 bg-[var(--bg-tertiary)] border-[var(--border-primary)]"
-                placeholder={getText('settings.confirmPasswordPlaceholder', 'Повторите новый пароль')}
-              />
-            </div>
-
-            <div className="flex items-end">
-              <Button
-                variant="warning"
-                onClick={handlePasswordChange}
-                disabled={!passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword}
-                isLoading={isSaving}
-              >
-                <Icons.Key className="h-4 w-4 mr-2" />
-                {getText('settings.changePasswordButton', 'Изменить пароль')}
-              </Button>
             </div>
           </div>
         </div>

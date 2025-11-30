@@ -6,7 +6,7 @@ import { getTokenFromRequest, verifyToken } from '@/lib/jwt-middleware'
 const publicRoutes = ['/register', '/login', '/verify-telegram']
 
 // Маршруты, которые требуют аутентификации
-const protectedRoutes = ['/', '/settings', '/students', '/tests']
+const protectedRoutes = ['/', '/settings', '/referrals', '/tests']
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
@@ -19,17 +19,12 @@ export async function proxy(request: NextRequest) {
   
   // Проверяем валидность токена один раз (если он есть)
   let payload = null
+  let isValidToken = false
+  
   if (token) {
     payload = await verifyToken(token)
-  }
-  
-  // Корневой маршрут - редирект только для неавторизованных
-  if (pathname === '/') {
-    if (!payload) {
-      const authUrl = new URL('/login', request.url)
-      return NextResponse.redirect(authUrl)
-    }
-    // Если авторизован, разрешаем доступ к главной странице
+    // Токен валиден, если payload существует и роль = teacher
+    isValidToken = payload !== null && payload.role === 'teacher'
   }
   
   // Проверяем, является ли маршрут защищенным
@@ -43,15 +38,15 @@ export async function proxy(request: NextRequest) {
   )
   
   // Если пользователь пытается попасть на защищенный маршрут без валидного токена
-  if (isProtectedRoute && !payload) {
-    // Для страницы тестов редиректим на логин, для остальных - на регистрацию
-    const redirectUrl = pathname.startsWith('/tests') ? '/login' : '/register'
-    const authUrl = new URL(redirectUrl, request.url)
+  if (isProtectedRoute && !isValidToken) {
+    // Всегда редирект на страницу входа для неавторизованных
+    const authUrl = new URL('/login', request.url)
     return NextResponse.redirect(authUrl)
   }
   
-  // Если пользователь с валидным токеном пытается попасть на публичные страницы
-  if (isPublicRoute && payload && (pathname === '/login' || pathname === '/register')) {
+  // Если авторизованный пользователь пытается попасть на страницы входа/регистрации
+  if (isPublicRoute && isValidToken && (pathname === '/login' || pathname === '/register')) {
+    // Редирект на главную страницу
     const homeUrl = new URL('/', request.url)
     return NextResponse.redirect(homeUrl)
   }

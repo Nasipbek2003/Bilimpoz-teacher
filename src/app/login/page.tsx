@@ -20,25 +20,25 @@ export default function LoginPage() {
   }
   return (
     <div 
-      className="min-h-screen flex items-center justify-center p-4 bg-[var(--bg-primary)]"
+      className="min-h-screen flex items-center justify-center px-4 py-8 sm:p-4 bg-[var(--bg-primary)] overflow-auto"
     >
       {/* Переключатели темы и языка */}
-      <div className="fixed top-4 right-4 z-50 flex items-center gap-3">
+      <div className="fixed top-3 right-3 sm:top-4 sm:right-4 z-50 flex items-center gap-2 sm:gap-3">
         <LanguageSwitcher />
         <ThemeToggle />
       </div>
 
       <div className="w-full max-w-md">
-        <div className="text-center mb-12">
-          <div className="flex items-center justify-center gap-3 mb-4">
-            <div className="w-12 h-12 bg-[var(--text-primary)] rounded-xl flex items-center justify-center">
-              <span className="text-[var(--bg-primary)] font-bold text-2xl">B</span>
+        <div className="text-center mb-8 sm:mb-12">
+          <div className="flex items-center justify-center gap-2 sm:gap-3 mb-3 sm:mb-4">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-[var(--text-primary)] rounded-xl flex items-center justify-center">
+              <span className="text-[var(--bg-primary)] font-bold text-xl sm:text-2xl">B</span>
             </div>
-            <h1 className="text-4xl font-bold text-[var(--text-primary)] tracking-tight">
+            <h1 className="text-2xl sm:text-4xl font-bold text-[var(--text-primary)] tracking-tight">
               Bilimpoz Teachers
             </h1>
           </div>
-          <p className="text-[var(--text-tertiary)]">
+          <p className="text-sm sm:text-base text-[var(--text-tertiary)]">
             {getText('app.platformForTeachers', 'Платформа для преподавателей')}
           </p>
         </div>

@@ -29,6 +29,10 @@
   --accent-secondary: #10b981;
   --accent-danger: #ef4444;
   --accent-warning: #f59e0b;
+  
+  /* Layout */
+  --bottom-nav-height: 64px;
+  --safe-area-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 [data-theme="light"] {
@@ -64,16 +68,20 @@
     border-color: var(--border-primary, #4a5565);
   }
   
+  html, body {
+    height: 100%;
+    overflow: hidden;
+  }
+  
+  html {
+    color-scheme: dark;
+  }
+  
   body {
     background-color: var(--bg-primary);
     color: var(--text-primary);
     font-feature-settings: "rlig" 1, "calt" 1;
     transition: background-color 0.3s ease, color 0.3s ease;
-  }
-  
-  /* Убеждаемся, что html элемент имеет правильный атрибут по умолчанию */
-  html {
-    color-scheme: dark;
   }
   
   html[data-theme="light"] {

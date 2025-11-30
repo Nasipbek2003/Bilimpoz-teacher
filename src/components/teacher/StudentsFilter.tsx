@@ -1,14 +1,11 @@
 'use client'
 
 import React, { useState, useEffect, useMemo } from 'react'
-import { Icons } from '@/components/ui/Icons'
 import Select, { SelectOption } from '@/components/ui/Select'
 import Button from '@/components/ui/Button'
 import { useTranslation } from '@/hooks/useTranslation'
 
 interface StudentsFilterProps {
-  search: string
-  onSearchChange: (search: string) => void
   status: string
   onStatusChange: (status: string) => void
   sortBy: string
@@ -17,8 +14,6 @@ interface StudentsFilterProps {
 }
 
 const StudentsFilter: React.FC<StudentsFilterProps> = ({
-  search,
-  onSearchChange,
   status,
   onStatusChange,
   sortBy,
@@ -60,46 +55,39 @@ const StudentsFilter: React.FC<StudentsFilterProps> = ({
   }
 
   return (
-    <div className="bg-[var(--bg-card)] rounded-2xl p-6 space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-[var(--text-primary)]">{getText('students.filters.title', 'Фильтры')}</h3>
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={onClearFilters}
-        >
-          {getText('students.filters.clear', 'Очистить')}
-        </Button>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Поиск */}
-        <div className="relative">
-          <Icons.Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-[var(--text-tertiary)]" />
-          <input
-            type="text"
-            placeholder={getText('students.filters.searchPlaceholder', 'Поиск по имени...')}
-            value={search}
-            onChange={(e) => onSearchChange(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-[var(--bg-tertiary)] rounded-lg text-[var(--text-primary)] placeholder-[var(--text-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/20 border border-[var(--border-primary)]"
+    <div className="bg-[var(--bg-card)] rounded-2xl p-4 sm:p-6 relative z-20">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4">
+        {/* Статус */}
+        <div className="relative z-40 flex-1">
+          <Select
+            value={status}
+            onChange={onStatusChange}
+            options={statusOptions}
+            placeholder={getText('students.filters.statusPlaceholder', 'Выберите статус')}
           />
         </div>
 
-        {/* Статус */}
-        <Select
-          value={status}
-          onChange={onStatusChange}
-          options={statusOptions}
-          placeholder={getText('students.filters.statusPlaceholder', 'Выберите статус')}
-        />
-
         {/* Сортировка */}
-        <Select
-          value={sortBy}
-          onChange={onSortByChange}
-          options={sortOptions}
-          placeholder={getText('students.filters.sortPlaceholder', 'Сортировать по')}
-        />
+        <div className="relative z-30 flex-1">
+          <Select
+            value={sortBy}
+            onChange={onSortByChange}
+            options={sortOptions}
+            placeholder={getText('students.filters.sortPlaceholder', 'Сортировать по')}
+          />
+        </div>
+
+        {/* Кнопка Очистить */}
+        <div className="flex-shrink-0">
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={onClearFilters}
+            className="w-full sm:w-auto"
+          >
+            {getText('students.filters.clear', 'Очистить')}
+          </Button>
+        </div>
       </div>
     </div>
   )

@@ -7,7 +7,6 @@ export interface JWTPayload {
   userId: string
   login: string
   role: string
-  telegramId: string | null
   iat?: number
   exp?: number
 }

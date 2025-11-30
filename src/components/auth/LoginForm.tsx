@@ -146,17 +146,17 @@ export default function LoginForm() {
   }
 
   return (
-    <div className="bg-[var(--bg-card)] rounded-3xl p-8">
-      <div className="text-center mb-8">
-        <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-2">
+    <div className="bg-[var(--bg-card)] rounded-2xl sm:rounded-3xl p-5 sm:p-8">
+      <div className="text-center mb-6 sm:mb-8">
+        <h2 className="text-xl sm:text-2xl font-bold text-[var(--text-primary)] mb-1 sm:mb-2">
           {getText('auth.loginForm.welcome', 'Добро пожаловать!')}
         </h2>
-        <p className="text-[var(--text-tertiary)]">
+        <p className="text-sm sm:text-base text-[var(--text-tertiary)]">
           {getText('auth.loginForm.subtitle', 'Войдите в свой аккаунт преподавателя')}
         </p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
         {errors.general && (
           <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3">
             <p className="text-red-400 text-sm">{errors.general}</p>
@@ -164,7 +164,7 @@ export default function LoginForm() {
         )}
 
         <div>
-          <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
+          <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1.5 sm:mb-2">
             {getText('auth.loginForm.login', 'Логин')}
           </label>
           <Input
@@ -178,7 +178,7 @@ export default function LoginForm() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
+          <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1.5 sm:mb-2">
             {getText('auth.loginForm.password', 'Пароль')}
           </label>
           <div className="relative">
@@ -223,7 +223,7 @@ export default function LoginForm() {
         </Button>
       </form>
 
-      <div className="mt-6 text-center">
+      <div className="mt-5 sm:mt-6 text-center">
         <p className="text-[var(--text-tertiary)] text-sm">
           {getText('auth.loginForm.noAccount', 'Нет аккаунта?')}{' '}
           <button

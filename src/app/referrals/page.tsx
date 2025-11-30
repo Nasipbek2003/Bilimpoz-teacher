@@ -6,6 +6,7 @@ import StatCard from '@/components/teacher/StatCard'
 import StudentsFilter from '@/components/teacher/StudentsFilter'
 import StudentCard from '@/components/teacher/StudentCard'
 import ReferralSystem from '@/components/teacher/ReferralSystem'
+import InviteMethods from '@/components/teacher/InviteMethods'
 import { Icons } from '@/components/ui/Icons'
 import { useTranslation } from '@/hooks/useTranslation'
 import { StudentsPageSkeleton } from '@/components/ui/PageSkeletons'
@@ -37,7 +38,6 @@ export default function ReferralsPage() {
   const { t, ready } = useTranslation()
   const [mounted, setMounted] = useState(false)
   const [loading, setLoading] = useState(true)
-  const [search, setSearch] = useState('')
   const [status, setStatus] = useState('all')
   const [sortBy, setSortBy] = useState('name')
   const [referralData, setReferralData] = useState<ReferralData | null>(null)
@@ -92,8 +92,6 @@ export default function ReferralsPage() {
   // Фильтрация и сортировка рефералов
   const filteredAndSortedStudents = students
     .filter(student => {
-      const matchesSearch = student.name.toLowerCase().includes(search.toLowerCase())
-      
       // Фильтрация по статусу реферала
       let matchesStatus = true
       if (status === 'registered') {
@@ -106,7 +104,7 @@ export default function ReferralsPage() {
         matchesStatus = student.status === status
       }
       
-      return matchesSearch && matchesStatus
+      return matchesStatus
     })
     .sort((a, b) => {
       switch (sortBy) {
@@ -126,7 +124,6 @@ export default function ReferralsPage() {
     })
 
   const handleClearFilters = () => {
-    setSearch('')
     setStatus('all')
     setSortBy('name')
   }
@@ -136,11 +133,34 @@ export default function ReferralsPage() {
     // Здесь можно открыть модальное окно с деталями
   }
 
-  const handleCopyLink = () => {
+  const handleCopyLink = async () => {
     if (referralData?.referralLink) {
-      navigator.clipboard.writeText(referralData.referralLink)
-      console.log('Ссылка скопирована в буфер обмена')
-      // TODO: показать toast уведомление
+      try {
+        // Проверяем доступность Clipboard API
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(referralData.referralLink)
+        } else {
+          // Fallback для мобильных устройств и небезопасных контекстов
+          const textArea = document.createElement('textarea')
+          textArea.value = referralData.referralLink
+          textArea.style.position = 'fixed'
+          textArea.style.left = '-9999px'
+          textArea.style.top = '-9999px'
+          document.body.appendChild(textArea)
+          textArea.focus()
+          textArea.select()
+          
+          try {
+            document.execCommand('copy')
+          } finally {
+            document.body.removeChild(textArea)
+          }
+        }
+        console.log('Ссылка скопирована в буфер обмена')
+        // TODO: показать toast уведомление
+      } catch (err) {
+        console.error('Ошибка копирования:', err)
+      }
     }
   }
 
@@ -160,14 +180,14 @@ export default function ReferralsPage() {
   if (error) {
     return (
       <TeacherLayout>
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="text-center">
-            <Icons.AlertCircle className="mx-auto h-12 w-12 text-red-500 mb-4" />
-            <h3 className="text-lg font-medium text-white mb-2">Ошибка загрузки</h3>
-            <p className="text-gray-400 mb-4">{error}</p>
+        <div className="flex items-center justify-center min-h-[300px] sm:min-h-[400px] px-4">
+          <div className="text-center max-w-md">
+            <Icons.AlertCircle className="mx-auto h-10 w-10 sm:h-12 sm:w-12 text-red-500 mb-4" />
+            <h3 className="text-base sm:text-lg font-medium text-white mb-2">Ошибка загрузки</h3>
+            <p className="text-sm sm:text-base text-gray-400 mb-4">{error}</p>
             <button
               onClick={loadReferralData}
-              className="px-4 py-2 bg-[var(--bg-active-button)] text-white rounded-lg hover:bg-[var(--bg-hover)] transition-colors"
+              className="px-4 py-2 bg-[var(--bg-active-button)] text-white rounded-lg hover:bg-[var(--bg-hover)] transition-colors text-sm sm:text-base"
             >
               Попробовать снова
             </button>
@@ -180,24 +200,23 @@ export default function ReferralsPage() {
   // Fallback текст для предотвращения ошибок гидратации
   const getText = (key: string, fallback: string) => {
     if (!mounted || !ready) return fallback
-    return t(key)
+    const translation = t(key)
+    // Если перевод вернул ключ (не найден), используем fallback
+    return translation === key ? fallback : translation
   }
 
   return (
     <TeacherLayout>
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6 max-w-full">
         {/* Заголовок страницы */}
         <div>
-          <h1 className="text-2xl font-bold text-white mb-2">
+          <h1 className="text-xl sm:text-2xl font-bold text-white mb-2">
             {getText('students.title', 'Ученики')}
           </h1>
-          <p className="text-gray-400">
-            {getText('students.description', 'Управление учениками и приглашение новых через реферальную систему')}
-          </p>
         </div>
 
         {/* Статистические карточки */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 w-full">
           <StatCard
             title={getText('students.stats.total', 'Всего участников')}
             value={stats.total}
@@ -225,6 +244,9 @@ export default function ReferralsPage() {
         </div>
 
         {/* Реферальная система */}
+        <h1 className="text-xl sm:text-2xl font-bold text-white mb-2">
+          {getText('students.referral.title', 'Реферальная система')}
+        </h1>
         {referralData && (
           <ReferralSystem
             referralLink={referralData.referralLink}
@@ -234,10 +256,19 @@ export default function ReferralsPage() {
           />
         )}
 
+        {/* Способы приглашения */}
+        <h1 className="text-xl sm:text-2xl font-bold text-white mb-2">
+          {getText('students.referral.inviteMethods', 'Способы приглашения')}
+        </h1>
+        {referralData && (
+          <InviteMethods referralLink={referralData.referralLink} />
+        )}
+
         {/* Фильтры */}
+        <h1 className="text-xl sm:text-2xl font-bold text-white mb-2">
+          {getText('students.filters.title', 'Фильтры')}
+        </h1>
         <StudentsFilter
-          search={search}
-          onSearchChange={setSearch}
           status={status}
           onStatusChange={setStatus}
           sortBy={sortBy}
@@ -246,23 +277,26 @@ export default function ReferralsPage() {
         />
 
         {/* Список рефералов */}
+        <h1 className="text-xl sm:text-2xl font-bold text-white mb-2">
+          {getText('students.myReferrals', 'Мои рефералы')}
+        </h1>
         <div className="space-y-4">
           {filteredAndSortedStudents.length === 0 ? (
-            <div className="bg-[var(--bg-card)] rounded-2xl p-12 text-center">
-              <Icons.Users className="mx-auto h-12 w-12 text-[var(--text-tertiary)] mb-4" />
-              <h3 className="text-lg font-medium text-[var(--text-primary)] mb-2">
+            <div className="bg-[var(--bg-card)] rounded-2xl p-8 sm:p-12 text-center">
+              <Icons.Users className="mx-auto h-10 w-10 sm:h-12 sm:w-12 text-[var(--text-tertiary)] mb-4" />
+              <h3 className="text-base sm:text-lg font-medium text-[var(--text-primary)] mb-2">
                 {getText('students.empty.title', 'Нет рефералов')}
               </h3>
-              <p className="text-[var(--text-tertiary)] mb-4">
-                {search || status !== 'all' 
+              <p className="text-sm sm:text-base text-[var(--text-tertiary)] mb-4">
+                {status !== 'all' 
                   ? getText('students.empty.noResults', 'По выбранным фильтрам рефералы не найдены')
                   : getText('students.empty.noStudents', 'Пока нет рефералов. Пригласите первого реферала!')
                 }
               </p>
-              {!search && status === 'all' && (
+              {status === 'all' && (
                 <button
                   onClick={handleInviteStudent}
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-[var(--bg-active-button)] text-[var(--text-active-button)] rounded-lg font-medium hover:bg-[var(--bg-hover)] transition-colors"
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-[var(--bg-active-button)] text-[var(--text-active-button)] rounded-lg font-medium hover:bg-[var(--bg-hover)] transition-colors text-sm sm:text-base"
                 >
                   <Icons.Plus className="h-4 w-4" />
                   {getText('students.empty.inviteButton', 'Пригласить реферала')}
@@ -284,21 +318,23 @@ export default function ReferralsPage() {
 
         {/* Пагинация */}
         {filteredAndSortedStudents.length > 0 && (
-          <div className="flex items-center justify-center gap-2">
+          <div className="flex items-center justify-center gap-2 sm:gap-2 pb-[calc(var(--bottom-nav-height)+var(--safe-area-bottom)+16px)] lg:pb-0">
             <button 
               disabled 
-              className="px-3 py-2 bg-[var(--bg-tertiary)] rounded-lg text-[var(--text-tertiary)] opacity-50 cursor-not-allowed"
+              className="px-3 sm:px-4 py-2 sm:py-2.5 bg-[var(--bg-tertiary)] rounded-lg text-[var(--text-tertiary)] opacity-50 cursor-not-allowed text-sm sm:text-base"
             >
-              {getText('students.pagination.previous', 'Предыдущая')}
+              <span className="hidden sm:inline">{getText('students.pagination.previous', 'Предыдущая')}</span>
+              <span className="sm:hidden">{getText('students.pagination.prev', 'Пред')}</span>
             </button>
-            <button className="px-3 py-2 bg-[var(--bg-active-button)] text-[var(--text-active-button)] rounded-lg font-medium">
+            <button className="px-3.5 sm:px-4 py-2 sm:py-2.5 bg-[var(--bg-active-button)] text-[var(--text-active-button)] rounded-lg font-medium text-sm sm:text-base min-w-[36px] sm:min-w-[44px]">
               1
             </button>
             <button 
               disabled 
-              className="px-3 py-2 bg-[var(--bg-tertiary)] rounded-lg text-[var(--text-tertiary)] opacity-50 cursor-not-allowed"
+              className="px-3 sm:px-4 py-2 sm:py-2.5 bg-[var(--bg-tertiary)] rounded-lg text-[var(--text-tertiary)] opacity-50 cursor-not-allowed text-sm sm:text-base"
             >
-              {getText('students.pagination.next', 'Следующая')}
+              <span className="hidden sm:inline">{getText('students.pagination.next', 'Следующая')}</span>
+              <span className="sm:hidden">{getText('students.pagination.next_short', 'След')}</span>
             </button>
           </div>
         )}

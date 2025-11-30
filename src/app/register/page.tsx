@@ -20,7 +20,7 @@ export default function RegisterPage() {
   }
   return (
     <div 
-      className="min-h-screen flex items-center justify-center p-4 bg-[var(--bg-primary)]"
+      className="h-screen flex items-center justify-center p-4 bg-[var(--bg-primary)] overflow-auto"
     >
       {/* Переключатели темы и языка */}
       <div className="fixed top-4 right-4 z-50 flex items-center gap-3">

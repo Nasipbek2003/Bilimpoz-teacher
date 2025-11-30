@@ -3,19 +3,17 @@
 import React, { useState } from 'react'
 import Header from './Header'
 import Sidebar from './Sidebar'
+import BottomNav from './BottomNav'
 import VerificationModal from './VerificationModal'
 import { useAuth } from '@/contexts/AuthContext'
-import { useRouter } from 'next/navigation'
 
 interface TeacherLayoutProps {
   children: React.ReactNode
 }
 
 const TeacherLayout: React.FC<TeacherLayoutProps> = ({ children }) => {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [isVerificationModalOpen, setIsVerificationModalOpen] = useState(false)
   const { user, logout } = useAuth()
-  const router = useRouter()
 
   // Проверяем статус пользователя при загрузке
   React.useEffect(() => {
@@ -32,14 +30,6 @@ const TeacherLayout: React.FC<TeacherLayoutProps> = ({ children }) => {
       }
     }
   }, [user, logout])
-
-  const handleMenuToggle = () => {
-    setIsSidebarOpen(!isSidebarOpen)
-  }
-
-  const handleSidebarClose = () => {
-    setIsSidebarOpen(false)
-  }
 
   const handleGoToChat = async () => {
     try {
@@ -79,22 +69,27 @@ const TeacherLayout: React.FC<TeacherLayoutProps> = ({ children }) => {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--bg-primary)]">
+    <div className="h-screen bg-[var(--bg-primary)] overflow-hidden flex flex-col">
       {/* Header */}
-      <div className="p-2 sm:p-3 md:p-4 pb-0">
-        <Header onMenuToggle={handleMenuToggle} />
+      <div className="flex-shrink-0 p-2 sm:p-3 md:p-4 pb-0">
+        <Header />
       </div>
 
       {/* Main Container with Sidebar and Content */}
-      <div className="flex flex-col lg:flex-row h-[calc(100vh-4rem)] sm:h-[calc(100vh-4.5rem)] md:h-[calc(100vh-5rem)] p-2 sm:p-3 md:p-4 pt-3 sm:pt-4 md:pt-6 gap-2 sm:gap-3 md:gap-4 bg-[var(--bg-primary)]">
-        {/* Sidebar */}
-        <Sidebar isOpen={isSidebarOpen} onClose={handleSidebarClose} />
+      <div className="flex-1 flex flex-col lg:flex-row min-h-0 p-2 sm:p-3 md:p-4 pt-3 sm:pt-4 md:pt-6 gap-2 sm:gap-3 md:gap-4 bg-[var(--bg-primary)] pb-[calc(var(--bottom-nav-height)+var(--safe-area-bottom)+8px)] lg:pb-4">
+        {/* Sidebar - только для десктопа */}
+        <div className="hidden lg:block">
+          <Sidebar isOpen={false} onClose={() => {}} />
+        </div>
 
         {/* Main Content */}
-        <main className="flex-1 overflow-y-auto bg-[var(--bg-main-container)] rounded-xl md:rounded-2xl p-3 sm:p-4 md:p-6">
+        <main className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden bg-[var(--bg-main-container)] rounded-xl md:rounded-2xl p-3 sm:p-4 md:p-6">
           {children}
         </main>
       </div>
+
+      {/* Bottom Navigation - только для мобильных */}
+      <BottomNav />
 
       {/* Verification Modal */}
       <VerificationModal
