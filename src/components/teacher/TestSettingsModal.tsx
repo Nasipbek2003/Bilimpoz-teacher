@@ -48,6 +48,10 @@ const TestSettingsModal: React.FC<TestSettingsModalProps> = ({
     variant: 'success'
   })
 
+  const closeToast = () => {
+    setToast(prev => ({ ...prev, isOpen: false }))
+  }
+
   const nameRef = useRef<HTMLDivElement>(null)
   const descriptionRef = useRef<HTMLDivElement>(null)
 
@@ -282,7 +286,7 @@ const TestSettingsModal: React.FC<TestSettingsModalProps> = ({
       {/* Toast уведомления */}
       <Toast
         isOpen={toast.isOpen}
-        onClose={() => setToast({ ...toast, isOpen: false })}
+        onClose={closeToast}
         title={toast.title}
         message={toast.message}
         variant={toast.variant}

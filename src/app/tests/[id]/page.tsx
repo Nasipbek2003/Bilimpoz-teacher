@@ -75,6 +75,14 @@ interface Question {
   type: QuestionType
   question?: string
   order?: number
+  points?: number
+  timeLimit?: number
+  photoUrl?: string
+  answerVariants?: Array<{
+    id?: string
+    value: string
+    isCorrect: boolean
+  }>
 }
 
 interface TestFormErrors {
@@ -95,6 +103,7 @@ export default function TestEditorPage() {
   const descriptionRef = useRef<HTMLDivElement>(null)
   const languageRef = useRef<HTMLDivElement>(null)
   const questionsRef = useRef<HTMLDivElement>(null)
+  const prevQuestionsLengthRef = useRef<number>(0)
 
   const [mounted, setMounted] = useState(false)
   const [test, setTest] = useState<Test | null>(null)
@@ -189,7 +198,7 @@ export default function TestEditorPage() {
           if (error.includes('Не выбран правильный ответ')) {
             isFixed = hasCorrectAnswer && validAnswers.length > 0
           } else if (error.includes('Текст вопроса не заполнен')) {
-            isFixed = hasQuestionText
+            isFixed = !!hasQuestionText
           } else if (error.includes('Необходимо минимум 2 варианта ответа')) {
             isFixed = hasMinAnswers
           } else if (error.includes('Данные вопроса не найдены')) {
@@ -563,7 +572,7 @@ export default function TestEditorPage() {
             answers: questionData.answers,
             imageUrl: questionData.imageUrl
           },
-          courseLanguage: testLanguage,
+          courseLanguage: test?.language || formData.language,
           testType: question.type
         })
       })
@@ -603,7 +612,7 @@ export default function TestEditorPage() {
     // Проверяем все textarea на странице, чтобы найти активное выделение
     const allTextareas = document.querySelectorAll('textarea')
     
-    for (const textarea of allTextareas) {
+    for (const textarea of Array.from(allTextareas)) {
       const htmlTextarea = textarea as HTMLTextAreaElement
       const start = htmlTextarea.selectionStart
       const end = htmlTextarea.selectionEnd
@@ -964,6 +973,14 @@ export default function TestEditorPage() {
             }
           } else {
             console.error('Ошибка загрузки теста:', result.error)
+            
+            // Если тест не найден, перенаправляем на страницу списка тестов
+            if (result.error === 'Тест не найден' || result.error === 'Test not found') {
+              showToast('Тест был удален', 'error')
+              router.push('/tests')
+              return
+            }
+            
             showToast('Ошибка загрузки теста', 'error')
           }
         }
@@ -1004,6 +1021,10 @@ export default function TestEditorPage() {
 
   const showToast = (message: string, variant: ToastVariant, title?: string) => {
     setToast({ isOpen: true, title, message, variant })
+  }
+
+  const closeToast = () => {
+    setToast(prev => ({ ...prev, isOpen: false }))
   }
 
   // Сохранение теста (для модального окна настроек)
@@ -1488,14 +1509,46 @@ export default function TestEditorPage() {
           const isNewQuestion = isTempId(question.id)
           
           // Получаем данные вопроса из localStorage
-          const questionData = loadQuestionDraft(question.id, question.type)
+          let questionData = loadQuestionDraft(question.id, question.type)
           
           if (!questionData) {
-            console.warn(`Данные вопроса ${question.id} не найдены в localStorage после валидации`)
-            // Если данные не найдены после валидации, это ошибка
-            // Валидация должна была проверить наличие данных
-            errorCount++
-            continue
+            console.error(`Данные вопроса ${question.id} (тип: ${question.type}) не найдены в localStorage`)
+            console.log('Доступные ключи localStorage:', Object.keys(localStorage).filter(key => 
+              key.startsWith('TestStandard_') || 
+              key.startsWith('TestAnalogy_') || 
+              key.startsWith('TestGrammar_') || 
+              key.startsWith('TestMath1_') || 
+              key.startsWith('TestMath2_') || 
+              key.startsWith('TestRac_')
+            ))
+            
+            // Попробуем найти данные по всем возможным префиксам
+            const prefixes = ['TestStandard_', 'TestAnalogy_', 'TestGrammar_', 'TestMath1_', 'TestMath2_', 'TestRac_']
+            let foundData = null
+            for (const prefix of prefixes) {
+              const key = `${prefix}${question.id}`
+              const data = localStorage.getItem(key)
+              if (data) {
+                console.log(`Найдены данные по ключу ${key}`)
+                try {
+                  foundData = JSON.parse(data)
+                  break
+                } catch (e) {
+                  console.error(`Ошибка парсинга данных по ключу ${key}:`, e)
+                }
+              }
+            }
+            
+            if (!foundData) {
+              console.error(`Данные вопроса ${question.id} не найдены ни по одному префиксу`)
+              validationErrors.push(`Вопрос ${question.id}: Данные не найдены`)
+              errorCount++
+              continue
+            } else {
+              console.log(`Используем найденные данные для вопроса ${question.id}`)
+              // Используем найденные данные
+              questionData = foundData
+            }
           }
           
           // Проверяем, изменился ли вопрос
@@ -1507,8 +1560,44 @@ export default function TestEditorPage() {
             continue
           }
           
+          // Валидируем данные вопроса перед отправкой
+          if (!questionData.question || !questionData.question.trim()) {
+            console.error(`Вопрос ${question.id}: Текст вопроса пустой`)
+            validationErrors.push(`Вопрос ${question.id}: Текст вопроса не заполнен`)
+            errorCount++
+            continue
+          }
+          
           // Получаем валидные ответы
           const validAnswers = questionData.answers?.filter(a => a.value && a.value.trim()) || []
+          
+          if (validAnswers.length < 2) {
+            console.error(`Вопрос ${question.id}: Недостаточно вариантов ответа (${validAnswers.length})`)
+            validationErrors.push(`Вопрос ${question.id}: Нужно минимум 2 варианта ответа`)
+            errorCount++
+            continue
+          }
+          
+          if (!validAnswers.some(a => a.isCorrect)) {
+            console.error(`Вопрос ${question.id}: Не выбран правильный ответ`)
+            validationErrors.push(`Вопрос ${question.id}: Выберите правильный ответ`)
+            errorCount++
+            continue
+          }
+          
+          if (!questionData.points || questionData.points <= 0) {
+            console.error(`Вопрос ${question.id}: Не указаны баллы`)
+            validationErrors.push(`Вопрос ${question.id}: Укажите количество баллов`)
+            errorCount++
+            continue
+          }
+          
+          if (!questionData.timeLimit || questionData.timeLimit <= 0) {
+            console.error(`Вопрос ${question.id}: Не указано время`)
+            validationErrors.push(`Вопрос ${question.id}: Укажите время на ответ`)
+            errorCount++
+            continue
+          }
           
           console.log(`Сохраняем вопрос ${question.id}, новый: ${isNewQuestion}, изменен: ${isModified}`)
           
@@ -1645,18 +1734,17 @@ export default function TestEditorPage() {
         // Перезагружаем актуальные данные из БД после успешного сохранения
         console.log('Вопросы успешно сохранены/удалены, перезагружаем из БД')
         await reloadQuestionsFromDB()
-        
-        // Принудительно обновляем страницу для гарантии отображения актуальных данных
-        window.location.reload()
       } else if (errorCount > 0) {
         // Если есть только ошибки и нет успешных операций
         if (validationErrors.length > 0) {
-          const errorMessage = validationErrors.join('\n')
-          showToast(errorMessage, 'error')
+          const errorMessage = validationErrors.slice(0, 3).join('\n') + 
+            (validationErrors.length > 3 ? `\n...и еще ${validationErrors.length - 3} ошибок` : '')
+          showToast(errorMessage, 'error', 'Ошибки валидации')
         } else {
           showToast(
-            getText('tests.saveQuestionsError', `Ошибка при сохранении вопросов: ${errorCount}`),
-            'error'
+            getText('tests.saveQuestionsError', `Не удалось сохранить ${errorCount} вопросов. Проверьте заполнение всех полей.`),
+            'error',
+            'Ошибка сохранения'
           )
         }
         setIsSubmitting(false)
@@ -1697,6 +1785,36 @@ export default function TestEditorPage() {
     
     // Новые вопросы НЕ добавляются в originalQuestionsFromDB, так как они еще не в БД
   }
+
+  // Инициализация prevQuestionsLengthRef при первой загрузке
+  useEffect(() => {
+    if (mounted && prevQuestionsLengthRef.current === 0 && questions.length > 0) {
+      prevQuestionsLengthRef.current = questions.length
+    }
+  }, [mounted, questions.length])
+
+  // Автоматическая прокрутка к последнему вопросу при добавлении нового
+  useEffect(() => {
+    // Прокручиваем только если количество вопросов увеличилось (добавлен новый вопрос)
+    // и компонент уже смонтирован (чтобы не прокручивать при первой загрузке)
+    if (mounted && questions.length > prevQuestionsLengthRef.current && questions.length > 0) {
+      // Небольшая задержка для того, чтобы DOM обновился
+      setTimeout(() => {
+        const lastQuestion = document.querySelector(`[data-question-id="${questions[questions.length - 1].id}"]`)
+        if (lastQuestion) {
+          lastQuestion.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'end',
+            inline: 'nearest'
+          })
+        }
+      }, 100)
+    }
+    // Обновляем предыдущую длину
+    if (mounted) {
+      prevQuestionsLengthRef.current = questions.length
+    }
+  }, [mounted, questions.length, questions])
 
   // Удаление вопроса
   const handleDeleteQuestion = async (questionId: string) => {
@@ -1811,7 +1929,7 @@ export default function TestEditorPage() {
 
         {/* Вопросы */}
         <div className="bg-[var(--bg-card)] rounded-2xl transition-colors">
-          <div className="p-8 space-y-8" ref={questionsRef}>
+          <div className="p-2 sm:p-4 md:p-6 lg:p-8 space-y-4 sm:space-y-6 md:space-y-8" ref={questionsRef}>
             {questions.length === 0 ? (
               <div className="flex flex-col items-center justify-center gap-4 py-12">
                 <div className="w-16 h-16 rounded-full bg-gray-800 flex items-center justify-center flex-shrink-0">
@@ -1827,9 +1945,9 @@ export default function TestEditorPage() {
                 </div>
               </div>
             ) : (
-              <div className="space-y-6">
+              <div className="space-y-4 sm:space-y-6">
                 {questions.map((question, index) => (
-                  <div key={question.id} data-question-id={question.id} className="bg-[var(--bg-tertiary)] rounded-xl p-6 space-y-6 transition-colors">
+                  <div key={question.id} data-question-id={question.id} className="bg-[var(--bg-tertiary)] rounded-xl p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6 transition-colors">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
@@ -1896,7 +2014,7 @@ export default function TestEditorPage() {
                     
                     {/* Предупреждения валидации */}
                     {showValidationWarnings && questionWarnings[question.id] && questionWarnings[question.id].length > 0 && (
-                      <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4">
+                      <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3 sm:p-4">
                         <div className="flex items-start gap-3">
                           <Icons.AlertTriangle className="h-5 w-5 text-yellow-400 flex-shrink-0 mt-0.5" />
                           <div className="flex-1">
@@ -2014,7 +2132,7 @@ export default function TestEditorPage() {
 
         {/* Кнопки сохранения и отмены */}
         {questions.length > 0 && (
-          <div className="bg-[var(--bg-card)] rounded-2xl p-6 mt-6 transition-colors">
+          <div className="bg-[var(--bg-card)] rounded-2xl p-3 sm:p-4 md:p-6 mt-4 sm:mt-6 transition-colors">
             <div className="flex justify-end gap-3">
               <Button
                 type="button"
@@ -2049,7 +2167,7 @@ export default function TestEditorPage() {
         title={toast.title}
         message={toast.message}
         variant={toast.variant}
-        onClose={() => setToast(prev => ({ ...prev, isOpen: false }))}
+        onClose={closeToast}
       />
 
       {/* Модальное окно настроек теста */}
@@ -2063,7 +2181,7 @@ export default function TestEditorPage() {
 
       {/* Плавающая панель инструментов */}
       {questions.length > 0 && (
-        <div className="hidden lg:block fixed bottom-4 left-[50%] lg:left-[calc(50%+80px)] -translate-x-1/2 z-50">
+        <div className="fixed bottom-[calc(var(--bottom-nav-height)+var(--safe-area-bottom)+16px)] lg:bottom-4 left-1/2 -translate-x-1/2 lg:left-[calc(50%+80px)] z-50">
           <TestToolbar 
             onFormat={handleFormat} 
             isPreviewMode={isPreviewMode} 

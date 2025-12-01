@@ -101,6 +101,10 @@ const CreateQuestionModal: React.FC<CreateQuestionModalProps> = ({
     message: '',
     variant: 'success'
   })
+
+  const closeToast = () => {
+    setToast(prev => ({ ...prev, isOpen: false }))
+  }
   
   // Состояние для модального окна предпросмотра LaTeX
   const [isLatexPreviewOpen, setIsLatexPreviewOpen] = useState(false)
@@ -1038,7 +1042,7 @@ const CreateQuestionModal: React.FC<CreateQuestionModalProps> = ({
       {/* Toast уведомления */}
       <Toast
         isOpen={toast.isOpen}
-        onClose={() => setToast({ ...toast, isOpen: false })}
+        onClose={closeToast}
         title={toast.title}
         message={toast.message}
         variant={toast.variant}

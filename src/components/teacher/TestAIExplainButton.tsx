@@ -48,6 +48,10 @@ const TestAIExplainButton: React.FC<TestAIExplainButtonProps> = ({
     variant: 'error'
   })
 
+  const closeToast = () => {
+    setToast(prev => ({ ...prev, isOpen: false }))
+  }
+
   // Монтирование компонента
   useEffect(() => {
     setMounted(true)
@@ -322,7 +326,7 @@ const TestAIExplainButton: React.FC<TestAIExplainButtonProps> = ({
       </Tooltip>
       <Toast
         isOpen={toast.isOpen}
-        onClose={() => setToast({ ...toast, isOpen: false })}
+        onClose={closeToast}
         title={toast.title}
         message={toast.message}
         variant={toast.variant}

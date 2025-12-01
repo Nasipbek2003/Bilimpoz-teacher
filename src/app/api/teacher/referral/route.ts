@@ -70,12 +70,14 @@ export async function GET(request: NextRequest) {
     const registeredReferrals = referrals.filter(r => 
       r.status === 'registered' || r.status === 'paid' || r.status === 'referral_paid'
     ).length
-    const paidReferrals = referrals.filter(r => 
-      r.status === 'paid' || r.status === 'referral_paid'
-    ).length
-    const adminPaidReferrals = referrals.filter(r => 
-      r.status === 'referral_paid'
-    ).length
+    const paidReferrals = referrals.filter(r => {
+      const status = r.status as 'paid' | 'referral_paid' | 'registered'
+      return status === 'paid' || status === 'referral_paid'
+    }).length
+    const adminPaidReferrals = referrals.filter(r => {
+      const status = r.status as 'paid' | 'referral_paid' | 'registered'
+      return status === 'referral_paid'
+    }).length
 
     return NextResponse.json({
       referralLink: fullReferralLink, // Отправляем полную ссылку на фронтенд

@@ -6,6 +6,7 @@ import Sidebar from './Sidebar'
 import BottomNav from './BottomNav'
 import VerificationModal from './VerificationModal'
 import { useAuth } from '@/contexts/AuthContext'
+import { useIOSSafariAutoHide } from '@/hooks/useIOSSafariAutoHide'
 
 interface TeacherLayoutProps {
   children: React.ReactNode
@@ -14,6 +15,9 @@ interface TeacherLayoutProps {
 const TeacherLayout: React.FC<TeacherLayoutProps> = ({ children }) => {
   const [isVerificationModalOpen, setIsVerificationModalOpen] = useState(false)
   const { user, logout } = useAuth()
+  
+  // Автоматически скрываем адресную строку на iOS Safari
+  useIOSSafariAutoHide()
 
   // Проверяем статус пользователя при загрузке
   React.useEffect(() => {
@@ -69,21 +73,21 @@ const TeacherLayout: React.FC<TeacherLayoutProps> = ({ children }) => {
   }
 
   return (
-    <div className="h-screen bg-[var(--bg-primary)] overflow-hidden flex flex-col">
-      {/* Header */}
-      <div className="flex-shrink-0 p-2 sm:p-3 md:p-4 pb-0">
+    <div className="min-h-screen min-h-[-webkit-fill-available] bg-[var(--bg-primary)] flex flex-col lg:relative">
+      {/* Header - sticky на десктопе */}
+      <div className="flex-shrink-0 p-2 sm:p-3 md:p-4 pb-0 lg:sticky lg:top-0 lg:z-40 bg-[var(--bg-primary)]">
         <Header />
       </div>
 
-      {/* Main Container with Sidebar and Content */}
-      <div className="flex-1 flex flex-col lg:flex-row min-h-0 p-2 sm:p-3 md:p-4 pt-3 sm:pt-4 md:pt-6 gap-2 sm:gap-3 md:gap-4 bg-[var(--bg-primary)] pb-[calc(var(--bottom-nav-height)+var(--safe-area-bottom)+8px)] lg:pb-4">
-        {/* Sidebar - только для десктопа */}
-        <div className="hidden lg:block">
-          <Sidebar isOpen={false} onClose={() => {}} />
-        </div>
+      {/* Sidebar - фиксированный на десктопе */}
+      <div className="hidden lg:block lg:fixed lg:left-4 lg:top-24 lg:z-30 lg:w-64">
+        <Sidebar isOpen={false} onClose={() => {}} />
+      </div>
 
+      {/* Main Container with Content */}
+      <div className="flex-1 p-2 sm:p-3 md:p-4 pt-3 sm:pt-4 md:pt-6 bg-[var(--bg-primary)] pb-[calc(var(--bottom-nav-height)+var(--safe-area-bottom)+8px)] lg:pb-4 lg:ml-72">
         {/* Main Content */}
-        <main className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden bg-[var(--bg-main-container)] rounded-xl md:rounded-2xl p-3 sm:p-4 md:p-6">
+        <main className="overflow-y-auto overflow-x-hidden bg-[var(--bg-main-container)] rounded-xl md:rounded-2xl p-1 sm:p-2 md:p-4 lg:p-6 -webkit-overflow-scrolling-touch">
           {children}
         </main>
       </div>

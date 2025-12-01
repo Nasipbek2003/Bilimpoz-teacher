@@ -51,6 +51,10 @@ export default function SettingsPage() {
     variant: 'success'
   })
 
+  const closeToast = () => {
+    setToast(prev => ({ ...prev, isOpen: false }))
+  }
+
   useEffect(() => {
     setMounted(true)
     loadUserProfile()
@@ -567,7 +571,7 @@ export default function SettingsPage() {
       {/* Toast уведомления */}
       <Toast
         isOpen={toast.isOpen}
-        onClose={() => setToast({ ...toast, isOpen: false })}
+        onClose={closeToast}
         title={toast.title}
         message={toast.message}
         variant={toast.variant}

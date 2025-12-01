@@ -49,7 +49,14 @@ const BottomNav: React.FC = () => {
   ]
 
   return (
-    <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-[var(--bg-card)] border-t border-[var(--border-primary)] z-50 pb-[var(--safe-area-bottom)]">
+    <nav 
+      className="lg:hidden fixed bottom-0 left-0 right-0 bg-[var(--bg-card)] border-t border-[var(--border-primary)] z-50 pb-[var(--safe-area-bottom)]"
+      style={{
+        /* iOS Safari - привязываем к нижней части экрана */
+        position: '-webkit-sticky' as any,
+        WebkitTransform: 'translate3d(0, 0, 0)',
+      }}
+    >
       <div className="flex items-center justify-around h-[var(--bottom-nav-height)]">
         {menuItems.map((item) => {
           const isActive = item.href === '/' 

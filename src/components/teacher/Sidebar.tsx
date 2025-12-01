@@ -81,7 +81,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
           ${isOpen ? 'translate-x-0' : '-translate-x-full'}
           lg:translate-x-0
           fixed top-0 left-0 h-full pt-4 lg:pt-0
-          lg:relative lg:h-full
+          lg:static lg:h-[calc(100vh-120px)] lg:max-h-[calc(100vh-120px)]
+          flex flex-col
         `}
       >
         {/* Header для мобильных */}
@@ -101,7 +102,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
           </button>
         </div>
 
-        <nav className="p-4 sm:p-6 space-y-1 sm:space-y-2">
+        <nav className="p-4 sm:p-6 space-y-1 sm:space-y-2 overflow-y-auto flex-1">
           {menuItems.map((item) => {
             // Для корневого пути проверяем точное совпадение
             // Для остальных путей проверяем, начинается ли pathname с href

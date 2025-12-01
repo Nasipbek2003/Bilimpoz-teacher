@@ -13,8 +13,49 @@ const Tooltip: React.FC<TooltipProps> = ({ text, children }) => {
   const [isPositioned, setIsPositioned] = useState(false)
   const [position, setPosition] = useState<'top' | 'bottom'>('top')
   const [tooltipStyle, setTooltipStyle] = useState<React.CSSProperties>({})
+  const [isMobile, setIsMobile] = useState(false)
   const tooltipRef = useRef<HTMLDivElement>(null)
   const triggerRef = useRef<HTMLDivElement>(null)
+
+  // Определяем мобильное устройство
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile('ontouchstart' in window || navigator.maxTouchPoints > 0)
+    }
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
+
+  // Закрытие tooltip при клике вне его (для мобильных)
+  useEffect(() => {
+    if (isMobile && isVisible) {
+      const handleClickOutside = (event: MouseEvent | TouchEvent) => {
+        if (
+          tooltipRef.current && 
+          triggerRef.current &&
+          !tooltipRef.current.contains(event.target as Node) &&
+          !triggerRef.current.contains(event.target as Node)
+        ) {
+          setIsVisible(false)
+        }
+      }
+
+      document.addEventListener('mousedown', handleClickOutside)
+      document.addEventListener('touchstart', handleClickOutside)
+      
+      // Автоматическое закрытие через 3 секунды на мобильных
+      const autoCloseTimer = setTimeout(() => {
+        setIsVisible(false)
+      }, 3000)
+      
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside)
+        document.removeEventListener('touchstart', handleClickOutside)
+        clearTimeout(autoCloseTimer)
+      }
+    }
+  }, [isMobile, isVisible])
 
   useEffect(() => {
     if (isVisible && triggerRef.current && tooltipRef.current) {
@@ -66,13 +107,41 @@ const Tooltip: React.FC<TooltipProps> = ({ text, children }) => {
     }
   }, [isVisible, isPositioned])
 
+  const handleMouseEnter = () => {
+    if (!isMobile) {
+      setIsVisible(true)
+    }
+  }
+
+  const handleMouseLeave = () => {
+    if (!isMobile) {
+      setIsVisible(false)
+    }
+  }
+
+  const handleClick = (e: React.MouseEvent) => {
+    if (isMobile) {
+      e.stopPropagation()
+      setIsVisible(!isVisible)
+    }
+  }
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (isMobile) {
+      e.stopPropagation()
+      setIsVisible(!isVisible)
+    }
+  }
+
   return (
     <>
       <div
         ref={triggerRef}
         className="relative"
-        onMouseEnter={() => setIsVisible(true)}
-        onMouseLeave={() => setIsVisible(false)}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+        onClick={handleClick}
+        onTouchStart={handleTouchStart}
       >
         {children}
       </div>

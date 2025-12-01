@@ -53,6 +53,10 @@ export default function TestsPage() {
     variant: 'success'
   })
   const [isPeriodExpanded, setIsPeriodExpanded] = useState(false)
+
+  const closeToast = () => {
+    setToast(prev => ({ ...prev, isOpen: false }))
+  }
   const [isDateRangeExpanded, setIsDateRangeExpanded] = useState(false)
 
   useEffect(() => {
@@ -610,7 +614,7 @@ export default function TestsPage() {
             </Button>
           </div>
         ) : (
-          <div className="space-y-4 pb-[calc(var(--bottom-nav-height)+var(--safe-area-bottom)+16px)] lg:pb-0">
+          <div className="space-y-4">
             {filteredTests.map((test) => (
               <div
                 key={test.id}
@@ -747,7 +751,7 @@ export default function TestsPage() {
       {/* Toast уведомления */}
       <Toast
         isOpen={toast.isOpen}
-        onClose={() => setToast({ ...toast, isOpen: false })}
+        onClose={closeToast}
         title={toast.title}
         message={toast.message}
         variant={toast.variant}

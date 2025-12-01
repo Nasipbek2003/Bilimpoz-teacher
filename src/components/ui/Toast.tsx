@@ -30,7 +30,8 @@ const Toast: React.FC<ToastProps> = ({
 
       return () => clearTimeout(timer)
     }
-  }, [isOpen, duration, onClose])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, duration])
 
   if (!isOpen) return null
 
@@ -57,7 +58,7 @@ const Toast: React.FC<ToastProps> = ({
   const Icon = style.icon
 
   return (
-    <div className="fixed top-4 right-4 z-[9999] max-w-md">
+    <div className="fixed top-24 sm:top-4 right-4 z-[99999] max-w-md">
       <div
         className={`bg-[#151515] border border-gray-800 rounded-2xl p-4 shadow-lg backdrop-blur-sm animate-slide-in-right`}
       >

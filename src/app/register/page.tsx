@@ -5,10 +5,14 @@ import RegisterForm from '@/components/auth/RegisterForm'
 import ThemeToggle from '@/components/ui/ThemeToggle'
 import LanguageSwitcher from '@/components/ui/LanguageSwitcher'
 import { useTranslation } from '@/hooks/useTranslation'
+import { useIOSSafariAutoHide } from '@/hooks/useIOSSafariAutoHide'
 
 export default function RegisterPage() {
   const { t, ready } = useTranslation()
   const [mounted, setMounted] = useState(false)
+  
+  // Автоматически скрываем адресную строку на iOS Safari
+  useIOSSafariAutoHide()
 
   useEffect(() => {
     setMounted(true)
@@ -20,7 +24,7 @@ export default function RegisterPage() {
   }
   return (
     <div 
-      className="h-screen flex items-center justify-center p-4 bg-[var(--bg-primary)] overflow-auto"
+      className="min-h-screen min-h-[-webkit-fill-available] flex items-center justify-center p-4 bg-[var(--bg-primary)] overflow-auto"
     >
       {/* Переключатели темы и языка */}
       <div className="fixed top-4 right-4 z-50 flex items-center gap-3">

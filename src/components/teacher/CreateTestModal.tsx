@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { Icons } from '@/components/ui/Icons'
 import Input from '@/components/ui/Input'
@@ -27,6 +27,7 @@ const CreateTestModal: React.FC<CreateTestModalProps> = ({
   const { t, ready } = useTranslation()
   const router = useRouter()
   const [mounted, setMounted] = useState(false)
+  const scrollYRef = useRef<number>(0)
 
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
@@ -38,6 +39,10 @@ const CreateTestModal: React.FC<CreateTestModalProps> = ({
     message: '',
     variant: 'success'
   })
+
+  const closeToast = () => {
+    setToast(prev => ({ ...prev, isOpen: false }))
+  }
 
   useEffect(() => {
     setMounted(true)
@@ -54,6 +59,33 @@ const CreateTestModal: React.FC<CreateTestModalProps> = ({
       }
     }
   }, [isOpen, mounted])
+
+  // Блокировка скролла body при открытии модального окна
+  useEffect(() => {
+    if (isOpen) {
+      // Сохраняем текущую позицию скролла
+      scrollYRef.current = window.scrollY || window.pageYOffset || document.documentElement.scrollTop
+      
+      // Блокируем скролл на body и html (для iOS Safari)
+      document.body.style.position = 'fixed'
+      document.body.style.top = `-${scrollYRef.current}px`
+      document.body.style.width = '100%'
+      document.body.style.overflow = 'hidden'
+      document.documentElement.style.overflow = 'hidden'
+      
+      return () => {
+        // Восстанавливаем скролл при закрытии
+        document.body.style.position = ''
+        document.body.style.top = ''
+        document.body.style.width = ''
+        document.body.style.overflow = ''
+        document.documentElement.style.overflow = ''
+        
+        // Восстанавливаем позицию скролла
+        window.scrollTo(0, scrollYRef.current)
+      }
+    }
+  }, [isOpen])
 
   // Сбрасываем форму при открытии/закрытии
   useEffect(() => {
@@ -213,9 +245,9 @@ const CreateTestModal: React.FC<CreateTestModalProps> = ({
         }
       }}
     >
-      <div className="bg-[var(--bg-card)] rounded-2xl shadow-2xl w-full max-w-2xl">
+      <div className="bg-[var(--bg-card)] rounded-2xl shadow-2xl w-full max-w-2xl my-auto max-h-[90vh] flex flex-col">
         {/* Заголовок */}
-        <div className="flex items-center justify-between p-6 pb-4 border-b border-[var(--border-primary)]">
+        <div className="flex items-center justify-between p-6 pb-4 border-b border-[var(--border-primary)] flex-shrink-0">
           <h3 className="text-lg font-semibold text-[var(--text-primary)]">
             {getText('tests.createModal.title', 'Создать новый тест')}
           </h3>
@@ -228,7 +260,7 @@ const CreateTestModal: React.FC<CreateTestModalProps> = ({
         </div>
 
         {/* Форма */}
-        <div className="p-6 space-y-6">
+        <div className="p-6 space-y-6 overflow-y-auto flex-1">
           {/* Название теста */}
           <div>
             <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
@@ -338,7 +370,7 @@ const CreateTestModal: React.FC<CreateTestModalProps> = ({
       {/* Toast уведомления */}
       <Toast
         isOpen={toast.isOpen}
-        onClose={() => setToast({ ...toast, isOpen: false })}
+        onClose={closeToast}
         title={toast.title}
         message={toast.message}
         variant={toast.variant}

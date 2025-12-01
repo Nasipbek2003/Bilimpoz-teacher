@@ -63,7 +63,7 @@ const TestTypeSelectorMenu: React.FC<TestTypeSelectorMenuProps> = ({
   const maxTestsReached = totalQuestions !== undefined && currentQuestionsCount >= totalQuestions
 
   return (
-    <div className="fixed bottom-4 right-16 z-50">
+    <div className="fixed bottom-[calc(var(--bottom-nav-height)+var(--safe-area-bottom)+80px)] sm:bottom-20 md:bottom-4 right-4 sm:right-16 z-50">
       <div 
         ref={menuRef}
         className="w-16 bg-[var(--bg-tertiary)] border border-gray-700 rounded-2xl shadow-2xl transition-colors"

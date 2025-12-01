@@ -47,7 +47,7 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
 
   return (
     <div
-      className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[60] flex items-center justify-center p-4"
+      className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[99998] flex items-center justify-center p-4"
       onClick={handleBackdropClick}
     >
       <div className="bg-[var(--bg-card)] rounded-2xl max-w-md w-full p-6 border border-[var(--border-primary)] shadow-2xl">
@@ -61,22 +61,24 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
           <button
             onClick={onClose}
             disabled={isLoading}
-            className="px-4 py-2 text-[var(--text-tertiary)] font-semibold border border-[var(--border-primary)] rounded-xl hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-4 py-2 text-[var(--text-tertiary)] font-semibold border border-[var(--border-primary)] rounded-xl hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed h-10 flex items-center justify-center"
           >
-            {cancelText}
+            <span className="whitespace-nowrap">{cancelText}</span>
           </button>
           <button
             onClick={handleConfirm}
             disabled={isLoading}
-            className={`px-4 py-2 font-semibold rounded-xl transition-all duration-200 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed ${variantStyles[variant]}`}
+            className={`relative px-4 py-2 font-semibold rounded-xl transition-all duration-200 min-w-[120px] h-10 disabled:opacity-50 disabled:cursor-not-allowed ${variantStyles[variant]}`}
           >
             {isLoading ? (
-              <>
-                <Icons.Loader2 className="h-4 w-4 animate-spin" />
-                Загрузка...
-              </>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <Icons.Loader2 className="h-4 w-4 animate-spin mr-2" />
+                <span>Загрузка...</span>
+              </div>
             ) : (
-              confirmText
+              <div className="flex items-center justify-center h-full">
+                <span>{confirmText}</span>
+              </div>
             )}
           </button>
         </div>

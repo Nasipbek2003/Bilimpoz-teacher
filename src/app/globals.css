@@ -68,20 +68,32 @@
     border-color: var(--border-primary, #4a5565);
   }
   
-  html, body {
-    height: 100%;
-    overflow: hidden;
-  }
-  
+  /* Фикс для iOS Safari - позволяем скроллить страницу */
   html {
+    height: 100%;
+    /* Убираем overflow: hidden для корректной работы скролла на iOS */
+    overflow: auto;
     color-scheme: dark;
+    /* iOS Safari - предотвращаем bounce эффект */
+    overscroll-behavior: none;
+    /* Smooth scroll для лучшего UX */
+    scroll-behavior: smooth;
   }
   
   body {
+    /* Минимальная высота для iOS Safari - обеспечиваем достаточную высоту для скролла */
+    min-height: 100vh;
+    min-height: -webkit-fill-available;
+    /* Убираем overflow: hidden */
+    overflow: visible;
     background-color: var(--bg-primary);
     color: var(--text-primary);
     font-feature-settings: "rlig" 1, "calt" 1;
     transition: background-color 0.3s ease, color 0.3s ease;
+    /* iOS Safari - предотвращаем резиновый скролл */
+    overscroll-behavior: none;
+    /* Предотвращаем выделение текста при длительном нажатии на iOS */
+    -webkit-touch-callout: none;
   }
   
   html[data-theme="light"] {
@@ -235,4 +247,50 @@
   );
   background-size: 200% 100%;
   animation: shimmer 1.5s ease-in-out infinite;
+}
+
+/* iOS Safari фиксы для скрытия адресной строки */
+@supports (-webkit-touch-callout: none) {
+  /* Специфичные стили только для iOS Safari */
+  html {
+    height: -webkit-fill-available;
+  }
+  
+  body {
+    min-height: -webkit-fill-available;
+    /* Обеспечиваем достаточную высоту контента для скролла */
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  
+  /* Убеждаемся, что fixed элементы работают корректно */
+  .lg\:hidden.fixed {
+    position: fixed;
+    /* Hardware acceleration для лучшей производительности */
+    transform: translate3d(0, 0, 0);
+    -webkit-transform: translate3d(0, 0, 0);
+  }
+}
+
+/* Smooth scrolling для iOS */
+* {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Предотвращаем масштабирование на iOS при фокусе на input */
+@media screen and (-webkit-min-device-pixel-ratio: 0) {
+  select,
+  textarea,
+  input {
+    font-size: 16px;
+  }
+}
+
+/* Скрытие скроллбара */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
 }

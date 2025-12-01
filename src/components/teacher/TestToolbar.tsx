@@ -84,8 +84,8 @@ export default function TestToolbar({ onFormat, isPreviewMode, onImageToLatex, o
   }, [showAiDropdown]);
 
   return (
-    <div className="bg-[var(--bg-card)] rounded-2xl border border-gray-700 transition-colors">
-      <div className="flex items-center gap-2 p-4">
+    <div className="bg-[var(--bg-card)] rounded-2xl border border-gray-700 transition-colors max-w-[calc(100vw-16px)]">
+      <div className="flex items-center gap-1 sm:gap-2 p-2 sm:p-3 md:p-4 overflow-x-auto scrollbar-hide">
         {/* Жирный */}
         <Tooltip text={t('tooltips.bold')}>
           <button
@@ -181,7 +181,7 @@ export default function TestToolbar({ onFormat, isPreviewMode, onImageToLatex, o
         <div className="w-px h-6 bg-gray-700 mx-1" />
 
         {/* AI кнопка с выпадающим меню */}
-        <div className="relative z-10" ref={aiDropdownRef}>
+        <div className="relative z-[9998]" ref={aiDropdownRef}>
           <Tooltip text={t('tooltips.ai')}>
             <button
               type="button"
@@ -212,7 +212,7 @@ export default function TestToolbar({ onFormat, isPreviewMode, onImageToLatex, o
           {/* Выпадающее меню вверх */}
           {showAiDropdown && (
             <div 
-              className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-[var(--bg-tertiary)] border border-[var(--border-primary)] rounded-lg shadow-2xl overflow-hidden min-w-[220px] z-20"
+              className="fixed bottom-[calc(var(--bottom-nav-height)+var(--safe-area-bottom)+80px)] lg:bottom-20 left-1/2 -translate-x-1/2 lg:left-[calc(50%+80px)] bg-[var(--bg-tertiary)] border border-[var(--border-primary)] rounded-lg shadow-2xl overflow-hidden min-w-[220px] z-[9999]"
               onMouseEnter={() => {
                 // Сохраняем активный элемент при наведении на меню
                 if (!savedActiveElementRef.current) {
