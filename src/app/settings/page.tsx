@@ -11,6 +11,7 @@ import { useTheme } from '@/components/providers/ThemeProvider'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import Toast from '@/components/ui/Toast'
 import type { ToastVariant } from '@/components/ui/Toast'
+import { SettingsPageSkeleton } from '@/components/ui/PageSkeletons'
 
 export default function SettingsPage() {
   const { t, ready } = useTranslation()
@@ -255,104 +256,101 @@ export default function SettingsPage() {
     <TeacherLayout>
       <div className="space-y-4 sm:space-y-5 md:space-y-6 pb-12 sm:pb-14 lg:pb-0">
         {isLoading ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--text-primary)]"></div>
-          </div>
+          <SettingsPageSkeleton />
         ) : (
           <>
-        {/* Заголовок страницы */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-end gap-3 sm:gap-4">
-          {!isEditing ? (
-            <Button
-              variant="primary"
-              onClick={() => setIsEditing(true)}
-              className="w-full sm:w-auto"
-            >
-              <Icons.Edit className="h-4 w-4 mr-2" />
-              {getText('settings.edit', 'Редактировать')}
-            </Button>
-          ) : (
-            <div className="flex items-center gap-2 sm:gap-3">
-              <Button
-                variant="secondary"
-                onClick={handleCancel}
-                disabled={isSaving}
-                className="flex-1 sm:flex-none"
-              >
-                {getText('settings.cancel', 'Отмена')}
-              </Button>
-              <Button
-                variant="primary"
-                onClick={handleSave}
-                isLoading={isSaving}
-                className="flex-1 sm:flex-none"
-              >
-                <Icons.Save className="h-4 w-4 mr-2" />
-                {getText('settings.save', 'Сохранить')}
-              </Button>
-            </div>
-          )}
-        </div>
-
         {/* Сетка блоков настроек */}
         <div className="space-y-4 sm:space-y-5 md:space-y-6">
           {/* Основная информация */}
           <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-[var(--text-primary)] mb-4 sm:mb-5">
-              {getText('settings.basicInfo', 'Основная информация')}
-            </h1>
-            <div className="bg-[var(--bg-card)] rounded-xl sm:rounded-2xl p-4 sm:p-5 md:p-6 space-y-4 sm:space-y-6">
-              {/* Фото профиля */}
-              <div>
-                <label className="block text-sm font-medium text-[var(--text-secondary)] mb-4">
-                  {getText('settings.profilePhoto', 'Фото профиля')}
-                </label>
-                <div className="flex items-center gap-4">
-                  <div className="w-20 h-20 bg-[var(--bg-tertiary)] rounded-full flex items-center justify-center overflow-hidden">
-                    {formData.profilePhotoUrl || formData.profilePhoto ? (
-                      <img 
-                        src={formData.profilePhoto ? URL.createObjectURL(formData.profilePhoto) : formData.profilePhotoUrl} 
-                        alt="Profile" 
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <Icons.User className="h-8 w-8 text-[var(--text-primary)]" />
-                    )}
-                  </div>
-                  {isEditing && (
-                    <div>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handlePhotoChange}
-                        className="hidden"
-                        id="photo-upload"
-                      />
-                      <label
-                        htmlFor="photo-upload"
-                        className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-[var(--bg-tertiary)] text-[var(--text-primary)] rounded-lg hover:bg-[var(--bg-hover)] transition-colors"
-                      >
-                        <Icons.Camera className="h-4 w-4" />
-                        {getText('settings.changePhoto', 'Изменить фото')}
-                      </label>
-                    </div>
-                  )}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-4 sm:mb-5">
+              <h1 className="text-xl sm:text-2xl font-bold text-[var(--text-primary)]">
+                {getText('settings.basicInfo', 'Основная информация')}
+              </h1>
+              {!isEditing ? (
+                <Button
+                  variant="primary"
+                  onClick={() => setIsEditing(true)}
+                  className="w-full sm:w-auto"
+                >
+                  <Icons.Edit className="h-4 w-4 mr-2" />
+                  {getText('settings.edit', 'Редактировать')}
+                </Button>
+              ) : (
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <Button
+                    variant="secondary"
+                    onClick={handleCancel}
+                    disabled={isSaving}
+                    className="flex-1 sm:flex-none"
+                  >
+                    {getText('settings.cancel', 'Отмена')}
+                  </Button>
+                  <Button
+                    variant="primary"
+                    onClick={handleSave}
+                    isLoading={isSaving}
+                    className="flex-1 sm:flex-none"
+                  >
+                    <Icons.Save className="h-4 w-4 mr-2" />
+                    {getText('settings.save', 'Сохранить')}
+                  </Button>
                 </div>
-              </div>
+              )}
+            </div>
+            <div className="bg-[var(--bg-card)] rounded-xl sm:rounded-2xl p-4 sm:p-5 md:p-6">
+              <div className="flex flex-col lg:flex-row lg:items-center gap-4 sm:gap-6">
+                {/* Фото профиля */}
+                <div className="flex-1 lg:flex-none">
+                  <label className="block text-sm font-medium text-[var(--text-secondary)] mb-4 text-center lg:text-left">
+                    {getText('settings.profilePhoto', 'Фото профиля')}
+                  </label>
+                  <div className="flex items-center justify-center lg:justify-start">
+                    <div className="relative w-20 h-20 bg-[var(--bg-tertiary)] rounded-full flex items-center justify-center overflow-hidden">
+                      {formData.profilePhotoUrl || formData.profilePhoto ? (
+                        <img 
+                          src={formData.profilePhoto ? URL.createObjectURL(formData.profilePhoto) : formData.profilePhotoUrl} 
+                          alt="Profile" 
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <Icons.User className="h-8 w-8 text-[var(--text-primary)]" />
+                      )}
+                      {isEditing && (
+                        <>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handlePhotoChange}
+                            className="hidden"
+                            id="photo-upload"
+                          />
+                          <label
+                            htmlFor="photo-upload"
+                            className="absolute bottom-0 left-0 right-0 h-1/2 bg-black/60 rounded-b-full flex items-center justify-center cursor-pointer hover:bg-black/70 transition-colors"
+                          >
+                            <Icons.Camera className="h-5 w-5 text-white" />
+                          </label>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
 
-              {/* Имя */}
-              <div>
-                <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
-                  {getText('settings.name', 'Имя')} *
-                </label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                  disabled={!isEditing}
-                  className="w-full px-3 py-2 border rounded-lg text-[var(--text-primary)] placeholder-[var(--text-tertiary)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--text-primary)]/20 bg-[var(--bg-tertiary)] border-[var(--border-primary)] disabled:opacity-50"
-                  placeholder={getText('settings.namePlaceholder', 'Введите ваше имя')}
-                />
+                {/* Имя */}
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-[var(--text-secondary)] mb-2">
+                    {getText('settings.name', 'Имя')} *
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.name}
+                    onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                    disabled={!isEditing}
+                    className="w-full px-3 py-2 border rounded-lg text-[var(--text-primary)] placeholder-[var(--text-tertiary)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--text-primary)]/20 bg-[var(--bg-tertiary)] border-[var(--border-primary)] disabled:opacity-50"
+                    placeholder={getText('settings.namePlaceholder', 'Введите ваше имя')}
+                  />
+                </div>
               </div>
             </div>
           </div>

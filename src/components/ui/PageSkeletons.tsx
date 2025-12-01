@@ -556,4 +556,95 @@ export const TestsPageSkeleton: React.FC = () => {
   )
 }
 
+/**
+ * Skeleton для страницы Settings
+ */
+export const SettingsPageSkeleton: React.FC = () => {
+  return (
+    <div className="space-y-4 sm:space-y-5 md:space-y-6">
+      {/* Основная информация */}
+      <div>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-4 sm:mb-5">
+          <Skeleton variant="text" width="40%" height={28} />
+          <Skeleton variant="rectangular" width={140} height={40} rounded className="w-full sm:w-auto" />
+        </div>
+        <div className="bg-[var(--bg-card)] rounded-xl sm:rounded-2xl p-4 sm:p-5 md:p-6">
+          <div className="flex flex-col lg:flex-row lg:items-center gap-4 sm:gap-6">
+            {/* Фото профиля */}
+            <div className="flex-1 lg:flex-none">
+              <Skeleton variant="text" width="30%" height={16} className="mb-4 mx-auto lg:mx-0" />
+              <div className="flex items-center justify-center lg:justify-start">
+                <Skeleton variant="circular" width={80} height={80} />
+              </div>
+            </div>
+            {/* Имя */}
+            <div className="flex-1">
+              <Skeleton variant="text" width="25%" height={16} className="mb-2" />
+              <Skeleton variant="rectangular" width="100%" height={40} rounded />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Настройки интерфейса */}
+      <div>
+        <Skeleton variant="text" width="35%" height={28} className="mb-4 sm:mb-5" />
+        <div className="bg-[var(--bg-card)] rounded-xl sm:rounded-2xl p-4 sm:p-5 md:p-6 space-y-4 sm:space-y-6">
+          {/* Тема */}
+          <div>
+            <Skeleton variant="text" width="20%" height={16} className="mb-2" />
+            <div className="flex items-center gap-3">
+              <Skeleton variant="rectangular" width={150} height={40} rounded />
+              <Skeleton variant="text" width="30%" height={16} />
+            </div>
+          </div>
+          {/* Язык интерфейса */}
+          <div>
+            <Skeleton variant="text" width="30%" height={16} className="mb-2" />
+            <Skeleton variant="rectangular" width="100%" height={40} rounded />
+          </div>
+        </div>
+      </div>
+
+      {/* Социальные сети */}
+      <div>
+        <Skeleton variant="text" width="30%" height={28} className="mb-4 sm:mb-5" />
+        <div className="bg-[var(--bg-card)] rounded-xl sm:rounded-2xl p-4 sm:p-5 md:p-6 space-y-4 sm:space-y-6">
+          {[...Array(3)].map((_, i) => (
+            <div key={i}>
+              <Skeleton variant="text" width="25%" height={16} className="mb-2" />
+              <Skeleton variant="rectangular" width="100%" height={40} rounded />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Смена пароля */}
+      <div>
+        <Skeleton variant="text" width="30%" height={28} className="mb-4 sm:mb-5" />
+        <div className="bg-[var(--bg-card)] rounded-xl sm:rounded-2xl p-4 sm:p-5 md:p-6 space-y-4 sm:space-y-6">
+          {[...Array(3)].map((_, i) => (
+            <div key={i}>
+              <Skeleton variant="text" width="35%" height={16} className="mb-2" />
+              <Skeleton variant="rectangular" width="100%" height={40} rounded />
+            </div>
+          ))}
+          <Skeleton variant="rectangular" width={160} height={40} rounded />
+        </div>
+      </div>
+
+      {/* Выход из системы */}
+      <div>
+        <Skeleton variant="text" width="35%" height={28} className="mb-4 sm:mb-5" />
+        <div className="bg-[var(--bg-card)] rounded-xl sm:rounded-2xl p-4 sm:p-5 md:p-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
+            <Skeleton variant="text" width="60%" height={16} />
+            <Skeleton variant="rectangular" width={100} height={40} rounded className="w-full sm:w-auto" />
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 
