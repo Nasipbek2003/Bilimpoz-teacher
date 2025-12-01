@@ -1396,20 +1396,30 @@ export default function TestEditorPage() {
         questionWarnings.push('Данные вопроса не найдены')
       } else {
         // Проверка текста вопроса
-      if (!questionData.question || !questionData.question.trim()) {
+        if (!questionData.question || !questionData.question.trim()) {
           questionWarnings.push('Должен быть текст вопроса')
-      }
+        }
 
         // Проверка вариантов ответов
-      const validAnswers = questionData.answers?.filter(a => a.value && a.value.trim()) || []
-      if (validAnswers.length < 2) {
+        const validAnswers = questionData.answers?.filter(a => a.value && a.value.trim()) || []
+        if (validAnswers.length < 2) {
           questionWarnings.push('Необходимо минимум 2 варианта ответа')
-      }
+        }
 
         // Проверка правильного ответа
-      const hasCorrectAnswer = validAnswers.some(a => a.isCorrect)
+        const hasCorrectAnswer = validAnswers.some(a => a.isCorrect)
         if (!hasCorrectAnswer && validAnswers.length > 0) {
           questionWarnings.push('Должен быть правильный ответ')
+        }
+
+        // Проверка баллов
+        if (!questionData.points || questionData.points <= 0) {
+          questionWarnings.push('Укажите количество баллов (больше 0)')
+        }
+
+        // Проверка времени (если указано)
+        if (questionData.timeLimit !== undefined && questionData.timeLimit <= 0) {
+          questionWarnings.push('Время должно быть больше 0 секунд')
         }
       }
       
@@ -1420,26 +1430,22 @@ export default function TestEditorPage() {
     
     setQuestionWarnings(warningsMap)
     
-    // Если есть предупреждения, прокручиваем к первому вопросу с предупреждением
+    // Если есть предупреждения, блокируем сохранение и прокручиваем к первому вопросу с ошибкой
     const firstWarningQuestionId = Object.keys(warningsMap)[0]
     if (firstWarningQuestionId) {
+      // Прокручиваем к первому вопросу с ошибкой
       const warningElement = document.querySelector(`[data-question-id="${firstWarningQuestionId}"]`)
       if (warningElement) {
         warningElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
-        }
       }
-    
-    // Продолжаем сохранение даже если есть предупреждения
-    // Но проверяем, что хотя бы один вопрос валиден
-    const hasValidQuestions = questions.some(question => {
-      const questionData = loadQuestionDraft(question.id, question.type)
-      if (!questionData) return false
-      const validAnswers = questionData.answers?.filter(a => a.value && a.value.trim()) || []
-      return questionData.question?.trim() && validAnswers.length >= 2 && validAnswers.some(a => a.isCorrect)
-    })
-    
-    if (!hasValidQuestions && questions.length > 0) {
-      showToast(getText('tests.validationErrors', 'Исправьте ошибки в вопросах'), 'error')
+      
+      // Показываем сообщение об ошибках и блокируем сохранение
+      const totalErrors = Object.values(warningsMap).reduce((sum, warnings) => sum + warnings.length, 0)
+      const questionsWithErrors = Object.keys(warningsMap).length
+      showToast(
+        getText('tests.validationErrors', `Исправьте все ошибки: ${totalErrors} ошибок в ${questionsWithErrors} вопросах`), 
+        'error'
+      )
       return
     }
 
