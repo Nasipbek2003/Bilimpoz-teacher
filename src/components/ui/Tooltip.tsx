@@ -121,15 +121,21 @@ const Tooltip: React.FC<TooltipProps> = ({ text, children }) => {
 
   const handleClick = (e: React.MouseEvent) => {
     if (isMobile) {
-      e.stopPropagation()
-      setIsVisible(!isVisible)
+      // На мобильных не перехватываем клик, позволяем ему пройти к дочернему элементу
+      // Только показываем tooltip на короткое время
+      setIsVisible(true)
+      setTimeout(() => setIsVisible(false), 1500)
     }
   }
 
   const handleTouchStart = (e: React.TouchEvent) => {
     if (isMobile) {
-      e.stopPropagation()
-      setIsVisible(!isVisible)
+      // На мобильных не блокируем touch события
+      // Показываем tooltip только если он еще не виден
+      if (!isVisible) {
+        setIsVisible(true)
+        setTimeout(() => setIsVisible(false), 1500)
+      }
     }
   }
 
@@ -149,12 +155,13 @@ const Tooltip: React.FC<TooltipProps> = ({ text, children }) => {
         <div
           ref={tooltipRef}
           className={`
-            px-3 py-2 rounded-lg
+            px-2 py-1.5 sm:px-3 sm:py-2 rounded-md sm:rounded-lg
             bg-[var(--bg-card)] border border-[var(--border-primary)]
             shadow-xl
             text-[var(--text-primary)] text-xs whitespace-nowrap
             pointer-events-none
             transition-opacity duration-100
+            max-w-[200px] sm:max-w-none
           `}
           style={{
             ...tooltipStyle,

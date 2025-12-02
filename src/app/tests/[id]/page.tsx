@@ -143,6 +143,7 @@ export default function TestEditorPage() {
     variant: 'success'
   })
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false)
+  const [isKeyboardOpen, setIsKeyboardOpen] = useState(false)
 
   // Данные формы
   const [formData, setFormData] = useState({
@@ -380,9 +381,21 @@ export default function TestEditorPage() {
   }
 
   const handleOpenImageLatex = () => {
+    console.log('🖼️ handleOpenImageLatex вызван');
     // Открываем диалог выбора файла
     if (imageInputRef.current) {
-      imageInputRef.current.click()
+      console.log('✅ imageInputRef найден, открываем диалог');
+      // Для мобильных устройств добавляем небольшую задержку
+      setTimeout(() => {
+        if (imageInputRef.current) {
+          console.log('📁 Кликаем по input для выбора файла');
+          imageInputRef.current.click();
+        } else {
+          console.error('❌ imageInputRef потерян после timeout');
+        }
+      }, 100);
+    } else {
+      console.error('❌ imageInputRef не найден');
     }
   }
 
@@ -997,6 +1010,43 @@ export default function TestEditorPage() {
     }
   }, [mounted, testId, user?.id])
 
+  // Отслеживание фокуса на полях ввода для подъема панели инструментов над клавиатурой
+  useEffect(() => {
+    if (!mounted || typeof window === 'undefined') return
+
+    const handleFocus = (e: FocusEvent) => {
+      const target = e.target as HTMLElement
+      // Проверяем, что фокус на textarea (поля вопросов и ответов)
+      if (target.tagName === 'TEXTAREA') {
+        console.log('📱 Клавиатура открыта - поднимаем панель инструментов')
+        setIsKeyboardOpen(true)
+      }
+    }
+
+    const handleBlur = (e: FocusEvent) => {
+      const target = e.target as HTMLElement
+      if (target.tagName === 'TEXTAREA') {
+        // Небольшая задержка, чтобы проверить, не перешел ли фокус на другое поле
+        setTimeout(() => {
+          const activeElement = document.activeElement
+          if (!activeElement || activeElement.tagName !== 'TEXTAREA') {
+            console.log('📱 Клавиатура закрыта - опускаем панель инструментов')
+            setIsKeyboardOpen(false)
+          }
+        }, 100)
+      }
+    }
+
+    // Добавляем обработчики на уровне document для отлова всех фокусов
+    document.addEventListener('focusin', handleFocus)
+    document.addEventListener('focusout', handleBlur)
+
+    return () => {
+      document.removeEventListener('focusin', handleFocus)
+      document.removeEventListener('focusout', handleBlur)
+    }
+  }, [mounted])
+
   const createEmptyTest = () => {
     if (user?.id) {
       const newTest: Test = {
@@ -1396,18 +1446,18 @@ export default function TestEditorPage() {
         questionWarnings.push('Данные вопроса не найдены')
       } else {
         // Проверка текста вопроса
-        if (!questionData.question || !questionData.question.trim()) {
+      if (!questionData.question || !questionData.question.trim()) {
           questionWarnings.push('Должен быть текст вопроса')
-        }
+      }
 
         // Проверка вариантов ответов
-        const validAnswers = questionData.answers?.filter(a => a.value && a.value.trim()) || []
-        if (validAnswers.length < 2) {
+      const validAnswers = questionData.answers?.filter(a => a.value && a.value.trim()) || []
+      if (validAnswers.length < 2) {
           questionWarnings.push('Необходимо минимум 2 варианта ответа')
-        }
+      }
 
         // Проверка правильного ответа
-        const hasCorrectAnswer = validAnswers.some(a => a.isCorrect)
+      const hasCorrectAnswer = validAnswers.some(a => a.isCorrect)
         if (!hasCorrectAnswer && validAnswers.length > 0) {
           questionWarnings.push('Должен быть правильный ответ')
         }
@@ -1437,7 +1487,7 @@ export default function TestEditorPage() {
       const warningElement = document.querySelector(`[data-question-id="${firstWarningQuestionId}"]`)
       if (warningElement) {
         warningElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
-      }
+        }
       
       // Показываем сообщение об ошибках и блокируем сохранение
       const totalErrors = Object.values(warningsMap).reduce((sum, warnings) => sum + warnings.length, 0)
@@ -1548,8 +1598,8 @@ export default function TestEditorPage() {
             if (!foundData) {
               console.error(`Данные вопроса ${question.id} не найдены ни по одному префиксу`)
               validationErrors.push(`Вопрос ${question.id}: Данные не найдены`)
-              errorCount++
-              continue
+            errorCount++
+            continue
             } else {
               console.log(`Используем найденные данные для вопроса ${question.id}`)
               // Используем найденные данные
@@ -2186,8 +2236,8 @@ export default function TestEditorPage() {
       />
 
       {/* Плавающая панель инструментов */}
-      {questions.length > 0 && (
-        <div className="fixed bottom-[calc(var(--bottom-nav-height)+var(--safe-area-bottom)+16px)] lg:bottom-4 left-1/2 -translate-x-1/2 lg:left-[calc(50%+80px)] z-50">
+      {questions.length > 0 && !isSettingsModalOpen && (
+        <div className="fixed bottom-20 sm:bottom-4 left-1/2 -translate-x-1/2 lg:left-[calc(50%+80px)] z-50">
           <TestToolbar 
             onFormat={handleFormat} 
             isPreviewMode={isPreviewMode} 
@@ -2198,6 +2248,7 @@ export default function TestEditorPage() {
             onExplainQuestion={handleExplainQuestion}
             isAiLoading={activeQuestionId ? (aiLoadingStates[activeQuestionId] || false) : false}
             isImageConverting={isAiConverting}
+            isKeyboardOpen={isKeyboardOpen}
           />
           
           {/* Скрытый input для выбора изображения */}

@@ -13,6 +13,7 @@ const nextConfig = {
   // Разрешаем cross-origin запросы в режиме разработки
   allowedDevOrigins: [
     '192.168.1.6',
+    '192.168.1.60',
     'localhost',
     '127.0.0.1',
   ],

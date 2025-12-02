@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Icons } from '@/components/ui/Icons';
 import { useTranslation } from '@/hooks/useTranslation';
 import Tooltip from '@/components/ui/Tooltip';
@@ -25,14 +26,39 @@ interface TestToolbarProps {
   activeFormats?: ActiveFormats;
   isAiLoading?: boolean;
   isImageConverting?: boolean;
+  isKeyboardOpen?: boolean;
 }
 
-export default function TestToolbar({ onFormat, isPreviewMode, onImageToLatex, onMagicWand, onSaveSelection, onTogglePreview, onExplainQuestion, activeFormats, isAiLoading = false, isImageConverting = false }: TestToolbarProps) {
+export default function TestToolbar({ onFormat, isPreviewMode, onImageToLatex, onMagicWand, onSaveSelection, onTogglePreview, onExplainQuestion, activeFormats, isAiLoading = false, isImageConverting = false, isKeyboardOpen = false }: TestToolbarProps) {
   const { t } = useTranslation();
   const [showAiDropdown, setShowAiDropdown] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const [dropdownPosition, setDropdownPosition] = useState({ bottom: '96px', left: '50%' });
   const aiDropdownRef = useRef<HTMLDivElement>(null);
+  const aiButtonRef = useRef<HTMLButtonElement>(null);
   const previewButtonRef = useRef<HTMLButtonElement>(null);
   const savedActiveElementRef = useRef<HTMLElement | null>(null);
+
+  // Монтирование компонента
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Обновление позиции выпадающего меню при его открытии или изменении состояния клавиатуры
+  useEffect(() => {
+    if (showAiDropdown && aiButtonRef.current) {
+      const buttonRect = aiButtonRef.current.getBoundingClientRect();
+      const isMobile = window.innerWidth < 640;
+      
+      // Вычисляем позицию меню ВЫШЕ кнопки
+      const bottomPosition = window.innerHeight - buttonRect.top + 8; // 8px отступ над кнопкой
+      
+      setDropdownPosition({
+        bottom: `${bottomPosition}px`,
+        left: '50%',
+      });
+    }
+  }, [showAiDropdown, isKeyboardOpen]);
 
   // Сохранение активного элемента при открытии меню
   useEffect(() => {
@@ -63,8 +89,15 @@ export default function TestToolbar({ onFormat, isPreviewMode, onImageToLatex, o
 
   // Закрытие дропдауна при клике вне его
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (aiDropdownRef.current && !aiDropdownRef.current.contains(event.target as Node)) {
+    const handleClickOutside = (event: MouseEvent | TouchEvent) => {
+      const target = event.target as Node;
+      // Проверяем, что клик не по кнопке AI и не по выпадающему меню
+      if (
+        aiDropdownRef.current && 
+        !aiDropdownRef.current.contains(target) &&
+        aiButtonRef.current &&
+        !aiButtonRef.current.contains(target)
+      ) {
         setShowAiDropdown(false);
         // Восстанавливаем фокус при закрытии меню
         setTimeout(() => {
@@ -77,27 +110,27 @@ export default function TestToolbar({ onFormat, isPreviewMode, onImageToLatex, o
     };
     if (showAiDropdown) {
       document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('touchstart', handleClickOutside);
     }
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
     };
   }, [showAiDropdown]);
 
   return (
-    <div className="bg-[var(--bg-card)] rounded-2xl border border-gray-700 transition-colors max-w-[calc(100vw-16px)]">
-      <div className="flex items-center gap-1 sm:gap-2 p-2 sm:p-3 md:p-4 overflow-x-auto scrollbar-hide">
+    <div className="bg-[var(--bg-card)] rounded-xl sm:rounded-2xl border border-gray-700 transition-colors max-w-[calc(100vw-32px)] sm:max-w-none shadow-lg">
+      <div className="flex items-center gap-0.5 sm:gap-2 p-1.5 sm:p-3 md:p-4 overflow-x-auto scrollbar-hide">
         {/* Жирный */}
         <Tooltip text={t('tooltips.bold')}>
           <button
             type="button"
             onClick={() => onFormat('bold')}
-            className={`p-2.5 rounded-lg transition-colors group ${
-              activeFormats?.bold ? 'bg-[var(--text-primary)]/20 hover:bg-[var(--text-primary)]/30' : 'hover:bg-[var(--bg-hover)]'
+            className={`p-1.5 sm:p-2.5 rounded-md sm:rounded-lg transition-colors group ${
+              activeFormats?.bold ? 'bg-[var(--text-primary)]/20 hover:bg-[var(--text-primary)]/30' : 'hover:bg-[var(--bg-hover)] active:bg-[var(--bg-hover)]'
             }`}
           >
-            <svg width="16" height="16" viewBox="0 0 384 512" className={`transition-colors ${
-              activeFormats?.bold ? 'text-[var(--text-primary)]' : 'text-[var(--text-tertiary)] group-hover:text-[var(--text-primary)]'
-            }`}>
+            <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 transition-colors" viewBox="0 0 384 512" fill="currentColor" style={{ color: activeFormats?.bold ? 'var(--text-primary)' : 'var(--text-tertiary)' }}>
               <path fill="currentColor" d="M304.793 243.891c33.639-18.537 53.657-54.16 53.657-95.693 0-48.236-26.25-87.626-68.626-104.179C265.138 34.01 240.849 32 209.661 32H24c-8.837 0-16 7.163-16 16v33.049c0 8.837 7.163 16 16 16h33.113v318.53H24c-8.837 0-16 7.163-16 16V464c0 8.837 7.163 16 16 16h195.69c24.203 0 44.834-1.289 66.866-7.584C337.52 457.193 376 410.647 376 350.014c0-52.168-26.573-91.684-71.207-106.123zM142.217 100.809h67.444c16.294 0 27.536 2.019 37.525 6.717 15.828 8.479 24.906 26.502 24.906 49.446 0 35.029-20.32 56.79-53.029 56.79h-76.846V100.809zm112.642 305.475c-10.14 4.056-22.677 4.907-31.409 4.907h-81.233V281.943h84.367c39.645 0 63.057 25.38 63.057 63.057.001 28.425-13.66 52.483-34.782 61.284z" />
             </svg>
           </button>
@@ -181,20 +214,29 @@ export default function TestToolbar({ onFormat, isPreviewMode, onImageToLatex, o
         <div className="w-px h-6 bg-gray-700 mx-1" />
 
         {/* AI кнопка с выпадающим меню */}
-        <div className="relative z-[9998]" ref={aiDropdownRef}>
+        <div className="relative z-[99999]" ref={aiDropdownRef}>
           <Tooltip text={t('tooltips.ai')}>
             <button
+              ref={aiButtonRef}
               type="button"
               onMouseDown={(e) => {
                 // Сохраняем активный элемент перед открытием меню
                 savedActiveElementRef.current = document.activeElement as HTMLElement;
                 e.preventDefault(); // Предотвращаем потерю фокуса
               }}
-              onClick={() => {
+              onTouchStart={(e) => {
+                // Для мобильных устройств также сохраняем активный элемент
+                savedActiveElementRef.current = document.activeElement as HTMLElement;
+                e.preventDefault();
+              }}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('🤖 AI кнопка нажата, текущее состояние:', showAiDropdown);
                 setShowAiDropdown(!showAiDropdown);
               }}
               className={`p-2.5 rounded-lg transition-colors group ${
-                showAiDropdown ? 'bg-[var(--bg-hover)]' : 'hover:bg-[var(--bg-hover)]'
+                showAiDropdown ? 'bg-[var(--bg-hover)]' : 'hover:bg-[var(--bg-hover)] active:bg-[var(--bg-hover)]'
               }`}
             >
               {isImageConverting ? (
@@ -209,10 +251,16 @@ export default function TestToolbar({ onFormat, isPreviewMode, onImageToLatex, o
             </button>
           </Tooltip>
 
-          {/* Выпадающее меню вверх */}
-          {showAiDropdown && (
+          {/* Выпадающее меню вверх - рендерим через портал */}
+          {showAiDropdown && mounted && typeof window !== 'undefined' && createPortal(
             <div 
-              className="fixed bottom-[calc(var(--bottom-nav-height)+var(--safe-area-bottom)+80px)] lg:bottom-20 left-1/2 -translate-x-1/2 lg:left-[calc(50%+80px)] bg-[var(--bg-tertiary)] border border-[var(--border-primary)] rounded-lg shadow-2xl overflow-hidden min-w-[220px] z-[9999]"
+              ref={aiDropdownRef}
+              className="fixed bg-[var(--bg-tertiary)] border border-[var(--border-primary)] rounded-lg shadow-2xl overflow-hidden min-w-[200px] sm:min-w-[220px] z-[99999]"
+              style={{
+                bottom: dropdownPosition.bottom,
+                left: dropdownPosition.left,
+                transform: 'translateX(-50%)',
+              }}
               onMouseEnter={() => {
                 // Сохраняем активный элемент при наведении на меню
                 if (!savedActiveElementRef.current) {
@@ -227,7 +275,13 @@ export default function TestToolbar({ onFormat, isPreviewMode, onImageToLatex, o
                 onMouseDown={(e) => {
                   e.preventDefault(); // Предотвращаем потерю фокуса
                 }}
-                onClick={() => {
+                onTouchStart={(e) => {
+                  e.preventDefault(); // Предотвращаем потерю фокуса на мобильных
+                }}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  console.log('🖼️ Клик по кнопке "Изображение в LaTeX"');
                   onImageToLatex?.();
                   setShowAiDropdown(false);
                   // Восстанавливаем фокус на сохраненном элементе
@@ -236,21 +290,22 @@ export default function TestToolbar({ onFormat, isPreviewMode, onImageToLatex, o
                       savedActiveElementRef.current.focus();
                     }
                     savedActiveElementRef.current = null;
-                  }, 0);
+                  }, 100);
                 }}
-                className="w-full px-4 py-3 text-left text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] transition-colors flex items-center gap-3"
+                className="w-full px-3 py-2.5 sm:px-4 sm:py-3 text-left text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] active:bg-[var(--bg-hover)] transition-colors flex items-center gap-2 sm:gap-3"
               >
-                <div className="flex items-center gap-2">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <div className="flex items-center gap-1.5 sm:gap-2">
+                  <svg width="14" height="14" className="sm:w-4 sm:h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
                     <circle cx="8.5" cy="8.5" r="1.5"/>
                     <polyline points="21 15 16 10 5 21"/>
                   </svg>
-                  <PiSigma size={16} />
+                  <PiSigma size={14} className="sm:w-4 sm:h-4" />
                 </div>
-                <span className="text-sm">Изображение в LaTeX</span>
+                <span className="text-xs sm:text-sm">Изображение в LaTeX</span>
               </button>
-            </div>
+            </div>,
+            document.body
           )}
         </div>
 
