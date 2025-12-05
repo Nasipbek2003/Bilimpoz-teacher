@@ -1,4 +1,5 @@
-import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3'
+import { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3'
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import { getSetting } from './settings'
 
 /**
@@ -16,6 +17,7 @@ export type S3PathType =
   | 'newsletter-images'
   | 'teacher-profile-photos'
   | 'question-pictures'
+  | 'teacher-test-images'
 
 /**
  * Получение пути в S3 для типа файла
@@ -46,6 +48,8 @@ export function getS3Path(type: S3PathType): string {
       return `${basePath}/teachers/teacher_profile_photos`
     case 'question-pictures':
       return `${basePath}/teachers/question_pictures`
+    case 'teacher-test-images':
+      return `${basePath}/teachers/teacher-test-images`
     default:
       return `${basePath}/misc`
   }
@@ -516,5 +520,51 @@ export function isS3Url(url: string | null | undefined): boolean {
 export function isTelegramUrl(url: string | null | undefined): boolean {
   if (!url) return false
   return url.includes('api.telegram.org')
+}
+
+/**
+ * Генерация presigned URL для доступа к файлу в S3
+ * @param fileUrl - Полный URL файла в S3
+ * @param expiresIn - Время жизни ссылки в секундах (по умолчанию 1 час)
+ */
+export async function getPresignedUrl(fileUrl: string, expiresIn: number = 3600): Promise<string> {
+  try {
+    const config = await getS3Config()
+    const s3Client = await getS3Client()
+
+    // Извлечение ключа из URL
+    const urlParts = fileUrl.split('/')
+    const bucketIndex = urlParts.indexOf(config.bucketName)
+    
+    if (bucketIndex === -1) {
+      throw new Error('Неверный URL файла: bucket не найден в URL')
+    }
+    
+    // Формирование ключа (путь в S3)
+    const key = urlParts.slice(bucketIndex + 1).join('/')
+    
+    console.log('🔗 Генерация presigned URL для:', key)
+
+    // Создание команды для получения объекта
+    const command = new GetObjectCommand({
+      Bucket: config.bucketName,
+      Key: key,
+    })
+
+    // Генерация подписанного URL
+    const presignedUrl = await getSignedUrl(s3Client, command, { expiresIn })
+    
+    console.log('✅ Presigned URL сгенерирован, истекает через:', expiresIn, 'секунд')
+    
+    return presignedUrl
+  } catch (error: any) {
+    console.error('❌ Ошибка генерации presigned URL:', error)
+    
+    if (error instanceof Error) {
+      throw error
+    }
+    
+    throw new Error('Не удалось сгенерировать presigned URL')
+  }
 }
 

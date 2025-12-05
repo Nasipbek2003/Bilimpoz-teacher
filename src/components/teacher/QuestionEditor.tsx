@@ -18,8 +18,12 @@ import { useAI } from '@/hooks/useAI'
 import { 
   loadQuestionDraft, 
   saveQuestionDraft, 
+  createAnswer,
+  normalizeAnswers,
+  sortAnswers,
   type QuestionType, 
-  type QuestionData 
+  type QuestionData,
+  type Answer
 } from '@/lib/test-storage'
 
 interface QuestionEditorProps {
@@ -66,7 +70,7 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
   // Определяем минимальное количество ответов в зависимости от типа вопроса
   const getMinAnswersCountForType = (type: string) => {
     if (type === 'math1') {
-      return 2
+      return 4 // Изменено: теперь 4 варианта для math1
     }
     if (type === 'math2') {
       return 5
@@ -80,7 +84,7 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
   // Определяем максимальное количество ответов в зависимости от типа вопроса
   const getMaxAnswersCountForType = (type: string) => {
     if (type === 'math1') {
-      return 2 // Строго 2 ответа
+      return 4 // Изменено: строго 4 ответа для math1
     }
     if (type === 'math2') {
       return 5 // Строго 5 ответов
@@ -98,14 +102,48 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
       }
       return getMaxAnswersCountForType(questionType)
     }
+
+    // Получаем начальные ответы для math1 с фиксированными вариантами В и Г
+    const getInitialAnswersForMath1 = (): Answer[] => {
+      const isKyrgyz = testLanguage === 'kg'
+      return [
+        createAnswer('', false, 0), // А) - редактируемый
+        createAnswer('', false, 1), // Б) - редактируемый
+        createAnswer(isKyrgyz ? 'эки чоңдук тең' : 'оба величины ровны', false, 2), // В) - фиксированный
+        createAnswer(isKyrgyz ? 'чоңдуктардын катышын аныктоо мүмкүн эмес' : 'Невозможно определить соотношение величин', false, 3) // Г) - фиксированный
+      ]
+    }
+
+    // Функция для исправления ответов math1 (восстанавливает фиксированные варианты В и Г)
+    const fixMath1Answers = (answers: Answer[]): Answer[] => {
+      if (questionType !== 'math1') return answers
+      
+      // Нормализуем и сортируем ответы
+      let fixedAnswers = sortAnswers(normalizeAnswers(answers))
+      
+      // Убеждаемся, что у нас 4 ответа
+      while (fixedAnswers.length < 4) {
+        fixedAnswers.push(createAnswer('', false, fixedAnswers.length))
+      }
+      
+      // Восстанавливаем фиксированные тексты для вариантов В и Г с учетом языка
+      const isKyrgyz = testLanguage === 'kg'
+      fixedAnswers[2] = { ...fixedAnswers[2], value: isKyrgyz ? 'эки чоңдук тең' : 'оба величины ровны', order: 2 }
+      fixedAnswers[3] = { ...fixedAnswers[3], value: isKyrgyz ? 'чоңдуктардын катышын аныктоо мүмкүн эмес' : 'Невозможно определить соотношение величин', order: 3 }
+      
+      return fixedAnswers.slice(0, 4) // Обрезаем до 4 ответов
+    }
   
-  const [answers, setAnswers] = useState<Array<{ value: string; isCorrect: boolean }>>(
-    Array.from({ length: getInitialAnswersCount() }, () => ({ value: '', isCorrect: false }))
+  const [answers, setAnswers] = useState<Answer[]>(
+    questionType === 'math1' 
+      ? getInitialAnswersForMath1()
+      : Array.from({ length: getInitialAnswersCount() }, (_, i) => createAnswer('', false, i))
   )
   const [points, setPoints] = useState(1)
   const [timeLimit, setTimeLimit] = useState(60)
   const [imageUrl, setImageUrl] = useState('')
   const [isUploadingImage, setIsUploadingImage] = useState(false)
+  const [imageLoadError, setImageLoadError] = useState(false)
   const [editableExplanation, setEditableExplanation] = useState('')
   
   // Состояние для версий текста (original/improved)
@@ -211,8 +249,8 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
             if (loadedData.textVersions.answers) {
               const defaultAnswersCount = getInitialAnswersCount()
             const loadedAnswers = loadedData.answers && loadedData.answers.length > 0 
-              ? loadedData.answers 
-              : Array.from({ length: defaultAnswersCount }, () => ({ value: '', isCorrect: false }))
+              ? fixMath1Answers(loadedData.answers)
+              : (questionType === 'math1' ? getInitialAnswersForMath1() : Array.from({ length: defaultAnswersCount }, (_, i) => createAnswer('', false, i)))
             
             setAnswers(loadedAnswers.map((answer, index) => {
               const answerVersion = loadedData.textVersions?.answers?.[index]
@@ -227,22 +265,24 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
             } else {
               const defaultAnswersCount = getInitialAnswersCount()
             setAnswers(loadedData.answers && loadedData.answers.length > 0 
-              ? loadedData.answers 
-              : Array.from({ length: defaultAnswersCount }, () => ({ value: '', isCorrect: false }))
+              ? fixMath1Answers(loadedData.answers)
+              : (questionType === 'math1' ? getInitialAnswersForMath1() : Array.from({ length: defaultAnswersCount }, (_, i) => createAnswer('', false, i)))
             )
           }
           } else {
             setQuestionText(loadedData.question || '')
             const defaultAnswersCount = getInitialAnswersCount()
           setAnswers(loadedData.answers && loadedData.answers.length > 0 
-            ? loadedData.answers 
-            : Array.from({ length: defaultAnswersCount }, () => ({ value: '', isCorrect: false }))
+            ? fixMath1Answers(loadedData.answers)
+            : (questionType === 'math1' ? getInitialAnswersForMath1() : Array.from({ length: defaultAnswersCount }, (_, i) => createAnswer('', false, i)))
           )
         }
         
         setPoints(loadedData.points || 1)
         setTimeLimit(loadedData.timeLimit || 60)
-        setImageUrl(loadedData.imageUrl || '')
+        const newImageUrl = loadedData.imageUrl || ''
+        setImageUrl(newImageUrl)
+        setImageLoadError(false) // Сбрасываем ошибку при загрузке новых данных
         
         // Загружаем AI объяснение
         if (loadedData.explanation_ai) {
@@ -251,9 +291,47 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
         } else {
         // Если данных нет, инициализируем с правильным количеством ответов
         const defaultAnswersCount = getInitialAnswersCount()
-      setAnswers(Array.from({ length: defaultAnswersCount }, () => ({ value: '', isCorrect: false })))
+      setAnswers(questionType === 'math1' ? getInitialAnswersForMath1() : Array.from({ length: defaultAnswersCount }, (_, i) => createAnswer('', false, i)))
     }
   }, [mounted, questionId, questionType])
+
+  // Следим за изменениями в localStorage (например, при загрузке изображения)
+  useEffect(() => {
+    if (!mounted) return
+
+    const checkForUpdates = () => {
+      const currentData = loadQuestionDraft(questionId, questionType)
+      // Обновляем imageUrl только если:
+      // 1. В localStorage есть URL и он отличается от текущего
+      // 2. В localStorage пусто и текущий URL не пустой (но не обновляем, если мы только что удалили)
+      if (currentData && currentData.imageUrl && currentData.imageUrl !== imageUrl) {
+        setImageUrl(currentData.imageUrl)
+        setImageLoadError(false) // Сбрасываем ошибку при обновлении URL
+      }
+    }
+
+    // Проверяем обновления каждые 500ms
+    const interval = setInterval(checkForUpdates, 500)
+    return () => clearInterval(interval)
+  }, [mounted, questionId, questionType, imageUrl])
+
+  // Обновляем фиксированные тексты math1 при изменении языка теста
+  useEffect(() => {
+    if (!mounted || questionType !== 'math1') return
+
+    setAnswers(prev => {
+      const newAnswers = [...prev]
+      const isKyrgyz = testLanguage === 'kg'
+      
+      // Обновляем только фиксированные варианты В и Г
+      if (newAnswers.length >= 4) {
+        newAnswers[2] = { ...newAnswers[2], value: isKyrgyz ? 'эки чоңдук тең' : 'оба величины ровны' }
+        newAnswers[3] = { ...newAnswers[3], value: isKyrgyz ? 'чоңдуктардын катышын аныктоо мүмкүн эмес' : 'Невозможно определить соотношение величин' }
+      }
+      
+      return newAnswers
+    })
+  }, [mounted, questionType, testLanguage])
 
   // Обновляем количество ответов при изменении типа вопроса
   useEffect(() => {
@@ -265,16 +343,22 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
     
     // Если текущее количество ответов не соответствует требуемому, обновляем
     if (answers.length !== requiredCount) {
-      if (answers.length < requiredCount) {
-        // Добавляем недостающие ответы
+      if (questionType === 'math1') {
+        // Для math1 всегда используем фиксированную структуру
+        setAnswers(getInitialAnswersForMath1())
+      } else if (answers.length < requiredCount) {
+        // Добавляем недостающие ответы с правильными ID и order
         const newAnswers = [...answers]
         while (newAnswers.length < requiredCount) {
-          newAnswers.push({ value: '', isCorrect: false })
+          newAnswers.push(createAnswer('', false, newAnswers.length))
         }
         setAnswers(newAnswers)
       } else {
         // Удаляем лишние ответы (но не меньше минимума)
-        const newAnswers = answers.slice(0, requiredCount)
+        const newAnswers = answers.slice(0, requiredCount).map((answer, i) => ({
+          ...answer,
+          order: i // Пересчитываем order
+        }))
         // Если удалили правильный ответ, делаем первый правильным
         const hasCorrect = newAnswers.some(a => a.isCorrect)
         if (!hasCorrect && newAnswers.length > 0) {
@@ -1075,7 +1159,9 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
   const handleAddAnswer = () => {
     const maxAnswers = getMaxAnswersCountForType(questionType)
     if (answers.length < maxAnswers) {
-    setAnswers([...answers, { value: '', isCorrect: false }])
+      // Создаем новый ответ с уникальным ID и следующим порядковым номером
+      const newAnswer = createAnswer('', false, answers.length)
+      setAnswers([...answers, newAnswer])
     }
   }
 
@@ -1087,16 +1173,27 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
       const wasCorrect = answers[index].isCorrect
       const newAnswers = answers.filter((_, i) => i !== index)
       
+      // Пересчитываем порядковые номера после удаления
+      const reorderedAnswers = newAnswers.map((answer, i) => ({
+        ...answer,
+        order: i
+      }))
+      
       // Если удалили правильный ответ, делаем первый ответ правильным
-      if (wasCorrect && newAnswers.length > 0) {
-        newAnswers[0].isCorrect = true
+      if (wasCorrect && reorderedAnswers.length > 0) {
+        reorderedAnswers[0].isCorrect = true
       }
       
-      setAnswers(newAnswers)
+      setAnswers(reorderedAnswers)
     }
   }
 
   const handleAnswerChange = (index: number, value: string) => {
+    // Для math1 не позволяем изменять варианты В (индекс 2) и Г (индекс 3)
+    if (questionType === 'math1' && (index === 2 || index === 3)) {
+      return
+    }
+    
     const newAnswers = [...answers]
     newAnswers[index].value = value
     setAnswers(newAnswers)
@@ -1105,6 +1202,71 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
   const handleCorrectAnswerChange = (index: number) => {
     const newAnswers = answers.map((a, i) => ({ ...a, isCorrect: i === index }))
     setAnswers(newAnswers)
+  }
+
+  // Функция для удаления изображения
+  const handleDeleteImage = async () => {
+    if (!imageUrl) return
+
+    try {
+      // Если это blob URL (старые изображения), просто очищаем
+      if (imageUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(imageUrl)
+        setImageUrl('')
+        setImageLoadError(false)
+        
+        // Обновляем localStorage
+        const currentData = loadQuestionDraft(questionId, questionType)
+        if (currentData) {
+          currentData.imageUrl = ''
+          saveQuestionDraft(questionId, questionType, currentData)
+        }
+        
+        onShowToast?.('Изображение удалено', 'success', 'Успешно!')
+        return
+      }
+
+      // Для S3 URL удаляем через API
+      const response = await fetch(`/api/upload/image?url=${encodeURIComponent(imageUrl)}`, {
+        method: 'DELETE'
+      })
+
+      const result = await response.json()
+
+      if (!response.ok || !result.success) {
+        console.error('Ошибка удаления изображения из S3:', result.error)
+        // Все равно очищаем URL локально
+      }
+
+      // Очищаем URL в состоянии
+      setImageUrl('')
+      setImageLoadError(false)
+      
+      // Обновляем localStorage
+      const currentData = loadQuestionDraft(questionId, questionType)
+      if (currentData) {
+        currentData.imageUrl = ''
+        saveQuestionDraft(questionId, questionType, currentData)
+      }
+      
+      onShowToast?.('Изображение удалено', 'success', 'Успешно!')
+      
+    } catch (error) {
+      console.error('Ошибка при удалении изображения:', error)
+      
+      // В случае ошибки все равно очищаем URL локально
+      setImageUrl('')
+      setImageLoadError(false)
+      
+      // Обновляем localStorage
+      const currentData = loadQuestionDraft(questionId, questionType)
+      if (currentData) {
+        currentData.imageUrl = ''
+        saveQuestionDraft(questionId, questionType, currentData)
+      }
+      
+      onShowToast?.('Изображение удалено локально', 'warning', 'Внимание!')
+    }
   }
 
   if (!mounted) {
@@ -1159,6 +1321,7 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
             </button>
           )}
         </div>
+
           
           {isShowingExplanation ? (
             // Отображение AI объяснения
@@ -1310,9 +1473,80 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
                 </div>
               </div>
             </div>
-          ) : isPreviewMode ? (
-            // Режим предпросмотра - показываем обработанный Markdown
-            <div className="w-full px-5 py-4 rounded-xl bg-[var(--bg-card)] border border-[var(--border-primary)] min-h-[150px] prose prose-invert prose-sm max-w-none text-[var(--text-primary)] transition-colors">
+          ) : (
+            <>
+              {/* Изображение */}
+              {imageUrl && imageUrl.trim() && (
+                <div className="relative w-full max-w-[340px] mx-auto mb-4">
+                  <div 
+                    className="relative w-full bg-gray-900 rounded-lg overflow-hidden group/image" 
+                    style={{ height: '280px' }}
+                  >
+                    {!imageLoadError ? (
+                      <img 
+                        src={imageUrl.startsWith('blob:') ? imageUrl : `/api/proxy-image?url=${encodeURIComponent(imageUrl)}`}
+                        alt="Question" 
+                        className="w-full h-full object-contain"
+                        onLoad={() => {
+                          setImageLoadError(false)
+                          console.log('✅ Изображение успешно загружено:', imageUrl)
+                        }}
+                        onError={(e) => {
+                          console.error('❌ Ошибка загрузки изображения:', imageUrl)
+                          console.error('❌ Детали ошибки:', e)
+                          setImageLoadError(true)
+                        }}
+                      />
+                    ) : (
+                      <div className="w-full h-full flex flex-col items-center justify-center text-gray-400 p-4">
+                        <Icons.AlertCircle className="h-12 w-12 mb-2" />
+                        <p className="text-sm text-center font-medium">Изображение недоступно</p>
+                        <p className="text-xs text-center mt-2 opacity-70 break-all max-w-full">
+                          {imageUrl.length > 60 ? `${imageUrl.substring(0, 60)}...` : imageUrl}
+                        </p>
+                        <p className="text-xs text-center mt-1 opacity-70">
+                          Возможные причины: проблемы с S3, CORS или сетью
+                        </p>
+                        <div className="flex gap-2 mt-3">
+                          <button
+                            onClick={() => {
+                              setImageLoadError(false)
+                              // Принудительно перезагружаем изображение через прокси
+                              const img = new Image()
+                              const proxyUrl = imageUrl.startsWith('blob:') 
+                                ? imageUrl 
+                                : `/api/proxy-image?url=${encodeURIComponent(imageUrl)}&t=${Date.now()}`
+                              img.onload = () => setImageLoadError(false)
+                              img.onerror = () => setImageLoadError(true)
+                              img.src = proxyUrl
+                            }}
+                            className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded transition-colors"
+                          >
+                            Повторить
+                          </button>
+                          <button
+                            onClick={handleDeleteImage}
+                            className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded transition-colors"
+                          >
+                            Удалить
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                    <button
+                      onClick={handleDeleteImage}
+                      className="absolute bottom-10 left-2 p-2 bg-gray-800/90 hover:bg-red-600 rounded-lg transition-all opacity-0 group-hover/image:opacity-100"
+                      title="Удалить изображение"
+                    >
+                      <Icons.Trash2 className="h-5 w-5 text-gray-400 hover:text-white transition-colors" />
+                    </button>
+                  </div>
+                </div>
+              )}
+              
+              {isPreviewMode ? (
+                // Режим предпросмотра - показываем обработанный Markdown
+                <div className="w-full px-5 py-4 rounded-xl bg-[var(--bg-card)] border border-[var(--border-primary)] min-h-[150px] prose prose-invert prose-sm max-w-none text-[var(--text-primary)] transition-colors">
               <ReactMarkdown
                 remarkPlugins={[remarkMath, remarkGfm]}
                 rehypePlugins={[rehypeKatex, rehypeRaw]}
@@ -1378,25 +1612,11 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
                 </svg>
               </div>
             </div>
+              )}
+            </>
           )}
         </div>
 
-        {/* Изображение */}
-        {imageUrl && (
-          <div className="relative">
-            <img
-              src={imageUrl}
-              alt="Question"
-            className="max-w-full h-auto rounded-lg border border-[var(--border-primary)]"
-            />
-            <button
-              onClick={() => setImageUrl('')}
-              className="absolute top-2 right-2 p-1.5 bg-red-500 hover:bg-red-600 rounded-lg transition-colors"
-            >
-            <Icons.Trash2 className="h-4 w-4 text-white" />
-            </button>
-          </div>
-        )}
 
         {/* Варианты ответов - скрываем при показе объяснения */}
         {!isShowingExplanation && (
@@ -1422,7 +1642,11 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
                 <div className="flex-1">
                   {isPreviewMode ? (
                     // Режим предпросмотра - показываем обработанный Markdown
-                    <div className="w-full px-4 py-3 rounded-xl bg-[var(--bg-card)] border border-[var(--border-primary)] min-h-[60px] prose prose-invert prose-sm max-w-none text-[var(--text-primary)] transition-colors">
+                    <div className={`w-full px-4 py-3 rounded-xl border border-[var(--border-primary)] min-h-[60px] prose prose-invert prose-sm max-w-none text-[var(--text-primary)] transition-colors ${
+                      questionType === 'math1' && (index === 2 || index === 3)
+                        ? 'bg-[var(--bg-math1-fixed)] opacity-75' // Стили для нередактируемых полей в режиме предпросмотра
+                        : 'bg-[var(--bg-card)]'
+                    }`}>
                       <ReactMarkdown
                         remarkPlugins={[remarkMath, remarkGfm]}
                         rehypePlugins={[rehypeKatex, rehypeRaw]}
@@ -1451,7 +1675,12 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
                         onChange={(e) => handleAnswerChange(index, e.target.value)}
                         onFocus={() => onFocus?.()}
                         placeholder={`${getText('tests.answer', 'Ответ')} ${index + 1}`}
-                        className="w-full px-4 py-3 rounded-xl text-[var(--text-primary)] placeholder-[var(--text-tertiary)] bg-[var(--bg-card)] border border-[var(--border-primary)] transition-all duration-300 ease-in-out focus:outline-none focus:border-[var(--text-primary)] focus:bg-[var(--bg-tertiary)] hover:border-[var(--border-primary)] resize-none text-sm font-mono"
+                        readOnly={questionType === 'math1' && (index === 2 || index === 3)} // Варианты В и Г не редактируемы для math1
+                        className={`w-full px-4 py-3 rounded-xl text-[var(--text-primary)] placeholder-[var(--text-tertiary)] border border-[var(--border-primary)] transition-all duration-300 ease-in-out focus:outline-none focus:border-[var(--text-primary)] resize-none text-sm font-mono ${
+                          questionType === 'math1' && (index === 2 || index === 3)
+                            ? 'bg-[var(--bg-math1-fixed)] cursor-not-allowed opacity-75' // Стили для нередактируемых полей
+                            : 'bg-[var(--bg-card)] hover:border-[var(--border-primary)] focus:bg-[var(--bg-tertiary)]'
+                        }`}
                       />
                       {/* Кнопка переключения версий - показывается только если есть версии */}
                       {textVersions.answers?.[index] && (

@@ -337,6 +337,20 @@ export class OpenAIService {
       if (hasImage && this.isVisionModel(this.model)) {
         // Если есть изображение и модель поддерживает vision
         console.log('\n🖼️ Режим: VISION (с изображением)')
+        console.log('📸 URL изображения:', questionData.imageUrl)
+        
+        // Для приватных S3 изображений используем прокси
+        let imageUrl = questionData.imageUrl!
+        
+        // Если это S3 URL, используем наш прокси для получения изображения
+        if (imageUrl.includes('s3.') || imageUrl.includes('storage.')) {
+          console.log('🔄 Используем прокси для S3 изображения')
+          // Используем полный URL нашего API (для серверной стороны нужен полный URL)
+          const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
+          imageUrl = `${baseUrl}/api/proxy-image?url=${encodeURIComponent(imageUrl)}`
+          console.log('🔗 Прокси URL:', imageUrl)
+        }
+        
         messages.push({
           role: 'user',
           content: [
@@ -347,14 +361,20 @@ export class OpenAIService {
             {
               type: 'image_url',
               image_url: {
-                url: questionData.imageUrl
+                url: imageUrl,
+                detail: 'high' // Высокое качество для лучшего распознавания
               }
             }
           ]
         })
       } else {
         // Обычный текстовый запрос
-        console.log('\n📝 Режим: ТЕКСТОВЫЙ (без изображения)')
+        if (hasImage) {
+          console.log('\n⚠️ Изображение пропущено: модель не поддерживает vision')
+          console.log('💡 Используйте модель gpt-4o, gpt-4o-mini или gpt-4-turbo для обработки изображений')
+        } else {
+          console.log('\n📝 Режим: ТЕКСТОВЫЙ (без изображения)')
+        }
         messages.push({
           role: 'user',
           content: fullPrompt

@@ -227,7 +227,15 @@ export async function POST(
     })
 
     // Создание вариантов ответов
-    for (const variant of validVariants) {
+    // ВАЖНО: Создаем последовательно, чтобы created_at сохранил порядок
+    for (let i = 0; i < validVariants.length; i++) {
+      const variant = validVariants[i]
+      
+      // Добавляем микрозадержку для гарантии правильного порядка created_at
+      if (i > 0) {
+        await new Promise(resolve => setTimeout(resolve, 1))
+      }
+      
       const createdVariant = await prisma.answer_variants.create({
         data: {
           question_id: createdQuestion.id,

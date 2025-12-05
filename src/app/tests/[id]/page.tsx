@@ -144,6 +144,8 @@ export default function TestEditorPage() {
   })
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false)
   const [isKeyboardOpen, setIsKeyboardOpen] = useState(false)
+  const [questionImages, setQuestionImages] = useState<Record<string, string>>({}) // Хранит URL изображений для каждого вопроса
+  const questionImageInputRef = useRef<HTMLInputElement>(null)
 
   // Данные формы
   const [formData, setFormData] = useState({
@@ -191,6 +193,7 @@ export default function TestEditorPage() {
           const validAnswers = questionData.answers?.filter(a => a.value && a.value.trim()) || []
           const hasCorrectAnswer = validAnswers.some(a => a.isCorrect)
           const hasQuestionText = questionData.question && questionData.question.trim()
+          const hasImage = questionData.imageUrl && questionData.imageUrl.trim()
           const hasMinAnswers = validAnswers.length >= 2
 
           let isFixed = false
@@ -198,8 +201,8 @@ export default function TestEditorPage() {
           // Проверяем тип ошибки и исправлена ли она
           if (error.includes('Не выбран правильный ответ')) {
             isFixed = hasCorrectAnswer && validAnswers.length > 0
-          } else if (error.includes('Текст вопроса не заполнен')) {
-            isFixed = !!hasQuestionText
+          } else if (error.includes('Текст вопроса не заполнен') || error.includes('Заполните текст вопроса или добавьте изображение')) {
+            isFixed = !!(hasQuestionText || hasImage) // Исправлено, если есть текст или изображение
           } else if (error.includes('Необходимо минимум 2 варианта ответа')) {
             isFixed = hasMinAnswers
           } else if (error.includes('Данные вопроса не найдены')) {
@@ -287,8 +290,8 @@ export default function TestEditorPage() {
           const questionWarnings: string[] = []
           const validAnswers = questionData.answers?.filter(a => a.value && a.value.trim()) || []
           
-          if (!questionData.question || !questionData.question.trim()) {
-            questionWarnings.push('Должен быть текст вопроса')
+          if (!questionData.question?.trim() && !questionData.imageUrl) {
+            questionWarnings.push('Должен быть текст вопроса или изображение')
           }
           if (validAnswers.length < 2) {
             questionWarnings.push('Необходимо минимум 2 варианта ответа')
@@ -722,6 +725,102 @@ export default function TestEditorPage() {
     } else {
       // Активный элемент не является textarea - это нормальная ситуация, просто показываем уведомление
       showToast('Выберите поле для улучшения текста', 'warning', 'Внимание!')
+    }
+  }
+
+  // Обработка загрузки изображения для вопроса
+  const handleImageUpload = (questionId: string) => {
+    console.log('🖼️ handleImageUpload вызван для вопроса:', questionId);
+    // Сохраняем ID вопроса для которого загружаем изображение
+    questionImageInputRef.current?.setAttribute('data-question-id', questionId);
+    // Открываем диалог выбора файла
+    if (questionImageInputRef.current) {
+      console.log('✅ questionImageInputRef найден, открываем диалог');
+      questionImageInputRef.current.click();
+    } else {
+      console.error('❌ questionImageInputRef не найден');
+    }
+  }
+
+  const handleQuestionImageSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    const questionId = e.target.getAttribute('data-question-id')
+    
+    if (!file || !questionId) {
+      return
+    }
+
+    // Проверяем тип файла
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
+    if (!allowedTypes.includes(file.type)) {
+      showToast('Неподдерживаемый тип файла. Используйте JPEG, PNG, GIF или WebP', 'error')
+      return
+    }
+
+    // Проверяем размер файла (максимум 5MB)
+    const maxSize = 5 * 1024 * 1024
+    if (file.size > maxSize) {
+      showToast('Размер файла превышает 5MB', 'error')
+      return
+    }
+
+    try {
+      showToast('Загрузка изображения в S3...', 'info', 'Загрузка')
+      
+      // Создаем FormData для отправки файла
+      const uploadFormData = new FormData()
+      uploadFormData.append('file', file)
+
+      // Загружаем изображение в S3 через API
+      const response = await fetch('/api/upload/image', {
+        method: 'POST',
+        body: uploadFormData
+      })
+
+      const result = await response.json()
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || 'Ошибка загрузки изображения в S3')
+      }
+
+      const s3ImageUrl = result.url
+      console.log('✅ Получен S3 URL:', s3ImageUrl)
+      
+      // Сохраняем S3 URL (не blob URL!)
+      setQuestionImages(prev => ({
+        ...prev,
+        [questionId]: s3ImageUrl
+      }))
+
+      // Сохраняем S3 URL в localStorage для вопроса
+      const question = questions.find(q => q.id === questionId)
+      if (question) {
+        const questionData = loadQuestionDraft(questionId, question.type) || {
+          question: '',
+          answers: [],
+          points: 1,
+          timeLimit: 60,
+          language: formData.language
+        }
+        
+        // Сохраняем именно S3 URL, который можно будет сохранить в БД
+        questionData.imageUrl = s3ImageUrl
+        saveQuestionDraft(questionId, question.type, questionData)
+        console.log('💾 S3 URL сохранен в localStorage:', s3ImageUrl)
+      }
+
+      showToast('Изображение успешно загружено в S3', 'success', 'Успешно!')
+      
+    } catch (error) {
+      console.error('❌ Ошибка загрузки изображения в S3:', error)
+      const errorMessage = error instanceof Error ? error.message : 'Неизвестная ошибка'
+      showToast(`Ошибка загрузки в S3: ${errorMessage}`, 'error')
+    } finally {
+      // Очищаем input
+      if (questionImageInputRef.current) {
+        questionImageInputRef.current.value = ''
+        questionImageInputRef.current.removeAttribute('data-question-id')
+      }
     }
   }
 
@@ -1398,9 +1497,9 @@ export default function TestEditorPage() {
         return false // Данные вопроса не найдены
       }
       
-      // Проверка текста вопроса
-      if (!questionData.question || !questionData.question.trim()) {
-        return false // Текст вопроса не заполнен
+      // Проверка текста вопроса (разрешаем пустой текст при наличии изображения)
+      if (!questionData.question?.trim() && !questionData.imageUrl) {
+        return false // Текст вопроса не заполнен и нет изображения
       }
       
       // Проверка вариантов ответов
@@ -1445,9 +1544,9 @@ export default function TestEditorPage() {
       if (!questionData) {
         questionWarnings.push('Данные вопроса не найдены')
       } else {
-        // Проверка текста вопроса
-      if (!questionData.question || !questionData.question.trim()) {
-          questionWarnings.push('Должен быть текст вопроса')
+        // Проверка текста вопроса (разрешаем пустой текст при наличии изображения)
+      if (!questionData.question?.trim() && !questionData.imageUrl) {
+          questionWarnings.push('Должен быть текст вопроса или изображение')
       }
 
         // Проверка вариантов ответов
@@ -1617,9 +1716,9 @@ export default function TestEditorPage() {
           }
           
           // Валидируем данные вопроса перед отправкой
-          if (!questionData || !questionData.question || !questionData.question.trim()) {
-            console.error(`Вопрос ${question.id}: Текст вопроса пустой`)
-            validationErrors.push(`Вопрос ${question.id}: Текст вопроса не заполнен`)
+          if (!questionData || (!questionData.question?.trim() && !questionData.imageUrl)) {
+            console.error(`Вопрос ${question.id}: Текст вопроса пустой и нет изображения`)
+            validationErrors.push(`Вопрос ${question.id}: Заполните текст вопроса или добавьте изображение`)
             errorCount++
             continue
           }
@@ -1668,8 +1767,17 @@ export default function TestEditorPage() {
                 'Content-Type': 'application/json'
               },
               body: JSON.stringify({
-                question: questionData.question.trim(),
-                answerVariants: validAnswers,
+                question: (() => {
+                  const trimmedQuestion = questionData.question.trim()
+                  // Если есть изображение, но нет текста вопроса, вставляем пробел
+                  if (!trimmedQuestion && questionData.imageUrl) {
+                    return ' '
+                  }
+                  return trimmedQuestion
+                })(),
+                answerVariants: validAnswers
+                  .sort((a, b) => (a.order || 0) - (b.order || 0))
+                  .map(({ id, value, isCorrect }) => ({ id, value, isCorrect })),
                 photoUrl: questionData.imageUrl || null,
                 points: questionData.points || 1,
                 timeLimit: questionData.timeLimit || 60,
@@ -2063,13 +2171,20 @@ export default function TestEditorPage() {
                           storageKeyPrefix="testQuestion"
                           testType={question.type}
                         />
-                      <button
-                        onClick={() => handleDeleteQuestion(question.id)}
+                        <button
+                          onClick={() => handleImageUpload(question.id)}
                           className="p-2 hover:bg-[var(--bg-hover)] rounded-lg transition-colors group"
-                        title="Удалить вопрос"
-                      >
+                          title="Загрузить изображение"
+                        >
+                          <Icons.Image className="h-5 w-5 text-gray-400 group-hover:text-blue-400 transition-colors" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteQuestion(question.id)}
+                          className="p-2 hover:bg-[var(--bg-hover)] rounded-lg transition-colors group"
+                          title="Удалить вопрос"
+                        >
                           <Icons.Trash2 className="h-5 w-5 text-gray-400 group-hover:text-red-400 transition-colors" />
-                      </button>
+                        </button>
                       </div>
                     </div>
                     
@@ -2262,6 +2377,15 @@ export default function TestEditorPage() {
             type="file"
             accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
             onChange={handleImageFileSelected}
+            style={{ display: 'none' }}
+          />
+          
+          {/* Скрытый input для загрузки изображений вопросов */}
+          <input
+            ref={questionImageInputRef}
+            type="file"
+            accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
+            onChange={handleQuestionImageSelected}
             style={{ display: 'none' }}
           />
         </div>

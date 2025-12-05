@@ -2,6 +2,8 @@
  * Утилиты для работы с localStorage для тестов и вопросов
  */
 
+import { createId } from '@paralleldrive/cuid2'
+
 // Типы
 export interface DraftTest {
   id: string
@@ -15,9 +17,16 @@ export interface DraftTest {
   section?: 'math1' | 'math2' | 'analogy' | 'rac' | 'grammar' | 'standard'
 }
 
+export interface Answer {
+  id: string // Уникальный CUID для каждого ответа
+  value: string
+  isCorrect: boolean
+  order: number // Порядковый номер для стабильной сортировки
+}
+
 export interface QuestionData {
   question: string
-  answers: Array<{ id?: string; value: string; isCorrect: boolean }>
+  answers: Array<Answer>
   points: number
   timeLimit: number
   imageUrl?: string
@@ -61,6 +70,49 @@ export function generateTempId(): string {
  */
 export function isTempId(id: string): boolean {
   return id.startsWith('temp-')
+}
+
+/**
+ * Создание ответа с уникальным ID и порядковым номером
+ */
+export function createAnswer(value: string = '', isCorrect: boolean = false, order: number): Answer {
+  return {
+    id: createId(),
+    value,
+    isCorrect,
+    order
+  }
+}
+
+/**
+ * Нормализация ответов: добавление ID и order, если их нет
+ * Это обеспечивает обратную совместимость со старыми данными
+ * 
+ * ВАЖНО: Если у ответа есть ID из БД, мы его сохраняем!
+ * Это гарантирует стабильность при загрузке с сервера.
+ */
+export function normalizeAnswers(answers: Array<any>): Array<Answer> {
+  return answers.map((answer, index) => {
+    // КРИТИЧНО: Используем существующий ID из БД, если он есть
+    // Это гарантирует, что порядок не изменится при повторной загрузке
+    const answerId = answer.id || createId()
+    
+    // Order всегда берем из индекса массива - это гарантирует правильный порядок
+    // даже если данные пришли с сервера без поля order
+    return {
+      id: answerId,
+      value: answer.value || '',
+      isCorrect: answer.isCorrect || false,
+      order: index // ВСЕГДА используем индекс массива как order
+    }
+  })
+}
+
+/**
+ * Сортировка ответов по полю order
+ */
+export function sortAnswers(answers: Array<Answer>): Array<Answer> {
+  return [...answers].sort((a, b) => a.order - b.order)
 }
 
 // ========== Работа с черновиками тестов ==========
@@ -381,12 +433,16 @@ export function clearTestFromLocalStorage(testId: string): void {
 export function saveQuestionDraft(questionId: string, questionType: QuestionType, data: QuestionData): void {
   try {
     const key = `${QUESTION_DATA_PREFIX[questionType]}${questionId}`
-    const questionData = {
+    
+    // Нормализуем ответы перед сохранением
+    const normalizedData = {
       ...data,
+      answers: data.answers ? normalizeAnswers(data.answers) : [],
       lastModified: Date.now(),
       version: (data.version || 0) + 1
     }
-    localStorage.setItem(key, JSON.stringify(questionData))
+    
+    localStorage.setItem(key, JSON.stringify(normalizedData))
   } catch (error) {
     console.error('Ошибка сохранения данных вопроса:', error)
   }
@@ -406,7 +462,17 @@ export function loadQuestionDraft(questionId: string, questionType: QuestionType
   try {
     const key = `${QUESTION_DATA_PREFIX[questionType]}${questionId}`
     const data = localStorage.getItem(key)
-    return data ? JSON.parse(data) : null
+    
+    if (!data) return null
+    
+    const parsed = JSON.parse(data)
+    
+    // Нормализуем и сортируем ответы
+    if (parsed.answers && Array.isArray(parsed.answers)) {
+      parsed.answers = sortAnswers(normalizeAnswers(parsed.answers))
+    }
+    
+    return parsed
   } catch (error) {
     console.error('Ошибка загрузки данных вопроса:', error)
     return null

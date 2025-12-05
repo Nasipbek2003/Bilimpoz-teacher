@@ -28,7 +28,7 @@ const TelegramConnectionForm: React.FC<TelegramConnectionFormProps> = ({
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const [checkingStatus, setCheckingStatus] = useState(false)
-  const [botUsername, setBotUsername] = useState('bilimpozteacher_bot')
+  const [botUsername, setBotUsername] = useState('bilimpoz')
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {

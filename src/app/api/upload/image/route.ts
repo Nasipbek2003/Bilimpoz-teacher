@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
-import { uploadFileToS3, getS3Path, generateFileName } from '@/lib/s3'
+import { uploadFileToS3, getS3Path, generateFileName, deleteFileFromS3 } from '@/lib/s3'
 
 export async function POST(request: NextRequest) {
   try {
@@ -55,20 +55,80 @@ export async function POST(request: NextRequest) {
     const buffer = Buffer.from(arrayBuffer)
 
     // Генерируем уникальное имя файла
-    const fileName = generateFileName(file.name, 'question')
+    const fileName = generateFileName(file.name, 'teacher')
     
-    // Получаем путь в S3 для изображений вопросов
-    const s3Path = getS3Path('question-pictures')
+    // Получаем путь в S3 для изображений вопросов учителей
+    const s3Path = getS3Path('teacher-test-images')
 
     // Загружаем в S3
     const fileUrl = await uploadFileToS3(buffer, fileName, file.type, s3Path)
+    
+    console.log('✅ Изображение успешно загружено в S3:', {
+      fileName,
+      fileType: file.type,
+      fileSize: file.size,
+      s3Path,
+      fileUrl
+    })
 
     return NextResponse.json({
       success: true,
-      url: fileUrl
+      url: fileUrl,
+      fileName,
+      size: file.size,
+      type: file.type
     })
   } catch (error) {
     console.error('Ошибка загрузки изображения:', error)
+    return NextResponse.json(
+      { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Внутренняя ошибка сервера' 
+      },
+      { status: 500 }
+    )
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    // Проверка аутентификации
+    const user = await auth(request)
+    if (!user) {
+      return NextResponse.json(
+        { success: false, error: 'Не авторизован' },
+        { status: 401 }
+      )
+    }
+
+    // Проверка роли (только учителя могут удалять изображения)
+    if (user.role !== 'teacher') {
+      return NextResponse.json(
+        { success: false, error: 'Доступ запрещен' },
+        { status: 403 }
+      )
+    }
+
+    // Получаем URL изображения из query параметров
+    const { searchParams } = new URL(request.url)
+    const imageUrl = searchParams.get('url')
+
+    if (!imageUrl) {
+      return NextResponse.json(
+        { success: false, error: 'URL изображения не предоставлен' },
+        { status: 400 }
+      )
+    }
+
+    // Удаляем файл из S3
+    await deleteFileFromS3(imageUrl)
+
+    return NextResponse.json({
+      success: true,
+      message: 'Изображение успешно удалено'
+    })
+  } catch (error) {
+    console.error('Ошибка удаления изображения:', error)
     return NextResponse.json(
       { 
         success: false, 
