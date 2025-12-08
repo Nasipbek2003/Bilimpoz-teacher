@@ -174,8 +174,27 @@ const LessonTestsPage: React.FC<LessonTestsPageProps> = ({
                   >
                     <TestRACBlock
                       blockId={blockId}
-                      data={testData[blockId]}
-                      onUpdate={(updates) => handleUpdateTest(blockId, updates)}
+                      data={{
+                        ...testData[blockId],
+                        textId: 'text-1' as const,
+                        answers: testData[blockId].answers.map(answer => ({
+                          text: answer.value,
+                          isCorrect: answer.isCorrect
+                        }))
+                      }}
+                      language={courseLanguage}
+                      onUpdate={(updates) => {
+                        // Преобразуем обратно из TestBlockData в TestBlock
+                        const convertedUpdates: Partial<TestBlock> = {
+                          ...updates,
+                          answers: updates.answers?.map((answer, index) => ({
+                            id: testData[blockId].answers[index]?.id || `answer_${index}`,
+                            value: answer.text,
+                            isCorrect: answer.isCorrect
+                          }))
+                        }
+                        handleUpdateTest(blockId, convertedUpdates)
+                      }}
                       onRemove={() => handleRemoveTest(blockId)}
                       disabled={disabled}
                     />

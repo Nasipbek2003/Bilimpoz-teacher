@@ -407,10 +407,37 @@ export async function uploadFileToPublicS3(
 
     await s3Client.send(command)
 
+    console.log('📤 Файл загружен в PUBLIC S3 бакет:', config.bucketName)
+    console.log('🔑 Ключ файла:', key)
+
     // Формируем публичный URL файла
-    const fileUrl = `${endpoint}/${config.bucketName}/${key}`
+    // Для PUBLIC S3 всегда включаем бакет в URL
+    let fileUrl: string
+    if (endpoint.includes('twcstorage.ru')) {
+      // Для Timeweb Cloud Storage публичные файлы: https://s3.twcstorage.ru/{bucket}/{key}
+      fileUrl = `${endpoint}/${config.bucketName}/${key}`
+      console.log('🌐 Формат URL для twcstorage.ru (с бакетом):', fileUrl)
+    } else {
+      // Для других провайдеров используем стандартный формат
+      fileUrl = `${endpoint}/${config.bucketName}/${key}`
+      console.log('🌐 Стандартный формат URL (с бакетом):', fileUrl)
+    }
     
     console.log('Файл успешно загружен в PUBLIC S3:', fileUrl)
+    
+    // Тестируем доступность файла
+    try {
+      console.log('🔍 Тестируем доступность файла...')
+      const testResponse = await fetch(fileUrl, { method: 'HEAD' })
+      console.log('📊 Статус доступности:', testResponse.status, testResponse.statusText)
+      if (!testResponse.ok) {
+        console.warn('⚠️ Файл загружен, но недоступен по прямому URL. Возможно, бакет не публичный.')
+      } else {
+        console.log('✅ Файл доступен по прямому URL')
+      }
+    } catch (testError) {
+      console.warn('⚠️ Ошибка при тестировании доступности:', testError)
+    }
     
     return fileUrl
   } catch (error: any) {
@@ -451,29 +478,18 @@ export async function deleteFileFromPublicS3(fileUrl: string): Promise<void> {
     const config = await getPublicS3Config()
     const s3Client = await getPublicS3Client()
 
-    // Извлечение ключа из URL
+    // Извлечение ключа из URL для PUBLIC S3
+    let key: string
+    
+    // Для всех провайдеров теперь используем стандартную логику с бакетом
     const urlParts = fileUrl.split('/')
     const bucketIndex = urlParts.indexOf(config.bucketName)
     
     if (bucketIndex === -1) {
-      console.warn('Bucket не найден в URL, пробуем извлечь ключ иначе:', fileUrl)
-      // Попробуем извлечь путь после домена
-      const urlObj = new URL(fileUrl)
-      const pathParts = urlObj.pathname.split('/').filter(Boolean)
-      if (pathParts.length > 1 && pathParts[0] === config.bucketName) {
-        const key = pathParts.slice(1).join('/')
-        const command = new DeleteObjectCommand({
-          Bucket: config.bucketName,
-          Key: key,
-        })
-        await s3Client.send(command)
-        console.log('Файл успешно удален из PUBLIC S3:', fileUrl)
-        return
-      }
       throw new Error('Неверный URL файла: bucket не найден в URL')
     }
     
-    const key = urlParts.slice(bucketIndex + 1).join('/')
+    key = urlParts.slice(bucketIndex + 1).join('/')
     
     if (key.endsWith('/') || !key.includes('.')) {
       throw new Error('Нельзя удалить папку, только файлы')

@@ -226,9 +226,11 @@ model Users {
   created_teacher_tests Teacher_tests[]
   created_trial_tests   Trial_tests[]
   passed_materials      Passed_materials[]
+  purchased_trial_tests Purchased_trial_tests[]
   
   // Questions
-  passed_questions  Passed_questions[]
+  passed_questions             Passed_questions[]
+  passed_trial_test_questions  Passed_trial_test_questions[]
   
   // Duels
   created_duels     Duels[] @relation("DuelCreator")
@@ -422,6 +424,7 @@ model Trial_tests {
 
   creator                 Users                     @relation(fields: [created_by], references: [id])
   trial_question_groups   Trial_question_groups[]
+  purchased_trial_tests   Purchased_trial_tests[]
 
   @@map("trial_tests")
 }
@@ -441,6 +444,20 @@ model Trial_question_groups {
   trial_test Trial_tests @relation(fields: [trial_test_id], references: [id], onDelete: Cascade)
 
   @@map("trial_question_groups")
+}
+
+model Purchased_trial_tests {
+  id            String   @id @default(cuid())
+  student_id    String
+  trial_test_id String
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+
+  student    Users        @relation(fields: [student_id], references: [id], onDelete: Cascade)
+  trial_test Trial_tests  @relation(fields: [trial_test_id], references: [id], onDelete: Cascade)
+
+  @@unique([student_id, trial_test_id])
+  @@map("purchased_trial_tests")
 }
 
 model Mentor_lessons {
@@ -463,7 +480,8 @@ model Passed_materials {
   material_id   String
   passed_by     String
 
-  user Users @relation(fields: [passed_by], references: [id])
+  user                         Users                         @relation(fields: [passed_by], references: [id])
+  passed_trial_test_questions  Passed_trial_test_questions[]
 
   @@map("passed_materials")
 }
@@ -493,10 +511,11 @@ model Questions {
   created_at           DateTime         @default(now())
   updated_at           DateTime         @updatedAt
 
-  answer_variants   Answer_variants[]
-  passed_questions  Passed_questions[]
-  duel_questions    Duel_questions[]
-  duel_answers      Duel_answers[]
+  answer_variants              Answer_variants[]
+  passed_questions             Passed_questions[]
+  passed_trial_test_questions  Passed_trial_test_questions[]
+  duel_questions               Duel_questions[]
+  duel_answers                 Duel_answers[]
 
   @@map("questions")
 }
@@ -508,7 +527,8 @@ model Answer_variants {
   created_at  DateTime @default(now())
   updated_at  DateTime @updatedAt
 
-  question Questions @relation(fields: [question_id], references: [id], onDelete: Cascade)
+  question                     Questions                     @relation(fields: [question_id], references: [id], onDelete: Cascade)
+  passed_trial_test_questions  Passed_trial_test_questions[]
 
   @@map("answer_variants")
 }
@@ -525,6 +545,24 @@ model Passed_questions {
   user     Users     @relation(fields: [user_id], references: [id])
 
   @@map("passed_questions")
+}
+
+model Passed_trial_test_questions {
+  id                 String                @id @default(cuid())
+  question_id        String
+  user_id            String
+  variant_id         String
+  passed_material_id String
+  status             PassedQuestionStatus
+  created_at         DateTime              @default(now())
+  updated_at         DateTime              @updatedAt
+
+  question        Questions        @relation(fields: [question_id], references: [id])
+  user            Users            @relation(fields: [user_id], references: [id])
+  variant         Answer_variants  @relation(fields: [variant_id], references: [id])
+  passed_material Passed_materials @relation(fields: [passed_material_id], references: [id], onDelete: Cascade)
+
+  @@map("passed_trial_test_questions")
 }
 
 // ДУЭЛЬ

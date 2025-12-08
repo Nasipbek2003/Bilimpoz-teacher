@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
-import { uploadFileToS3, getS3Path, generateFileName, deleteFileFromS3 } from '@/lib/s3'
+import { uploadFileToPublicS3, getS3Path, generateFileName, deleteFileFromPublicS3 } from '@/lib/s3'
 
 export async function POST(request: NextRequest) {
   try {
@@ -60,10 +60,10 @@ export async function POST(request: NextRequest) {
     // Получаем путь в S3 для изображений вопросов учителей
     const s3Path = getS3Path('teacher-test-images')
 
-    // Загружаем в S3
-    const fileUrl = await uploadFileToS3(buffer, fileName, file.type, s3Path)
+    // Загружаем в PUBLIC S3
+    const fileUrl = await uploadFileToPublicS3(buffer, fileName, file.type, s3Path)
     
-    console.log('✅ Изображение успешно загружено в S3:', {
+    console.log('✅ Изображение успешно загружено в PUBLIC S3:', {
       fileName,
       fileType: file.type,
       fileSize: file.size,
@@ -120,8 +120,8 @@ export async function DELETE(request: NextRequest) {
       )
     }
 
-    // Удаляем файл из S3
-    await deleteFileFromS3(imageUrl)
+    // Удаляем файл из PUBLIC S3
+    await deleteFileFromPublicS3(imageUrl)
 
     return NextResponse.json({
       success: true,

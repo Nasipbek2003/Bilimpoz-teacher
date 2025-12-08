@@ -546,8 +546,12 @@ export default function TestEditorPage() {
     if (selectedQuestionId) {
       const questionData = loadQuestionDraft(selectedQuestionId, questions.find(q => q.id === selectedQuestionId)?.type || 'standard')
       
-      if (!questionData || !questionData.question) {
-        alert('Сначала заполните вопрос')
+      // Проверяем, что есть либо текст вопроса, либо изображение
+      const hasQuestionText = questionData?.question && questionData.question.trim()
+      const hasImage = questionData?.imageUrl && questionData.imageUrl.trim()
+      
+      if (!questionData || (!hasQuestionText && !hasImage)) {
+        alert('Сначала заполните текст вопроса или добавьте изображение')
         return
       }
 
@@ -2178,13 +2182,13 @@ export default function TestEditorPage() {
                         >
                           <Icons.Image className="h-5 w-5 text-gray-400 group-hover:text-blue-400 transition-colors" />
                         </button>
-                        <button
-                          onClick={() => handleDeleteQuestion(question.id)}
+                      <button
+                        onClick={() => handleDeleteQuestion(question.id)}
                           className="p-2 hover:bg-[var(--bg-hover)] rounded-lg transition-colors group"
-                          title="Удалить вопрос"
-                        >
+                        title="Удалить вопрос"
+                      >
                           <Icons.Trash2 className="h-5 w-5 text-gray-400 group-hover:text-red-400 transition-colors" />
-                        </button>
+                      </button>
                       </div>
                     </div>
                     
@@ -2239,8 +2243,13 @@ export default function TestEditorPage() {
                         
                         try {
                           const questionData = loadQuestionDraft(question.id, question.type)
-                          if (!questionData || !questionData.question) {
-                            showToast('Заполните вопрос и варианты ответов', 'error')
+                          
+                          // Проверяем, что есть либо текст вопроса, либо изображение
+                          const hasQuestionText = questionData?.question && questionData.question.trim()
+                          const hasImage = questionData?.imageUrl && questionData.imageUrl.trim()
+                          
+                          if (!questionData || (!hasQuestionText && !hasImage)) {
+                            showToast('Заполните текст вопроса или добавьте изображение', 'error')
                             return
                           }
                           
@@ -2249,9 +2258,9 @@ export default function TestEditorPage() {
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
                               questionData: {
-                                question: questionData.question,
+                                question: hasQuestionText ? questionData.question : '',
                                 answers: questionData.answers || [],
-                                imageUrl: questionData.imageUrl
+                                imageUrl: hasImage ? questionData.imageUrl : undefined
                               },
                               courseLanguage: formData.language,
                               testType: question.type

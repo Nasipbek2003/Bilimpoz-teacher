@@ -94,13 +94,22 @@ const TestAIExplainButton: React.FC<TestAIExplainButtonProps> = ({
     // Всегда загружаем свежие данные из localStorage
     let questionToUse = ''
     let answersToUse: AnswerVariant[] = []
+    let imageUrlToUse = ''
     
     if (typeof window !== 'undefined' && testType) {
       const questionData = loadQuestionDraft(blockId, testType as QuestionType)
       
+      console.log('📦 Данные из localStorage:', {
+        blockId,
+        testType,
+        questionData,
+        hasImageUrl: !!(questionData?.imageUrl)
+      })
+      
       if (questionData) {
         questionToUse = questionData.question || ''
         answersToUse = questionData.answers || []
+        imageUrlToUse = questionData.imageUrl || ''
       }
     }
     
@@ -111,21 +120,37 @@ const TestAIExplainButton: React.FC<TestAIExplainButtonProps> = ({
     if (answersToUse.length === 0 && answers && answers.length > 0) {
       answersToUse = answers
     }
+    if (!imageUrlToUse && imageUrl) {
+      imageUrlToUse = imageUrl
+    }
     
-    // Валидация
-    if (!questionToUse || !questionToUse.trim()) {
-      const errorMsg = t('testEditor.validation.fillQuestionAndAnswers', 'Заполните вопрос и варианты ответов')
+    // Отладочное логирование
+    console.log('🔍 AI Explain Debug:', {
+      questionToUse,
+      answersToUse,
+      imageUrlFromProps: imageUrl,
+      imageUrlToUse,
+      hasQuestionText: !!(questionToUse && questionToUse.trim()),
+      hasImage: !!(imageUrlToUse && imageUrlToUse.trim())
+    })
+    
+    // Валидация: должен быть либо текст вопроса, либо изображение
+    const hasQuestionText = questionToUse && questionToUse.trim()
+    const hasImage = imageUrlToUse && imageUrlToUse.trim()
+    
+    if (!hasQuestionText && !hasImage) {
+      const errorMsg = t('testEditor.validation.fillQuestionOrImage', 'Заполните текст вопроса или добавьте изображение')
       setToast({
         isOpen: true,
         message: errorMsg,
         variant: 'error'
       })
-      console.error('Question is empty:', { questionToUse })
+      console.error('Neither question text nor image provided:', { questionToUse, imageUrl })
       return null
     }
     
     if (!answersToUse || answersToUse.length === 0) {
-      const errorMsg = t('testEditor.validation.fillQuestionAndAnswers', 'Заполните вопрос и варианты ответов')
+      const errorMsg = t('testEditor.validation.fillAnswers', 'Заполните варианты ответов')
       setToast({
         isOpen: true,
         message: errorMsg,
@@ -138,7 +163,7 @@ const TestAIExplainButton: React.FC<TestAIExplainButtonProps> = ({
     // Проверяем, что хотя бы один ответ заполнен
     const hasFilledAnswers = answersToUse.some(a => a.value && a.value.trim())
     if (!hasFilledAnswers) {
-      const errorMsg = t('testEditor.validation.fillQuestionAndAnswers', 'Заполните хотя бы один вариант ответа')
+      const errorMsg = t('testEditor.validation.fillAtLeastOneAnswer', 'Заполните хотя бы один вариант ответа')
       setToast({
         isOpen: true,
         message: errorMsg,
@@ -152,9 +177,9 @@ const TestAIExplainButton: React.FC<TestAIExplainButtonProps> = ({
     try {
       // Подготовка данных
       const questionData = {
-        question: questionToUse,
+        question: hasQuestionText ? questionToUse : '', // Пустая строка если нет текста
         answers: answersToUse.map(a => ({ value: a.value, isCorrect: a.isCorrect })),
-        imageUrl: imageUrl || undefined
+        imageUrl: hasImage ? imageUrlToUse : undefined
       }
 
       // Вызов AI API
@@ -199,7 +224,12 @@ const TestAIExplainButton: React.FC<TestAIExplainButtonProps> = ({
             // Если данных нет, создаем новую запись
             const newData = {
               question: questionToUse,
-              answers: answersToUse,
+              answers: answersToUse.map((answer, index) => ({
+                id: `answer_${index}`,
+                value: answer.value,
+                isCorrect: answer.isCorrect,
+                order: index
+              })),
               explanation_ai: aiExplanation,
               points: 1,
               timeLimit: 60

@@ -745,19 +745,71 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
       return
     }
     
-    const textarea = questionTextareaRef.current
-    if (!textarea) return
+    // Старый код удален - теперь используем новую логику определения активного поля
 
-    const start = textarea.selectionStart
-    const end = textarea.selectionEnd
-    const selectedText = questionText.substring(start, end)
+    // Этот код перемещен выше в новую логику определения активного поля
 
+    // Определяем активное поле (вопрос или вариант ответа)
+    let activeTextarea: HTMLTextAreaElement | null = null
+    let activeFieldType: 'question' | 'answer' | null = null
+    let activeAnswerIndex: number | null = null
+    let activeText = ''
+    let activeStart = 0
+    let activeEnd = 0
+    
+    // Сначала пытаемся использовать сохраненное выделение
+    if (savedTextareaSelection && savedTextareaSelection.textarea) {
+      activeTextarea = savedTextareaSelection.textarea
+      activeFieldType = savedTextareaSelection.fieldType
+      activeAnswerIndex = savedTextareaSelection.answerIndex
+      activeStart = activeTextarea.selectionStart
+      activeEnd = activeTextarea.selectionEnd
+      
+      if (activeFieldType === 'question') {
+        activeText = questionText
+      } else if (activeFieldType === 'answer' && activeAnswerIndex !== null) {
+        activeText = answers[activeAnswerIndex]?.value || ''
+      }
+    } else {
+      // Fallback: ищем активный элемент
+      const activeElement = document.activeElement
+      if (activeElement && activeElement.tagName === 'TEXTAREA') {
+        activeTextarea = activeElement as HTMLTextAreaElement
+        const isQuestionTextarea = activeTextarea === questionTextareaRef.current
+        const answerIndexAttr = activeTextarea.getAttribute('data-answer-index')
+        
+        if (isQuestionTextarea) {
+          activeFieldType = 'question'
+          activeText = questionText
+          activeStart = activeTextarea.selectionStart
+          activeEnd = activeTextarea.selectionEnd
+        } else if (answerIndexAttr !== null) {
+          activeFieldType = 'answer'
+          activeAnswerIndex = parseInt(answerIndexAttr)
+          activeText = answers[activeAnswerIndex]?.value || ''
+          activeStart = activeTextarea.selectionStart
+          activeEnd = activeTextarea.selectionEnd
+        }
+      }
+    }
+    
+    // Если не удалось определить активное поле, используем поле вопроса как fallback
+    if (!activeTextarea || !activeFieldType) {
+      activeTextarea = questionTextareaRef.current
+      activeFieldType = 'question'
+      activeText = questionText
+      activeStart = activeTextarea?.selectionStart || 0
+      activeEnd = activeTextarea?.selectionEnd || 0
+    }
+    
+    const selectedText = activeText.substring(activeStart, activeEnd)
+    
     // Для формул используем старую логику (без toggle)
     if (format === 'inline-formula' || format === 'block-formula') {
       let formattedText = ''
       
       // Проверяем, что находится перед курсором (для добавления пробела между формулами)
-      const textBefore = questionText.substring(0, start)
+      const textBefore = activeText.substring(0, activeStart)
       const endsWithFormula = textBefore.length > 0 && 
         (textBefore.endsWith('$$') || textBefore.endsWith('$'))
       const needsSpace = endsWithFormula && 
@@ -774,92 +826,99 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
       }
 
       const newText = 
-        questionText.substring(0, start) + 
+        activeText.substring(0, activeStart) + 
         formattedText + 
-        questionText.substring(end)
+        activeText.substring(activeEnd)
       
-      setQuestionText(newText)
+      // Обновляем соответствующее поле
+      if (activeFieldType === 'question') {
+        setQuestionText(newText)
+      } else if (activeFieldType === 'answer' && activeAnswerIndex !== null) {
+        setAnswers(prev => prev.map((a, i) => 
+          i === activeAnswerIndex ? { ...a, value: newText } : a
+        ))
+      }
       
       setTimeout(() => {
-        textarea.focus()
-        const newPosition = start + formattedText.length
-        textarea.setSelectionRange(newPosition, newPosition)
+        activeTextarea?.focus()
+        const newPosition = activeStart + formattedText.length
+        activeTextarea?.setSelectionRange(newPosition, newPosition)
       }, 0)
       return
     }
 
     // Для текстового форматирования используем toggle-логику
-    const activeFormats = getActiveFormats(questionText, start, end)
-    let newText = questionText
-    let newStart = start
-    let newEnd = end
+    const activeFormats = getActiveFormats(activeText, activeStart, activeEnd)
+    let newText = activeText
+    let newStart = activeStart
+    let newEnd = activeEnd
 
     switch (format) {
       case 'bold':
         if (activeFormats.bold) {
           // Убираем форматирование: удаляем ** с обеих сторон
-          const beforeMarker = questionText.substring(0, start - 2)
-          const afterMarker = questionText.substring(end + 2)
+          const beforeMarker = activeText.substring(0, activeStart - 2)
+          const afterMarker = activeText.substring(activeEnd + 2)
           newText = beforeMarker + selectedText + afterMarker
-          newStart = start - 2
-          newEnd = end - 2
+          newStart = activeStart - 2
+          newEnd = activeEnd - 2
         } else {
           // Добавляем форматирование
           const formattedText = `**${selectedText || 'текст'}**`
-          newText = questionText.substring(0, start) + formattedText + questionText.substring(end)
-          newStart = start + 2
-          newEnd = start + 2 + (selectedText || 'текст').length
+          newText = activeText.substring(0, activeStart) + formattedText + activeText.substring(activeEnd)
+          newStart = activeStart + 2
+          newEnd = activeStart + 2 + (selectedText || 'текст').length
         }
         break
 
       case 'italic':
         if (activeFormats.italic) {
           // Убираем форматирование: удаляем * с обеих сторон
-          const beforeMarker = questionText.substring(0, start - 1)
-          const afterMarker = questionText.substring(end + 1)
+          const beforeMarker = activeText.substring(0, activeStart - 1)
+          const afterMarker = activeText.substring(activeEnd + 1)
           newText = beforeMarker + selectedText + afterMarker
-          newStart = start - 1
-          newEnd = end - 1
+          newStart = activeStart - 1
+          newEnd = activeEnd - 1
         } else {
           // Добавляем форматирование
           const formattedText = `*${selectedText || 'текст'}*`
-          newText = questionText.substring(0, start) + formattedText + questionText.substring(end)
-          newStart = start + 1
-          newEnd = start + 1 + (selectedText || 'текст').length
+          newText = activeText.substring(0, activeStart) + formattedText + activeText.substring(activeEnd)
+          newStart = activeStart + 1
+          newEnd = activeStart + 1 + (selectedText || 'текст').length
         }
         break
 
       case 'strikethrough':
         if (activeFormats.strikethrough) {
           // Убираем форматирование: удаляем ~~ с обеих сторон
-          const beforeMarker = questionText.substring(0, start - 2)
-          const afterMarker = questionText.substring(end + 2)
+          const beforeMarker = activeText.substring(0, activeStart - 2)
+          const afterMarker = activeText.substring(activeEnd + 2)
           newText = beforeMarker + selectedText + afterMarker
-          newStart = start - 2
-          newEnd = end - 2
+          newStart = activeStart - 2
+          newEnd = activeEnd - 2
         } else {
           // Добавляем форматирование
           const formattedText = `~~${selectedText || 'текст'}~~`
-          newText = questionText.substring(0, start) + formattedText + questionText.substring(end)
-          newStart = start + 2
-          newEnd = start + 2 + (selectedText || 'текст').length
+          newText = activeText.substring(0, activeStart) + formattedText + activeText.substring(activeEnd)
+          newStart = activeStart + 2
+          newEnd = activeStart + 2 + (selectedText || 'текст').length
         }
         break
 
       case 'underline':
         if (activeFormats.underline) {
           // Убираем форматирование: удаляем <u> и </u>
-          const beforeMarker = questionText.substring(0, start - 3)
-          const afterMarker = questionText.substring(end + 4)
+          const beforeMarker = activeText.substring(0, activeStart - 3)
+          const afterMarker = activeText.substring(activeEnd + 4)
           newText = beforeMarker + selectedText + afterMarker
-          newStart = start - 3
-          newEnd = end - 3
+          newStart = activeStart - 3
+          newEnd = activeEnd - 3
         } else {
           // Добавляем форматирование
           const formattedText = `<u>${selectedText || 'текст'}</u>`
-          newText = questionText.substring(0, start) + formattedText + questionText.substring(end)
-          newStart = start + 3
-          newEnd = start + 3 + (selectedText || 'текст').length
+          newText = activeText.substring(0, activeStart) + formattedText + activeText.substring(activeEnd)
+          newStart = activeStart + 3
+          newEnd = activeStart + 3 + (selectedText || 'текст').length
         }
         break
 
@@ -867,12 +926,19 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
         return
     }
 
-    setQuestionText(newText)
+    // Обновляем соответствующее поле
+    if (activeFieldType === 'question') {
+      setQuestionText(newText)
+    } else if (activeFieldType === 'answer' && activeAnswerIndex !== null) {
+      setAnswers(prev => prev.map((a, i) => 
+        i === activeAnswerIndex ? { ...a, value: newText } : a
+      ))
+    }
     
     // Восстанавливаем фокус и выделение
     setTimeout(() => {
-        textarea.focus()
-        textarea.setSelectionRange(newStart, newEnd)
+        activeTextarea?.focus()
+        activeTextarea?.setSelectionRange(newStart, newEnd)
       }, 0)
   }, [questionText, handleMagicWand])
 

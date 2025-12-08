@@ -33,15 +33,26 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    console.log('📸 Запрос presigned URL для:', imageUrl)
+    console.log('📸 Запрос изображения для:', imageUrl)
 
-    // Генерируем presigned URL (действителен 1 час)
-    const presignedUrl = await getPresignedUrl(imageUrl, 3600)
+    let fetchUrl: string
+    
+    // Проверяем, нужен ли presigned URL или можно обращаться напрямую
+    // Для PUBLIC S3 (новые изображения) - обращаемся напрямую
+    // Для PRIVATE S3 (старые изображения) - используем presigned URL
+    if (imageUrl.includes('/bilimpoz/teachers/teacher-test-images/')) {
+      // Новые изображения в PUBLIC S3 - доступны напрямую
+      console.log('🔓 PUBLIC S3 изображение, обращаемся напрямую')
+      fetchUrl = imageUrl
+    } else {
+      // Старые изображения в PRIVATE S3 - нужен presigned URL
+      console.log('🔒 PRIVATE S3 изображение, генерируем presigned URL')
+      fetchUrl = await getPresignedUrl(imageUrl, 3600)
+      console.log('✅ Presigned URL сгенерирован успешно')
+    }
 
-    console.log('✅ Presigned URL сгенерирован успешно')
-
-    // Загружаем изображение используя presigned URL
-    const response = await fetch(presignedUrl, {
+    // Загружаем изображение
+    const response = await fetch(fetchUrl, {
       headers: {
         'Accept': 'image/*'
       }
@@ -82,4 +93,10 @@ export async function GET(request: NextRequest) {
     )
   }
 }
+
+
+
+
+
+
 

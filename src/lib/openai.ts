@@ -275,6 +275,10 @@ export class OpenAIService {
 
     const correctAnswer = questionData.answers.find(a => a.isCorrect)?.value || 'не указан'
 
+    // Проверяем наличие текста вопроса и изображения
+    const hasQuestionText = questionData.question && questionData.question.trim() !== ''
+    const hasImage = questionData.imageUrl && questionData.imageUrl.trim() !== ''
+    
     // Формируем полный промпт, подставляя данные вопроса
     // Поддерживаем различные варианты плейсхолдеров (глобальная замена)
     console.log('\n🔍 ПРОВЕРКА ПЛЕЙСХОЛДЕРОВ В ПРОМПТЕ:')
@@ -282,9 +286,11 @@ export class OpenAIService {
     console.log('Промпт содержит {answers}:', promptText.includes('{answers}'))
     console.log('Промпт содержит {correctAnswer}:', promptText.includes('{correctAnswer}'))
     console.log('Промпт содержит {language}:', promptText.includes('{language}'))
+    console.log('Есть текст вопроса:', hasQuestionText)
+    console.log('Есть изображение:', hasImage)
     
     let fullPrompt = promptText
-      .replace(/\{question\}/g, questionData.question)
+      .replace(/\{question\}/g, hasQuestionText ? questionData.question : '')
       .replace(/\{answers\}/g, answersText)
       .replace(/\{language\}/g, courseLanguage === 'kg' ? 'кыргызский' : 'русский')
       .replace(/\{correctAnswer\}/g, correctAnswer)
@@ -292,7 +298,16 @@ export class OpenAIService {
     // Если промпт не содержит плейсхолдеры, добавляем данные в конец
     if (!promptText.includes('{question}') && !promptText.includes('{answers}')) {
       console.log('⚠️ ПРОМПТ НЕ СОДЕРЖИТ ПЛЕЙСХОЛДЕРЫ! Добавляем данные в конец промпта.')
-      fullPrompt += `\n\n---\n\nВОПРОС:\n${questionData.question}\n\nВАРИАНТЫ ОТВЕТОВ:\n${answersText}\n\nПРАВИЛЬНЫЙ ОТВЕТ:\n${correctAnswer}`
+      let questionSection = ''
+      if (hasQuestionText && hasImage) {
+        questionSection = `ВОПРОС (ТЕКСТ):\n${questionData.question}\n\n(К вопросу также прилагается изображение)`
+      } else if (hasQuestionText && !hasImage) {
+        questionSection = `ВОПРОС:\n${questionData.question}`
+      } else if (!hasQuestionText && hasImage) {
+        questionSection = `ВОПРОС:\n(Вопрос представлен в виде изображения)`
+      }
+      
+      fullPrompt += `\n\n---\n\n${questionSection}\n\nВАРИАНТЫ ОТВЕТОВ:\n${answersText}\n\nПРАВИЛЬНЫЙ ОТВЕТ:\n${correctAnswer}`
     }
 
     // Подробное логирование запроса к OpenAI
@@ -301,8 +316,21 @@ export class OpenAIService {
     console.log('='.repeat(80))
     console.log('\n📋 ДАННЫЕ ВОПРОСА:')
     console.log('─'.repeat(80))
-    console.log('Вопрос:')
-    console.log(questionData.question)
+    
+    if (hasQuestionText) {
+      console.log('Текст вопроса:')
+      console.log(questionData.question)
+    } else {
+      console.log('Текст вопроса: (отсутствует)')
+    }
+    
+    if (hasImage) {
+      console.log('\n🖼️ Изображение:')
+      console.log(questionData.imageUrl!.substring(0, 100) + '...')
+    } else {
+      console.log('\n🖼️ Изображение: (отсутствует)')
+    }
+    
     console.log('\n📝 Варианты ответов:')
     questionData.answers.forEach((answer, index) => {
       const label = String.fromCharCode(1040 + index)
@@ -311,11 +339,6 @@ export class OpenAIService {
     })
     console.log('\n✅ Правильный ответ:')
     console.log(correctAnswer)
-    
-    if (questionData.imageUrl) {
-      console.log('\n🖼️ Изображение:')
-      console.log(questionData.imageUrl.substring(0, 100) + '...')
-    }
 
     console.log('\n' + '─'.repeat(80))
     console.log('📨 ПОЛНЫЙ ПРОМПТ, ОТПРАВЛЯЕМЫЙ В OPENAI:')
@@ -323,8 +346,7 @@ export class OpenAIService {
     console.log(fullPrompt)
     console.log('─'.repeat(80))
 
-    // Если есть изображение, используем vision модель
-    const hasImage = questionData.imageUrl && questionData.imageUrl.trim() !== ''
+    // Используем уже объявленную переменную hasImage
     
     try {
       const messages: any[] = [
@@ -338,18 +360,30 @@ export class OpenAIService {
         // Если есть изображение и модель поддерживает vision
         console.log('\n🖼️ Режим: VISION (с изображением)')
         console.log('📸 URL изображения:', questionData.imageUrl)
+        console.log('📝 Текст вопроса:', hasQuestionText ? 'Есть' : 'Отсутствует')
         
-        // Для приватных S3 изображений используем прокси
+        // Обработка изображений
         let imageUrl = questionData.imageUrl!
         
-        // Если это S3 URL, используем наш прокси для получения изображения
+        // Проверяем тип S3 изображения
         if (imageUrl.includes('s3.') || imageUrl.includes('storage.')) {
-          console.log('🔄 Используем прокси для S3 изображения')
-          // Используем полный URL нашего API (для серверной стороны нужен полный URL)
-          const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
-          imageUrl = `${baseUrl}/api/proxy-image?url=${encodeURIComponent(imageUrl)}`
-          console.log('🔗 Прокси URL:', imageUrl)
+          console.log('📍 Оригинальный S3 URL:', imageUrl)
+          
+          // Для новых публичных изображений (teacher-test-images) используем прямой URL
+          if (imageUrl.includes('/bilimpoz/teachers/teacher-test-images/')) {
+            console.log('🔓 Публичное S3 изображение, используем прямой URL')
+            // imageUrl остается без изменений
+          } else {
+            // Для старых приватных изображений используем прокси
+            console.log('🔒 Приватное S3 изображение, используем прокси')
+            const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
+            console.log('🌐 Base URL:', baseUrl)
+            imageUrl = `${baseUrl}/api/proxy-image?url=${encodeURIComponent(imageUrl)}`
+            console.log('🔗 Прокси URL:', imageUrl)
+          }
         }
+        
+        console.log('🖼️ Финальный URL изображения:', imageUrl)
         
         messages.push({
           role: 'user',
@@ -372,9 +406,15 @@ export class OpenAIService {
         if (hasImage) {
           console.log('\n⚠️ Изображение пропущено: модель не поддерживает vision')
           console.log('💡 Используйте модель gpt-4o, gpt-4o-mini или gpt-4-turbo для обработки изображений')
+          
+          // Если нет текста вопроса, но есть изображение, которое не может быть обработано
+          if (!hasQuestionText) {
+            throw new Error('Невозможно обработать вопрос: нет текста, а модель не поддерживает изображения. Используйте модель с поддержкой vision (gpt-4o, gpt-4o-mini, gpt-4-turbo) или добавьте текст вопроса.')
+          }
         } else {
           console.log('\n📝 Режим: ТЕКСТОВЫЙ (без изображения)')
         }
+        
         messages.push({
           role: 'user',
           content: fullPrompt

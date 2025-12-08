@@ -19,9 +19,20 @@ export async function POST(request: NextRequest) {
     const { questionData, courseLanguage, testType } = body
 
     // 3. Валидация
-    if (!questionData || !questionData.question || !questionData.answers) {
+    if (!questionData || !questionData.answers) {
       return NextResponse.json(
         { error: 'Данные вопроса обязательны' },
+        { status: 400 }
+      )
+    }
+
+    // Проверяем, что есть либо текст вопроса, либо изображение
+    const hasQuestionText = questionData.question && questionData.question.trim() !== ''
+    const hasImage = questionData.imageUrl && questionData.imageUrl.trim() !== ''
+    
+    if (!hasQuestionText && !hasImage) {
+      return NextResponse.json(
+        { error: 'Необходимо указать либо текст вопроса, либо изображение' },
         { status: 400 }
       )
     }
@@ -72,6 +83,19 @@ export async function POST(request: NextRequest) {
     if (!promptText) {
       promptSource = 'Дефолтный'
       const languageName = courseLanguage === 'kg' ? 'кыргызский' : 'русский'
+      
+      // Формируем промпт в зависимости от наличия текста и изображения
+      let questionSection = ''
+      if (hasQuestionText && hasImage) {
+        questionSection = `Вопрос (текст): {question}
+
+Также к вопросу прилагается изображение, которое нужно обязательно учесть при объяснении.`
+      } else if (hasQuestionText && !hasImage) {
+        questionSection = `Вопрос: {question}`
+      } else if (!hasQuestionText && hasImage) {
+        questionSection = `Вопрос представлен в виде изображения. Внимательно изучи изображение и дай объяснение на его основе.`
+      }
+      
       promptText = `Ты - помощник для объяснения учебных вопросов. Объясни следующий вопрос на ${languageName} языке, сделав объяснение понятным и структурированным.
 
 **ВАЖНО:** Твой ответ должен быть в формате Markdown с поддержкой LaTeX для математических формул:
@@ -79,8 +103,9 @@ export async function POST(request: NextRequest) {
 - Используй LaTeX для формул: инлайн формулы через \`$...$\` и блочные через \`$$...$$\`
 - Структурируй объяснение с помощью заголовков и списков
 - Сделай объяснение читаемым и понятным
+- Если есть изображение, обязательно анализируй его содержимое и включай в объяснение
 
-Вопрос: {question}
+${questionSection}
 
 Варианты ответов:
 {answers}
@@ -93,11 +118,19 @@ export async function POST(request: NextRequest) {
     // 5. Вызов AI сервиса с промптом из БД или дефолтным
     const model = await openAIService.getModel()
     console.log(`[AI Explain] Тип: ${testType} | Промпт: ${promptSource} | Модель: ${model}`)
+    console.log(`[AI Explain] Текст вопроса: ${hasQuestionText ? 'Да' : 'Нет'} | Изображение: ${hasImage ? 'Да' : 'Нет'}`)
     
     let explanation: string
     try {
+      // Подготавливаем данные для AI сервиса
+      const aiQuestionData = {
+        question: questionData.question || '', // Пустая строка если нет текста
+        answers: questionData.answers,
+        imageUrl: questionData.imageUrl
+      }
+      
       explanation = await openAIService.explainQuestion(
-        questionData,
+        aiQuestionData,
         courseLanguage as 'kg' | 'ru',
         testType as 'math1' | 'math2' | 'analogy' | 'rac' | 'grammar' | 'standard',
         promptText
