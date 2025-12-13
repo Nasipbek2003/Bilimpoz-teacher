@@ -196,7 +196,7 @@ const TelegramConnectionForm: React.FC<TelegramConnectionFormProps> = ({
       {checkingStatus && (
         <div className="mt-4 text-center">
           <p className="text-[var(--text-tertiary)] text-sm flex items-center justify-center gap-2">
-            <div className="w-4 h-4 border-2 border-[var(--text-tertiary)] border-t-transparent rounded-full animate-spin" />
+            <span className="w-4 h-4 border-2 border-[var(--text-tertiary)] border-t-transparent rounded-full animate-spin inline-block" />
             {getText('telegramConnection.checkingConnection', 'Проверка подключения...')}
           </p>
         </div>

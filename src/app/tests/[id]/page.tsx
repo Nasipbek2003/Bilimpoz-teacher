@@ -546,12 +546,8 @@ export default function TestEditorPage() {
     if (selectedQuestionId) {
       const questionData = loadQuestionDraft(selectedQuestionId, questions.find(q => q.id === selectedQuestionId)?.type || 'standard')
       
-      // Проверяем, что есть либо текст вопроса, либо изображение
-      const hasQuestionText = questionData?.question && questionData.question.trim()
-      const hasImage = questionData?.imageUrl && questionData.imageUrl.trim()
-      
-      if (!questionData || (!hasQuestionText && !hasImage)) {
-        alert('Сначала заполните текст вопроса или добавьте изображение')
+      if (!questionData || !questionData.question) {
+        alert('Сначала заполните вопрос')
         return
       }
 
@@ -2243,13 +2239,8 @@ export default function TestEditorPage() {
                         
                         try {
                           const questionData = loadQuestionDraft(question.id, question.type)
-                          
-                          // Проверяем, что есть либо текст вопроса, либо изображение
-                          const hasQuestionText = questionData?.question && questionData.question.trim()
-                          const hasImage = questionData?.imageUrl && questionData.imageUrl.trim()
-                          
-                          if (!questionData || (!hasQuestionText && !hasImage)) {
-                            showToast('Заполните текст вопроса или добавьте изображение', 'error')
+                          if (!questionData || !questionData.question) {
+                            showToast('Заполните вопрос и варианты ответов', 'error')
                             return
                           }
                           
@@ -2258,9 +2249,9 @@ export default function TestEditorPage() {
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
                               questionData: {
-                                question: hasQuestionText ? questionData.question : '',
+                                question: questionData.question,
                                 answers: questionData.answers || [],
-                                imageUrl: hasImage ? questionData.imageUrl : undefined
+                                imageUrl: questionData.imageUrl
                               },
                               courseLanguage: formData.language,
                               testType: question.type

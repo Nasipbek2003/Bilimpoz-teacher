@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
       include: {
         answer_variants: {
           orderBy: {
-            created_at: 'asc'
+            id: 'asc' // CUID содержит timestamp + counter, гарантирует правильный порядок
           }
         },
         _count: {
@@ -227,17 +227,17 @@ export async function POST(request: NextRequest) {
         }
       })
 
-      // Создаем варианты ответов
-      const createdVariants = await Promise.all(
-        validVariants.map((variant: any) =>
-          tx.answer_variants.create({
+      // Создаем варианты ответов последовательно для правильного порядка ID
+      const createdVariants = []
+      for (const variant of validVariants) {
+        const createdVariant = await tx.answer_variants.create({
             data: {
               question_id: newQuestion.id,
               value: variant.value.trim()
             }
           })
-        )
-      )
+        createdVariants.push(createdVariant)
+      }
 
       // Определяем правильный вариант ответа
       const correctVariant = createdVariants[correct_variant_index]

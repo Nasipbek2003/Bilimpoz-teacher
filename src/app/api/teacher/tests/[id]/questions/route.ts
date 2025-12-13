@@ -59,7 +59,7 @@ export async function GET(
       include: {
         answer_variants: {
           orderBy: {
-            created_at: 'asc'
+            id: 'asc' // CUID содержит timestamp + counter, гарантирует правильный порядок
           }
         }
       },
@@ -227,24 +227,31 @@ export async function POST(
     })
 
     // Создание вариантов ответов
-    // ВАЖНО: Создаем последовательно, чтобы created_at сохранил порядок
+    // ⚠️ КРИТИЧНО: Создаем СТРОГО ПОСЛЕДОВАТЕЛЬНО, один за другим
+    // Это гарантирует, что CUID будут генерироваться в правильном порядке
+    // (timestamp в CUID будет увеличиваться для каждого варианта)
+    const createdAnswers = []
     for (let i = 0; i < validVariants.length; i++) {
       const variant = validVariants[i]
       
-      // Добавляем микрозадержку для гарантии правильного порядка created_at
-      if (i > 0) {
-        await new Promise(resolve => setTimeout(resolve, 1))
-      }
-      
+      // Создаем вариант последовательно, ждем завершения перед следующим
       const createdVariant = await prisma.answer_variants.create({
         data: {
-          question_id: createdQuestion.id,
-          value: variant.value.trim()
+          value: variant.value.trim(),
+          question_id: createdQuestion.id
         }
       })
+      
+      createdAnswers.push(createdVariant)
 
       if (variant.isCorrect) {
         correctVariantIds.push(createdVariant.id)
+      }
+      
+      // Небольшая задержка для гарантии разного timestamp в CUID
+      // (CUID имеет встроенный счетчик, но задержка гарантирует порядок)
+      if (i < validVariants.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, 1))
       }
     }
 
@@ -262,7 +269,7 @@ export async function POST(
       include: {
         answer_variants: {
           orderBy: {
-            created_at: 'asc'
+            id: 'asc' // CUID содержит timestamp + counter, гарантирует правильный порядок
           }
         }
       }

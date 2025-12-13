@@ -409,7 +409,7 @@ export default function TestsPage() {
             <h1 className="text-2xl font-bold text-[var(--text-primary)]">
               {getText('tests.title', 'Тесты')}
             </h1>
-            <p className="text-sm text-[var(--text-tertiary)] mt-1 whitespace-pre-line">
+            <p className="hidden sm:block text-sm text-[var(--text-tertiary)] mt-1 whitespace-pre-line">
               {getText('tests.subtitle', 'Создавайте и управляйте тестами для ваших студентов')}
             </p>
           </div>

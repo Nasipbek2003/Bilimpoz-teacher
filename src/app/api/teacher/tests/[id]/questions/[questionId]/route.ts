@@ -113,34 +113,59 @@ export async function PUT(
       )
     }
 
-    // Удаление старых вариантов ответов
-    await prisma.answer_variants.deleteMany({
-      where: { question_id: questionId }
-    })
-
-    // Определение правильных вариантов
+    // Обновляем ВСЕ варианты ответов (даже если значение не изменилось)
+    // Это гарантирует сохранение created_at и правильную сортировку
+    // ⚠️ КРИТИЧНО: Выполняем СТРОГО ПОСЛЕДОВАТЕЛЬНО, один за другим
+    // Это гарантирует правильный порядок CUID при создании новых вариантов
+    const updatedAnswers = []
     const correctVariantIds: string[] = []
 
-    // Создание новых вариантов ответов
-    // ВАЖНО: Создаем последовательно, чтобы created_at сохранил порядок
     for (let i = 0; i < validVariants.length; i++) {
       const variant = validVariants[i]
+      let savedVariant
       
-      // Добавляем микрозадержку для гарантии правильного порядка created_at
-      if (i > 0) {
-        await new Promise(resolve => setTimeout(resolve, 1))
-      }
-      
-      const createdVariant = await prisma.answer_variants.create({
+      if (variant.id) {
+        // ⚠️ Обновляем существующий вариант ответа по ID (CUID)
+        // created_at останется прежним, updated_at обновится автоматически
+        savedVariant = await prisma.answer_variants.update({
+          where: { id: variant.id },
         data: {
-          question_id: questionId,
           value: variant.value.trim()
         }
       })
+      } else {
+        // Создаём новый вариант ответа (если добавлен новый)
+        // ⚠️ КРИТИЧНО: Создаем последовательно, чтобы CUID был в правильном порядке
+        savedVariant = await prisma.answer_variants.create({
+          data: {
+            value: variant.value.trim(),
+            question_id: questionId
+          }
+        })
+        
+        // Небольшая задержка для гарантии разного timestamp в CUID
+        // (только если это не последний вариант)
+        if (i < validVariants.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 1))
+        }
+      }
+      
+      updatedAnswers.push(savedVariant)
 
       if (variant.isCorrect) {
-        correctVariantIds.push(createdVariant.id)
+        correctVariantIds.push(savedVariant.id)
       }
+    }
+
+    // Удаляем варианты, которых больше нет в списке
+    const currentVariantIds = validVariants.map(v => v.id).filter(Boolean)
+    if (currentVariantIds.length > 0) {
+      await prisma.answer_variants.deleteMany({
+        where: {
+          question_id: questionId,
+          id: { notIn: currentVariantIds }
+        }
+      })
     }
 
     // Обновление вопроса
@@ -157,7 +182,7 @@ export async function PUT(
       include: {
         answer_variants: {
           orderBy: {
-            created_at: 'asc'
+            id: 'asc' // CUID содержит timestamp + counter, гарантирует правильный порядок
           }
         }
       }

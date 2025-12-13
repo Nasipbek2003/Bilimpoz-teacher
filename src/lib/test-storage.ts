@@ -115,6 +115,15 @@ export function sortAnswers(answers: Array<Answer>): Array<Answer> {
   return [...answers].sort((a, b) => a.order - b.order)
 }
 
+/**
+ * Сортировка вариантов ответов по ID (CUID)
+ * Согласно документации answer-variants-sorting.md
+ * CUID содержит timestamp + counter, гарантирует правильный порядок создания
+ */
+export function sortAnswerVariantsByID<T extends { id: string }>(variants: Array<T>): Array<T> {
+  return [...variants].sort((a, b) => a.id.localeCompare(b.id))
+}
+
 // ========== Работа с черновиками тестов ==========
 
 /**

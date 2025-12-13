@@ -259,7 +259,11 @@ const QuestionDetailsModal: React.FC<QuestionDetailsModalProps> = ({
               </h3>
 
               <div className="space-y-3">
-                {(question.answer_variants || []).map((answer, index) => {
+                {/* Варианты ответов уже отсортированы по created_at из API */}
+                {(() => {
+                  const variants = question.answer_variants || []
+                  
+                  return variants.map((answer, index) => {
                   const isCorrect = question.correct_variant_index === index
                   return (
                     <div key={index} className="flex items-start gap-3">
@@ -295,7 +299,8 @@ const QuestionDetailsModal: React.FC<QuestionDetailsModalProps> = ({
                       </div>
                     </div>
                   )
-                })}
+                })
+                })()}
               </div>
             </div>
 

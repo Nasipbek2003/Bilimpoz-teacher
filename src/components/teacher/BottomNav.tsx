@@ -68,14 +68,14 @@ const BottomNav: React.FC = () => {
             <Link
               key={item.href}
               href={item.href}
-              className={`flex flex-col items-center justify-center flex-1 h-full py-2 transition-colors ${
+              className={`flex flex-col items-center justify-center flex-1 h-full py-2 transition-colors rounded-lg mx-1 ${
                 isActive
-                  ? 'text-[var(--text-primary)]'
-                  : 'text-[var(--text-tertiary)]'
+                  ? 'bg-[var(--bg-active)] text-[var(--text-primary)]'
+                  : 'text-[var(--text-tertiary)] hover:text-[var(--text-primary)]'
               }`}
             >
-              <Icon className={`h-5 w-5 mb-1 ${isActive ? 'text-white' : ''}`} />
-              <span className={`text-[10px] font-medium ${isActive ? 'text-white' : ''}`}>
+              <Icon className="h-5 w-5 mb-1" />
+              <span className="text-[10px] font-medium">
                 {getText(item.labelKey, item.fallback)}
               </span>
             </Link>
