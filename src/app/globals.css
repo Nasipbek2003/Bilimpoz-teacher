@@ -2,6 +2,57 @@
 @tailwind components;
 @tailwind utilities;
 
+/* PWA Styles */
+.pwa-mode {
+  /* Убираем отступы для полноэкранного режима */
+  --safe-area-top: env(safe-area-inset-top);
+  --safe-area-bottom: env(safe-area-inset-bottom);
+  --safe-area-left: env(safe-area-inset-left);
+  --safe-area-right: env(safe-area-inset-right);
+}
+
+/* Стили для кнопки установки PWA */
+#pwa-install-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Адаптивные стили для PWA */
+@media (display-mode: standalone) {
+  body {
+    /* Убираем выделение текста на мобильных */
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+  }
+  
+  /* Разрешаем выделение в полях ввода */
+  input, textarea, [contenteditable] {
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
+    user-select: text;
+  }
+}
+
+/* Стили для splash screen */
+@media (prefers-color-scheme: dark) {
+  .splash-screen {
+    background-color: #0A0A0A;
+    color: #ffffff;
+  }
+}
+
+@media (prefers-color-scheme: light) {
+  .splash-screen {
+    background-color: #ffffff;
+    color: #111827;
+  }
+}
+
 /* DayniteJS Theme Variables */
 :root {
   /* Dark theme (default) - предотвращает мигание белого экрана */
